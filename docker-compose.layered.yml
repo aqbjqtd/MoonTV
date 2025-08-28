@@ -1,0 +1,104 @@
+# =================================================================
+# MoonTV 分层镜像 Docker Compose 配置
+# 支持多环境部署和服务编排
+# =================================================================
+
+version: '3.8'
+
+services:
+  # ---- 主应用服务 ----
+  moontv:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: runner
+      args:
+        - BUILD_DATE=${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+      cache_from:
+        - moontv:base
+        - moontv:deps  
+        - moontv:builder
+        - moontv:latest
+    image: moontv:latest
+    container_name: moontv-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - DOCKER_ENV=true
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+      - NEXT_TELEMETRY_DISABLED=1
+    env_file:
+      - .env.local
+    volumes:
+      # 持久化存储
+      - moontv_data:/app/data
+      # 配置文件挂载 (可选)
+      - ./config.json:/app/config.json:ro
+    networks:
+      - moontv-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.moontv.rule=Host(`moontv.local`)"
+      - "traefik.http.services.moontv.loadbalancer.server.port=3000"
+
+  # ---- Redis 缓存服务 (可选) ----
+  redis:
+    image: redis:7-alpine
+    container_name: moontv-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./scripts/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - moontv-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ---- Nginx 反向代理 (可选) ----
+  nginx:
+    image: nginx:alpine
+    container_name: moontv-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - moontv
+    networks:
+      - moontv-network
+
+# ---- 数据卷 ----
+volumes:
+  moontv_data:
+    driver: local
+  redis_data:
+    driver: local
+  nginx_cache:
+    driver: local
+
+# ---- 网络配置 ----
+networks:
+  moontv-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

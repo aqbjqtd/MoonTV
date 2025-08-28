@@ -90,7 +90,6 @@ dist
 
 # Gatsby files
 .cache/
-public
 
 # Storybook build outputs
 .out
@@ -124,6 +123,65 @@ temp/
 # Documentation
 CLAUDE_*.md
 docs/
+*.md
+!README.md
+
+# Additional optimizations for Docker context
+# 开发文件
+.serena/
+.github/
+.husky/
+.vscode/
+
+# 备份和临时文件
+*.backup
+*.bak
+*.bundle
+moonTV-backup-*
+
+# 环境和配置文件（运行时挂载）
+.env*
+!.env.example
+
+# 测试相关
+jest.config.js
+jest.setup.js
+**/__tests__/
+**/*.test.*
+**/*.spec.*
+test-results/
+coverage/
+
+# 构建缓存和输出
+.next/cache/
+out/
+dist/
+
+# 包管理器缓存
+.pnpm-store/
+.npm/
+node_modules/.cache/
+
+# IDE和编辑器
+*.swp
+*.swo
+*~
+.idea/
+*.code-workspace
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 大文件和媒体
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.wmv
+*.flv
+*.webm
 
 # Scripts output
 scripts/output/
