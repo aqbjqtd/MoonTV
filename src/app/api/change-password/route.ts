@@ -1,10 +1,13 @@
-/* eslint-disable no-console*/
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getStorage } from '@/lib/db';
+import { createApiLogger } from '@/lib/request-logger';
 import { IStorage } from '@/lib/types';
+
+const changepasswordLogger = createApiLogger('change-password');
+
 
 
 export async function POST(request: NextRequest) {
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('修改密码失败:', error);
+    changepasswordLogger.logError(error as Error);
     return NextResponse.json(
       {
         error: '修改密码失败',

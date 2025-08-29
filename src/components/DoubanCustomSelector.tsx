@@ -99,6 +99,7 @@ const DoubanCustomSelector: React.FC<DoubanCustomSelectorProps> = ({
         capsuleContainer.removeEventListener('wheel', handleSecondaryWheel);
       };
     }
+    return undefined;
   }, [handleSecondaryWheel]);
 
   // 当二级选项变化时重新添加事件监听器
@@ -120,6 +121,7 @@ const DoubanCustomSelector: React.FC<DoubanCustomSelectorProps> = ({
         capsuleContainer.removeEventListener('wheel', handleSecondaryWheel);
       };
     }
+    return undefined;
   }, [handleSecondaryWheel, secondaryOptions]);
 
   // 更新指示器位置的通用函数
@@ -153,6 +155,7 @@ const DoubanCustomSelector: React.FC<DoubanCustomSelectorProps> = ({
       }, 0);
       return () => clearTimeout(timeoutId);
     }
+    return undefined;
   };
 
   // 组件挂载时立即计算初始位置
@@ -198,6 +201,7 @@ const DoubanCustomSelector: React.FC<DoubanCustomSelectorProps> = ({
       );
       return cleanup;
     }
+    return undefined;
   }, [primarySelection, primaryOptions]);
 
   // 监听副选择器变化
@@ -214,6 +218,7 @@ const DoubanCustomSelector: React.FC<DoubanCustomSelectorProps> = ({
       );
       return cleanup;
     }
+    return undefined;
   }, [secondarySelection, secondaryOptions]);
 
   // 渲染胶囊式选择器

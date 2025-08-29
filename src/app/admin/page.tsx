@@ -1425,6 +1425,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
       return () =>
         document.removeEventListener('mousedown', handleClickOutside);
     }
+    return undefined;
   }, [isDoubanDropdownOpen]);
 
   useEffect(() => {
@@ -1442,6 +1443,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
       return () =>
         document.removeEventListener('mousedown', handleClickOutside);
     }
+    return undefined;
   }, [isDoubanImageProxyDropdownOpen]);
 
   // 处理豆瓣数据源变化

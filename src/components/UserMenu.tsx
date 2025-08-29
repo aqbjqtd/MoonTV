@@ -1,5 +1,3 @@
-/* eslint-disable no-console,@typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
-
 'use client';
 
 import {
@@ -18,6 +16,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
+import { createLogger } from '@/lib/logger';
 import { checkForUpdates, CURRENT_VERSION, UpdateStatus } from '@/lib/version';
 
 import { VersionPanel } from './VersionPanel';
@@ -27,7 +26,11 @@ interface AuthInfo {
   role?: 'owner' | 'admin' | 'user';
 }
 
-export const UserMenu: React.FC = () => {
+type UserMenuProps = Record<string, never>;
+
+const logger = createLogger('UserMenu');
+
+export const UserMenu: React.FC<UserMenuProps> = () => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -95,8 +98,12 @@ export const UserMenu: React.FC = () => {
       const auth = getAuthInfoFromBrowserCookie();
       setAuthInfo(auth);
 
-      const type =
-        (window as any).RUNTIME_CONFIG?.STORAGE_TYPE || 'localstorage';
+      const windowWithConfig = window as Window & {
+        RUNTIME_CONFIG?: {
+          STORAGE_TYPE?: string;
+        };
+      };
+      const type = windowWithConfig.RUNTIME_CONFIG?.STORAGE_TYPE || 'localstorage';
       setStorageType(type);
     }
   }, []);
@@ -104,6 +111,15 @@ export const UserMenu: React.FC = () => {
   // 从 localStorage 读取设置
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const windowWithConfig = window as Window & {
+        RUNTIME_CONFIG?: {
+          STORAGE_TYPE?: string;
+          DOUBAN_PROXY_TYPE?: string;
+          DOUBAN_PROXY?: string;
+          DOUBAN_IMAGE_PROXY_TYPE?: string;
+          DOUBAN_IMAGE_PROXY?: string;
+        };
+      };
       const savedAggregateSearch = localStorage.getItem(
         'defaultAggregateSearch'
       );
@@ -113,7 +129,7 @@ export const UserMenu: React.FC = () => {
 
       const savedDoubanDataSource = localStorage.getItem('doubanDataSource');
       const defaultDoubanProxyType =
-        (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY_TYPE || 'direct';
+        windowWithConfig.RUNTIME_CONFIG?.DOUBAN_PROXY_TYPE || 'direct';
       if (savedDoubanDataSource !== null) {
         setDoubanDataSource(savedDoubanDataSource);
       } else if (defaultDoubanProxyType) {
@@ -122,7 +138,7 @@ export const UserMenu: React.FC = () => {
 
       const savedDoubanProxyUrl = localStorage.getItem('doubanProxyUrl');
       const defaultDoubanProxy =
-        (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY || '';
+        windowWithConfig.RUNTIME_CONFIG?.DOUBAN_PROXY || '';
       if (savedDoubanProxyUrl !== null) {
         setDoubanProxyUrl(savedDoubanProxyUrl);
       } else if (defaultDoubanProxy) {
@@ -133,7 +149,7 @@ export const UserMenu: React.FC = () => {
         'doubanImageProxyType'
       );
       const defaultDoubanImageProxyType =
-        (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'direct';
+        windowWithConfig.RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'direct';
       if (savedDoubanImageProxyType !== null) {
         setDoubanImageProxyType(savedDoubanImageProxyType);
       } else if (defaultDoubanImageProxyType) {
@@ -144,7 +160,7 @@ export const UserMenu: React.FC = () => {
         'doubanImageProxyUrl'
       );
       const defaultDoubanImageProxyUrl =
-        (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY || '';
+        windowWithConfig.RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY || '';
       if (savedDoubanImageProxyUrl !== null) {
         setDoubanImageProxyUrl(savedDoubanImageProxyUrl);
       } else if (defaultDoubanImageProxyUrl) {
@@ -166,7 +182,7 @@ export const UserMenu: React.FC = () => {
         const status = await checkForUpdates();
         setUpdateStatus(status);
       } catch (error) {
-        console.warn('版本检查失败:', error);
+        logger.warn('版本检查失败', { error: String(error) });
       } finally {
         setIsChecking(false);
       }
@@ -191,6 +207,7 @@ export const UserMenu: React.FC = () => {
       return () =>
         document.removeEventListener('mousedown', handleClickOutside);
     }
+    return undefined;
   }, [isDoubanDropdownOpen]);
 
   useEffect(() => {
@@ -208,6 +225,7 @@ export const UserMenu: React.FC = () => {
       return () =>
         document.removeEventListener('mousedown', handleClickOutside);
     }
+    return undefined;
   }, [isDoubanImageProxyDropdownOpen]);
 
   const handleMenuClick = () => {
@@ -225,7 +243,7 @@ export const UserMenu: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch (error) {
-      console.error('注销请求失败:', error);
+      logger.error('注销请求失败', error as Error);
     }
     window.location.href = '/';
   };
@@ -365,14 +383,23 @@ export const UserMenu: React.FC = () => {
   };
 
   const handleResetSettings = () => {
+    const windowWithConfig = window as Window & {
+      RUNTIME_CONFIG?: {
+        DOUBAN_PROXY_TYPE?: string;
+        DOUBAN_PROXY?: string;
+        DOUBAN_IMAGE_PROXY_TYPE?: string;
+        DOUBAN_IMAGE_PROXY?: string;
+      };
+    };
+    
     const defaultDoubanProxyType =
-      (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY_TYPE || 'direct';
+      windowWithConfig.RUNTIME_CONFIG?.DOUBAN_PROXY_TYPE || 'direct';
     const defaultDoubanProxy =
-      (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY || '';
+      windowWithConfig.RUNTIME_CONFIG?.DOUBAN_PROXY || '';
     const defaultDoubanImageProxyType =
-      (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'direct';
+      windowWithConfig.RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'direct';
     const defaultDoubanImageProxyUrl =
-      (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY || '';
+      windowWithConfig.RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY || '';
 
     setDefaultAggregateSearch(true);
     setEnableOptimization(true);
@@ -634,13 +661,16 @@ export const UserMenu: React.FC = () => {
               <div className='mt-3'>
                 <button
                   type='button'
-                  onClick={() =>
-                    window.open(getThanksInfo(doubanDataSource)!.url, '_blank')
-                  }
+                  onClick={() => {
+                    const thanksInfo = getThanksInfo(doubanDataSource);
+                    if (thanksInfo) {
+                      window.open(thanksInfo.url, '_blank');
+                    }
+                  }}
                   className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
                 >
                   <span className='font-medium'>
-                    {getThanksInfo(doubanDataSource)!.text}
+                    {getThanksInfo(doubanDataSource)?.text}
                   </span>
                   <ExternalLink className='w-3.5 opacity-70' />
                 </button>
@@ -741,16 +771,16 @@ export const UserMenu: React.FC = () => {
               <div className='mt-3'>
                 <button
                   type='button'
-                  onClick={() =>
-                    window.open(
-                      getThanksInfo(doubanImageProxyType)!.url,
-                      '_blank'
-                    )
-                  }
+                  onClick={() => {
+                    const thanksInfo = getThanksInfo(doubanImageProxyType);
+                    if (thanksInfo) {
+                      window.open(thanksInfo.url, '_blank');
+                    }
+                  }}
                   className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
                 >
                   <span className='font-medium'>
-                    {getThanksInfo(doubanImageProxyType)!.text}
+                    {getThanksInfo(doubanImageProxyType)?.text}
                   </span>
                   <ExternalLink className='w-3.5 opacity-70' />
                 </button>

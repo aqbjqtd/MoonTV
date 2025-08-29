@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any,react-hooks/exhaustive-deps */
-
 'use client';
 
 import { Moon, Sun } from 'lucide-react';
@@ -13,14 +11,14 @@ export function ThemeToggle() {
   const pathname = usePathname();
 
   const setThemeColor = (theme?: string) => {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) {
-      const meta = document.createElement('meta');
-      meta.name = 'theme-color';
-      meta.content = theme === 'dark' ? '#0c111c' : '#f9fbfe';
-      document.head.appendChild(meta);
+    const existingMeta = document.querySelector('meta[name="theme-color"]');
+    if (!existingMeta) {
+      const newMeta = document.createElement('meta');
+      newMeta.name = 'theme-color';
+      newMeta.content = theme === 'dark' ? '#0c111c' : '#f9fbfe';
+      document.head.appendChild(newMeta);
     } else {
-      meta.setAttribute('content', theme === 'dark' ? '#0c111c' : '#f9fbfe');
+      existingMeta.setAttribute('content', theme === 'dark' ? '#0c111c' : '#f9fbfe');
     }
   };
 
@@ -44,12 +42,18 @@ export function ThemeToggle() {
     // 检查浏览器是否支持 View Transitions API
     const targetTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
     setThemeColor(targetTheme);
-    if (!(document as any).startViewTransition) {
+    
+    // 类型安全的 View Transitions API 检查
+    const documentWithTransition = document as Document & {
+      startViewTransition?: (callback: () => void) => void;
+    };
+    
+    if (!documentWithTransition.startViewTransition) {
       setTheme(targetTheme);
       return;
     }
 
-    (document as any).startViewTransition(() => {
+    documentWithTransition.startViewTransition(() => {
       setTheme(targetTheme);
     });
   };

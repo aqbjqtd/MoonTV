@@ -1,10 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any,no-console */
-
 import { NextResponse } from 'next/server';
 
 import { getCacheTime, getConfig } from '@/lib/config';
 import { searchFromApi } from '@/lib/downstream';
+import { handleError } from '@/lib/error-handler';
+import { createApiLogger } from '@/lib/request-logger';
+import { SearchResult } from '@/lib/types';
 import { yellowWords } from '@/lib/yellow';
+
+const searchLogger = createApiLogger('search');
 
 
 export async function GET(request: Request) {
@@ -36,7 +39,7 @@ export async function GET(request: Request) {
         setTimeout(() => reject(new Error(`${site.name} timeout`)), 20000)
       ),
     ]).catch((err) => {
-      console.warn(`搜索失败 ${site.name}:`, err.message);
+      searchLogger.logError(err as Error, { siteName: site.name, query });
       return []; // 返回空数组而不是抛出错误
     })
   );
@@ -45,7 +48,7 @@ export async function GET(request: Request) {
     const results = await Promise.allSettled(searchPromises);
     const successResults = results
       .filter((result) => result.status === 'fulfilled')
-      .map((result) => (result as PromiseFulfilledResult<any>).value);
+      .map((result) => (result as PromiseFulfilledResult<SearchResult[]>).value);
     let flattenedResults = successResults.flat();
     if (!config.SiteConfig.DisableYellowFilter) {
       flattenedResults = flattenedResults.filter((result) => {
@@ -66,6 +69,6 @@ export async function GET(request: Request) {
       }
     );
   } catch (error) {
-    return NextResponse.json({ error: '搜索失败' }, { status: 500 });
+    return handleError(error, { path: '/api/search', method: 'GET' });
   }
 }

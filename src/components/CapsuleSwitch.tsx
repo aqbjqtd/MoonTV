@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-
 import React, { useEffect, useRef, useState } from 'react';
 
 interface CapsuleSwitchProps {
@@ -24,8 +22,8 @@ const CapsuleSwitch: React.FC<CapsuleSwitchProps> = ({
 
   const activeIndex = options.findIndex((opt) => opt.value === active);
 
-  // 更新指示器位置
-  const updateIndicatorPosition = () => {
+  // 使用useCallback确保函数引用稳定
+  const updateIndicatorPosition = React.useCallback(() => {
     if (
       activeIndex >= 0 &&
       buttonRefs.current[activeIndex] &&
@@ -45,19 +43,19 @@ const CapsuleSwitch: React.FC<CapsuleSwitchProps> = ({
         }
       }
     }
-  };
+  }, [activeIndex]);
 
   // 组件挂载时立即计算初始位置
   useEffect(() => {
     const timeoutId = setTimeout(updateIndicatorPosition, 0);
     return () => clearTimeout(timeoutId);
-  }, []);
+  }, [updateIndicatorPosition]);
 
   // 监听选中项变化
   useEffect(() => {
     const timeoutId = setTimeout(updateIndicatorPosition, 0);
     return () => clearTimeout(timeoutId);
-  }, [activeIndex]);
+  }, [activeIndex, updateIndicatorPosition]);
 
   return (
     <div

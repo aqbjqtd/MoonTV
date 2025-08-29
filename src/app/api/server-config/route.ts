@@ -1,12 +1,15 @@
-/* eslint-disable no-console */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
+import { createApiLogger } from '@/lib/request-logger';
+
+const serverconfigLogger = createApiLogger('server-config');
+
 
 
 export async function GET(request: NextRequest) {
-  console.log('server-config called: ', request.url);
+  serverconfigLogger.logStart({ url: request.url });
 
   const config = await getConfig();
   const result = {

@@ -1,10 +1,13 @@
-/* eslint-disable no-console */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { AdminConfigResult } from '@/lib/admin.types';
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
+import { createApiLogger } from '@/lib/request-logger';
+
+const adminconfigLogger = createApiLogger('admin-config');
+
 
 
 export async function GET(request: NextRequest) {
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('获取管理员配置失败:', error);
+    adminconfigLogger.logError(error as Error);
     return NextResponse.json(
       {
         error: '获取管理员配置失败',

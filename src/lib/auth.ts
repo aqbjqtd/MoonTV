@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 
 // 从cookie获取认证信息 (服务端使用)
+// 从cookie获取认证信息 (服务端使用)
 export function getAuthInfoFromCookie(request: NextRequest): {
   password?: string;
   username?: string;
@@ -16,12 +17,19 @@ export function getAuthInfoFromCookie(request: NextRequest): {
   try {
     const decoded = decodeURIComponent(authCookie.value);
     const authData = JSON.parse(decoded);
+    
+    // 验证时间戳，防止重放攻击 (1小时有效期)
+    if (authData.timestamp && Date.now() - authData.timestamp > 3600000) {
+      return null;
+    }
+    
     return authData;
   } catch (error) {
     return null;
   }
 }
 
+// 从cookie获取认证信息 (客户端使用)
 // 从cookie获取认证信息 (客户端使用)
 export function getAuthInfoFromBrowserCookie(): {
   password?: string;
@@ -65,8 +73,57 @@ export function getAuthInfoFromBrowserCookie(): {
     }
 
     const authData = JSON.parse(decoded);
+    
+    // 验证时间戳，防止重放攻击 (1小时有效期)
+    if (authData.timestamp && Date.now() - authData.timestamp > 3600000) {
+      return null;
+    }
+    
     return authData;
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * 创建安全的认证Cookie
+ * @param authData 认证数据
+ * @returns 安全的Set-Cookie头值
+ */
+export function createSecureAuthCookie(authData: {
+  username: string;
+  signature?: string;
+  timestamp?: number;
+  role?: 'owner' | 'admin' | 'user';
+}): string {
+  // 添加时间戳防止重放攻击
+  const secureAuthData = {
+    ...authData,
+    timestamp: Date.now(),
+  };
+
+  const encodedValue = encodeURIComponent(JSON.stringify(secureAuthData));
+  
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  return `auth=${encodedValue}; Path=/; ${isProduction ? 'Secure; ' : ''}HttpOnly; SameSite=strict; Max-Age=3600`;
+}
+
+/**
+ * 验证签名的时间窗口（防止重放攻击）
+ * @param timestamp 时间戳
+ * @param maxAge 最大有效期（毫秒，默认5分钟）
+ * @returns 是否在有效期内
+ */
+export function validateSignatureTimestamp(timestamp: number, maxAge = 300000): boolean {
+  return Date.now() - timestamp <= maxAge;
+}
+
+/**
+ * 删除认证Cookie
+ * @returns 用于删除Cookie的Set-Cookie头值
+ */
+export function deleteAuthCookie(): string {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return `auth=; Path=/; ${isProduction ? 'Secure; ' : ''}HttpOnly; SameSite=strict; Max-Age=0`;
 }

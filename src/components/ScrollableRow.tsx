@@ -70,6 +70,7 @@ export default function ScrollableRow({
 
       return () => observer.disconnect();
     }
+    return undefined;
   }, []);
 
   const handleScrollRightClick = () => {

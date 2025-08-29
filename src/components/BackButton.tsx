@@ -1,6 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
 
-export function BackButton() {
+type BackButtonProps = Record<string, never>;
+
+export function BackButton(_props: BackButtonProps = {}) {
   return (
     <button
       onClick={() => window.history.back()}

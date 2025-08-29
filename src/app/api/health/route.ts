@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 
+import { createApiLogger } from '@/lib/request-logger';
+
+const healthLogger = createApiLogger('health');
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +24,8 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
   const startTime = Date.now();
   
   try {
+    healthLogger.logStart();
+    
     const checks = {
       database: true, // 默认通过，实际可检查数据库连接
       redis: true,    // 默认通过，实际可检查Redis连接
@@ -35,6 +41,9 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
       checks,
     };
 
+    const duration = Date.now() - startTime;
+    healthLogger.logSuccess({ status: 'ok', checks }, duration);
+    
     return NextResponse.json(healthStatus, {
       status: 200,
       headers: {
@@ -43,6 +52,9 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
       },
     });
   } catch (error) {
+    const _duration = Date.now() - startTime;
+    healthLogger.logError(error as Error);
+    
     const healthStatus: HealthStatus = {
       status: 'error',
       timestamp: new Date().toISOString(),

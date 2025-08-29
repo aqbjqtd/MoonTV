@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 
@@ -51,12 +49,18 @@ export default async function RootLayout({
   let doubanImageProxy = process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '';
   let disableYellowFilter =
     process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true';
-  let customCategories =
-    (RuntimeConfig as any).custom_category?.map((category: any) => ({
-      name: 'name' in category ? category.name : '',
+  interface CustomCategory {
+    name?: string;
+    type: 'movie' | 'tv';
+    query: string;
+  }
+  
+  let customCategories: Array<{ name: string; type: 'movie' | 'tv'; query: string }> = 
+    (RuntimeConfig as unknown as { custom_category?: CustomCategory[] }).custom_category?.map((category) => ({
+      name: category.name || '',
       type: category.type,
       query: category.query,
-    })) || ([] as Array<{ name: string; type: 'movie' | 'tv'; query: string }>);
+    })) || [];
   if (process.env.NEXT_PUBLIC_STORAGE_TYPE !== 'upstash') {
     const config = await getConfig();
     siteName = config.SiteConfig.SiteName;

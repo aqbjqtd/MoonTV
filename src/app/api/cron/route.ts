@@ -1,16 +1,19 @@
-/* eslint-disable no-console */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/lib/db';
 import { fetchVideoDetail } from '@/lib/fetchVideoDetail';
+import { createApiLogger } from '@/lib/request-logger';
 import { SearchResult } from '@/lib/types';
+
+const cronLogger = createApiLogger('cron');
+
 
 
 export async function GET(request: NextRequest) {
-  console.log(request.url);
+  cronLogger.logStart({ url: request.url });
   try {
-    console.log('Cron job triggered:', new Date().toISOString());
+    cronLogger.logStart({ timestamp: new Date().toISOString() });
 
     refreshRecordAndFavorites();
 
@@ -20,7 +23,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Cron job failed:', error);
+    cronLogger.logError(error as Error);
 
     return NextResponse.json(
       {
@@ -38,7 +41,7 @@ async function refreshRecordAndFavorites() {
   if (
     (process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage') === 'localstorage'
   ) {
-    console.log('跳过刷新：当前使用 localstorage 存储模式');
+    cronLogger.logSuccess({ message: '跳过刷新：当前使用 localstorage 存储模式' });
     return;
   }
 
@@ -70,8 +73,8 @@ async function refreshRecordAndFavorites() {
             detailCache.set(key, successPromise);
             return detail;
           })
-          .catch((err) => {
-            console.error(`获取视频详情失败 (${source}+${id}):`, err);
+          .catch((error) => {
+            cronLogger.logError(new Error(`获取视频详情失败 (${source}+${id}):`), { source, id, originalError: error });
             return null;
           });
       }
@@ -79,7 +82,7 @@ async function refreshRecordAndFavorites() {
     };
 
     for (const user of users) {
-      console.log(`开始处理用户: ${user}`);
+      cronLogger.logSuccess({ user });
 
       // 播放记录
       try {
@@ -91,13 +94,13 @@ async function refreshRecordAndFavorites() {
           try {
             const [source, id] = key.split('+');
             if (!source || !id) {
-              console.warn(`跳过无效的播放记录键: ${key}`);
+              cronLogger.logValidationError({ key, message: '跳过无效的播放记录键' });
               continue;
             }
 
             const detail = await getDetail(source, id, record.title);
             if (!detail) {
-              console.warn(`跳过无法获取详情的播放记录: ${key}`);
+              cronLogger.logValidationError({ key, message: '跳过无法获取详情的播放记录' });
               continue;
             }
 
@@ -115,21 +118,19 @@ async function refreshRecordAndFavorites() {
                 save_time: record.save_time,
                 search_title: record.search_title,
               });
-              console.log(
-                `更新播放记录: ${record.title} (${record.total_episodes} -> ${episodeCount})`
-              );
+              cronLogger.logSuccess({ title: record.title, oldEpisodes: record.total_episodes, newEpisodes: episodeCount, message: '更新播放记录' });
             }
 
             processedRecords++;
-          } catch (err) {
-            console.error(`处理播放记录失败 (${key}):`, err);
+          } catch (error) {
+            cronLogger.logError(new Error(`处理播放记录失败 (${key}):`), { key, originalError: error });
             // 继续处理下一个记录
           }
         }
 
-        console.log(`播放记录处理完成: ${processedRecords}/${totalRecords}`);
-      } catch (err) {
-        console.error(`获取用户播放记录失败 (${user}):`, err);
+        cronLogger.logSuccess({ processed: processedRecords, total: totalRecords, message: '播放记录处理完成' });
+      } catch (error) {
+        cronLogger.logError(new Error(`获取用户播放记录失败 (${user}):`), { user, originalError: error });
       }
 
       // 收藏
@@ -142,13 +143,13 @@ async function refreshRecordAndFavorites() {
           try {
             const [source, id] = key.split('+');
             if (!source || !id) {
-              console.warn(`跳过无效的收藏键: ${key}`);
+  cronLogger.logValidationError({ key, message: '跳过无效的收藏键' });
               continue;
             }
 
             const favDetail = await getDetail(source, id, fav.title);
             if (!favDetail) {
-              console.warn(`跳过无法获取详情的收藏: ${key}`);
+              cronLogger.logValidationError({ key, message: '跳过无法获取详情的收藏' });
               continue;
             }
 
@@ -163,26 +164,24 @@ async function refreshRecordAndFavorites() {
                 save_time: fav.save_time,
                 search_title: fav.search_title,
               });
-              console.log(
-                `更新收藏: ${fav.title} (${fav.total_episodes} -> ${favEpisodeCount})`
-              );
+              cronLogger.logSuccess({ title: fav.title, oldEpisodes: fav.total_episodes, newEpisodes: favEpisodeCount, message: '更新收藏' });
             }
 
             processedFavorites++;
-          } catch (err) {
-            console.error(`处理收藏失败 (${key}):`, err);
+          } catch (error) {
+            cronLogger.logError(new Error(`处理收藏失败 (${key}):`), { key, originalError: error });
             // 继续处理下一个收藏
           }
         }
 
-        console.log(`收藏处理完成: ${processedFavorites}/${totalFavorites}`);
-      } catch (err) {
-        console.error(`获取用户收藏失败 (${user}):`, err);
+        cronLogger.logSuccess({ processed: processedFavorites, total: totalFavorites, message: '收藏处理完成' });
+      } catch (error) {
+        cronLogger.logError(new Error(`获取用户收藏失败 (${user}):`), { user, originalError: error });
       }
     }
 
-    console.log('刷新播放记录/收藏任务完成');
-  } catch (err) {
-    console.error('刷新播放记录/收藏任务启动失败', err);
+    cronLogger.logSuccess({ message: '刷新播放记录/收藏任务完成' });
+  } catch (error) {
+    cronLogger.logError(error instanceof Error ? error : new Error(String(error)));
   }
 }

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Heart, Link, PlayCircleIcon, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -19,22 +17,39 @@ import { processImageUrl } from '@/lib/utils';
 import { ImagePlaceholder } from '@/components/ImagePlaceholder';
 
 interface VideoCardProps {
+  /** 视频唯一标识符 */
   id?: string;
+  /** 视频源标识 */
   source?: string;
+  /** 视频标题 */
   title?: string;
+  /** 搜索查询关键词 */
   query?: string;
+  /** 海报图片URL */
   poster?: string;
+  /** 总集数 */
   episodes?: number;
+  /** 视频源名称 */
   source_name?: string;
+  /** 播放进度百分比 (0-100) */
   progress?: number;
+  /** 发布年份 */
   year?: string;
+  /** 卡片来源类型 */
   from: 'playrecord' | 'favorite' | 'search' | 'douban';
+  /** 当前观看集数 */
   currentEpisode?: number;
+  /** 豆瓣ID */
   douban_id?: number;
+  /** 删除回调函数 */
   onDelete?: () => void;
+  /** 评分 */
   rate?: string;
+  /** 聚合搜索结果项 */
   items?: SearchResult[];
+  /** 媒体类型 */
   type?: string;
+  /** 是否为番剧 */
   isBangumi?: boolean;
 }
 
@@ -129,7 +144,7 @@ export default function VideoCard({
     const storageKey = generateStorageKey(actualSource, actualId);
     const unsubscribe = subscribeToDataUpdates(
       'favoritesUpdated',
-      (newFavorites: Record<string, any>) => {
+      (newFavorites: Record<string, unknown>) => {
         // 检查当前项目是否在新的收藏列表中
         const isNowFavorited = !!newFavorites[storageKey];
         setFavorited(isNowFavorited);

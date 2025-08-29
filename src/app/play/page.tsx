@@ -558,6 +558,7 @@ function PlayPageClient() {
               handleSkipConfigChange(newConfig);
               return `${formatTime(currentTime)}`;
             }
+            return '';
           },
         });
         artPlayerRef.current.setting.update({
@@ -582,6 +583,7 @@ function PlayPageClient() {
               handleSkipConfigChange(newConfig);
               return `-${formatTime(-outroTime)}`;
             }
+            return '';
           },
         });
       } else {
@@ -1450,6 +1452,7 @@ function PlayPageClient() {
                 handleSkipConfigChange(newConfig);
                 return `${formatTime(currentTime)}`;
               }
+              return '';
             },
           },
           {
@@ -1474,6 +1477,7 @@ function PlayPageClient() {
                 handleSkipConfigChange(newConfig);
                 return `-${formatTime(-outroTime)}`;
               }
+              return '';
             },
           },
         ],

@@ -1,44 +1,81 @@
-/* eslint-disable no-console */
-
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
+import { getSafeEnv } from '@/lib/env';
+import { createModuleLogger } from '@/lib/logger';
+import { logRequest, logResponse } from '@/lib/request-logger';
+
+const middlewareLogger = createModuleLogger('middleware');
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const metrics = logRequest(request);
 
   // 跳过不需要认证的路径
   if (shouldSkipAuth(pathname)) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    logResponse(metrics, response);
+    return response;
   }
 
-  const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
-
-  if (!process.env.PASSWORD) {
+  // 使用验证后的环境变量
+  const env = getSafeEnv();
+  const storageType = env.NEXT_PUBLIC_STORAGE_TYPE;
+  
+  if (!env.PASSWORD) {
+    middlewareLogger.warn('No password configured, redirecting to warning', {
+      path: pathname,
+      ip: request.ip || request.headers.get('x-forwarded-for'),
+    });
     // 如果没有设置密码，重定向到警告页面
     const warningUrl = new URL('/warning', request.url);
-    return NextResponse.redirect(warningUrl);
+    const response = NextResponse.redirect(warningUrl);
+    logResponse(metrics, response);
+    return response;
   }
 
   // 从cookie获取认证信息
   const authInfo = getAuthInfoFromCookie(request);
 
   if (!authInfo) {
-    return handleAuthFailure(request, pathname);
+    middlewareLogger.warn('No auth info found', {
+      path: pathname,
+      ip: request.ip || request.headers.get('x-forwarded-for'),
+    });
+    const response = handleAuthFailure(request, pathname);
+    logResponse(metrics, response);
+    return response;
   }
 
   // localstorage模式：在middleware中完成验证
   if (storageType === 'localstorage') {
-    if (!authInfo.password || authInfo.password !== process.env.PASSWORD) {
-      return handleAuthFailure(request, pathname);
+    if (!authInfo.password || authInfo.password !== env.PASSWORD) {
+      middlewareLogger.warn('Invalid password in localStorage mode', {
+        path: pathname,
+        username: authInfo.username,
+        ip: request.ip || request.headers.get('x-forwarded-for'),
+      });
+      const response = handleAuthFailure(request, pathname);
+      logResponse(metrics, response);
+      return response;
     }
-    return NextResponse.next();
+    const response = NextResponse.next();
+    logResponse(metrics, response);
+    return response;
   }
 
   // 其他模式：只验证签名
   // 检查是否有用户名（非localStorage模式下密码不存储在cookie中）
   if (!authInfo.username || !authInfo.signature) {
-    return handleAuthFailure(request, pathname);
+    middlewareLogger.warn('Missing username or signature', {
+      path: pathname,
+      hasUsername: !!authInfo.username,
+      hasSignature: !!authInfo.signature,
+      ip: request.ip || request.headers.get('x-forwarded-for'),
+    });
+    const response = handleAuthFailure(request, pathname);
+    logResponse(metrics, response);
+    return response;
   }
 
   // 验证签名（如果存在）
@@ -46,17 +83,30 @@ export async function middleware(request: NextRequest) {
     const isValidSignature = await verifySignature(
       authInfo.username,
       authInfo.signature,
-      process.env.PASSWORD || ''
+      env.PASSWORD || ''
     );
 
     // 签名验证通过即可
     if (isValidSignature) {
-      return NextResponse.next();
+      middlewareLogger.debug('Signature verification successful', {
+        path: pathname,
+        username: authInfo.username,
+      });
+      const response = NextResponse.next();
+      logResponse(metrics, response);
+      return response;
     }
   }
 
   // 签名验证失败或不存在签名
-  return handleAuthFailure(request, pathname);
+  middlewareLogger.warn('Signature verification failed', {
+    path: pathname,
+    username: authInfo.username,
+    ip: request.ip || request.headers.get('x-forwarded-for'),
+  });
+  const response = handleAuthFailure(request, pathname);
+  logResponse(metrics, response);
+  return response;
 }
 
 // 验证签名
@@ -92,7 +142,9 @@ async function verifySignature(
       messageData
     );
   } catch (error) {
-    console.error('签名验证失败:', error);
+    middlewareLogger.error('Signature verification error', error as Error, {
+      data: data.slice(0, 10) + '...',
+    });
     return false;
   }
 }

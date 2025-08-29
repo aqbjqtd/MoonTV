@@ -17,7 +17,12 @@
     "gen:runtime": "node scripts/convert-config.js",
     "gen:manifest": "node scripts/generate-manifest.js",
     "postbuild": "echo 'Build completed - sitemap generation disabled'",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "install": "pnpm install",
+    "install:clean": "rm -rf node_modules && pnpm install",
+    "update": "pnpm update",
+    "outdated": "pnpm outdated",
+    "audit": "pnpm audit"
   },
   "dependencies": {
     "@cloudflare/next-on-pages": "^1.13.12",

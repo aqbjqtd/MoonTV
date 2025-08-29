@@ -1,10 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any,no-console */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { getStorage } from '@/lib/db';
+import { createApiLogger } from '@/lib/request-logger';
+
+const adminsiteLogger = createApiLogger('admin-site');
+
 
 
 export async function POST(request: NextRequest) {
@@ -92,8 +95,8 @@ export async function POST(request: NextRequest) {
     };
 
     // 写入数据库
-    if (storage && typeof (storage as any).setAdminConfig === 'function') {
-      await (storage as any).setAdminConfig(adminConfig);
+    if (storage && typeof storage.setAdminConfig === 'function') {
+      await storage.setAdminConfig(adminConfig);
     }
 
     return NextResponse.json(
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('更新站点配置失败:', error);
+    adminsiteLogger.logError(error as Error);
     return NextResponse.json(
       {
         error: '更新站点配置失败',

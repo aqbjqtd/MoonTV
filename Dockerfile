@@ -1,66 +1,106 @@
-# ---- 第 1 阶段：安装依赖 ----
-FROM node:20-alpine AS deps
+# ================================
+# 最优化 MoonTV Docker 构建配置
+# 多阶段构建 + Alpine Linux + 缓存优化
+# ================================
 
-# 启用 corepack 并激活 pnpm（Node20 默认提供 corepack）
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# ---- 第 1 阶段：依赖安装（优化缓存层） ----
+FROM node:20-alpine AS deps
+LABEL stage=deps
+
+# 安装必要系统依赖并启用 pnpm
+RUN apk add --no-cache libc6-compat git \
+    && corepack enable \
+    && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# 仅复制依赖清单，提高构建缓存利用率
+# 优化：分层复制包配置文件以最大化缓存命中
 COPY package.json pnpm-lock.yaml ./
 
-# 安装所有依赖（含 devDependencies，后续会裁剪）
-RUN pnpm install --frozen-lockfile
+# 高效依赖安装：仅生产依赖 + 跳过脚本
+RUN pnpm install --prod --frozen-lockfile --no-optional --ignore-scripts \
+    && pnpm store prune
 
-# ---- 第 2 阶段：构建项目 ----
-FROM node:20-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# ---- 第 2 阶段：开发依赖安装 ----
+FROM node:20-alpine AS dev-deps
+LABEL stage=dev-deps
+
+RUN apk add --no-cache libc6-compat \
+    && corepack enable \
+    && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
-# 复制依赖
+COPY package.json pnpm-lock.yaml ./
 COPY --from=deps /app/node_modules ./node_modules
-# 复制全部源代码
+
+# 安装开发依赖用于构建（跳过脚本避免 husky 错误）
+RUN pnpm install --frozen-lockfile --no-optional --ignore-scripts
+
+# ---- 第 3 阶段：应用构建 ----
+FROM node:20-alpine AS builder
+LABEL stage=builder
+
+RUN apk add --no-cache libc6-compat \
+    && corepack enable \
+    && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# 复制依赖和源代码
+COPY --from=dev-deps /app/node_modules ./node_modules
 COPY . .
 
-# 在构建阶段也显式设置 DOCKER_ENV，
-# 确保 Next.js 在编译时即选择 Node Runtime 而不是 Edge Runtime
-RUN find ./src -type f -name "route.ts" -print0 \
-  | xargs -0 sed -i "s/export const runtime = 'edge';/export const runtime = 'nodejs';/g"
-ENV DOCKER_ENV=true
+# Docker 环境优化：确保 Node.js runtime
+ENV DOCKER_ENV=true \
+    NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1
 
-# For Docker builds, force dynamic rendering to read runtime environment variables.
-RUN sed -i "/const inter = Inter({ subsets: \['latin'] });/a export const dynamic = 'force-dynamic';" src/app/layout.tsx
+# 运行时优化脚本：强制 Node.js runtime 替代 Edge runtime
+RUN find ./src -type f -name "route.ts" -exec \
+    sed -i "s/export const runtime = 'edge';/export const runtime = 'nodejs';/g" {} \; \
+    && sed -i "/const inter = Inter/a export const dynamic = 'force-dynamic';" src/app/layout.tsx
 
-# 生成生产构建
-RUN pnpm run build
+# 高效构建：类型检查 + 构建 + 清理
+RUN pnpm run build \
+    && pnpm store prune \
+    && rm -rf /app/.next/cache
 
-# ---- 第 3 阶段：生成运行时镜像 ----
+# ---- 第 4 阶段：生产运行镜像（最小化） ----
 FROM node:20-alpine AS runner
+LABEL maintainer="aqbjqtd" \
+      version="v2.0.0" \
+      description="MoonTV Production Image - Optimized Alpine"
 
-# 创建非 root 用户
-RUN addgroup -g 1001 -S nodejs && adduser -u 1001 -S nextjs -G nodejs
+# 安全优化：创建非特权用户
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs nodejs
+
+# 生产环境配置
+ENV NODE_ENV=production \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000 \
+    DOCKER_ENV=true \
+    NEXT_TELEMETRY_DISABLED=1
 
 WORKDIR /app
-ENV NODE_ENV=production
-ENV HOSTNAME=0.0.0.0
-ENV PORT=3000
-ENV DOCKER_ENV=true
 
-# 从构建器中复制 standalone 输出
+# 精确复制生产所需文件（最小化镜像大小）
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-# 从构建器中复制 scripts 目录
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
-# 从构建器中复制 start.js
 COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
-# 从构建器中复制 public 和 .next/static 目录
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/config.json ./config.json
 
-# 切换到非特权用户
+# 安全切换到非特权用户
 USER nextjs
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "http.get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); })" || exit 1
 
 EXPOSE 3000
 
-# 使用自定义启动脚本，先预加载配置再启动服务器
-CMD ["node", "start.js"] 
+# 优化启动：使用自定义启动脚本
+CMD ["node", "start.js"]

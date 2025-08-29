@@ -1,11 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any,no-console,@typescript-eslint/no-non-null-assertion */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { getStorage } from '@/lib/db';
+import { createApiLogger } from '@/lib/request-logger';
 import { IStorage } from '@/lib/types';
+
+const adminuserLogger = createApiLogger('admin-user');
+
 
 
 // 支持的操作类型
@@ -20,6 +23,15 @@ const ACTIONS = [
   'deleteUser',
 ] as const;
 
+type UserAction = typeof ACTIONS[number];
+
+interface UserActionBody {
+  targetUsername?: string;
+  targetPassword?: string;
+  allowRegister?: boolean;
+  action?: UserAction;
+}
+
 export async function POST(request: NextRequest) {
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
   if (storageType === 'localstorage') {
@@ -32,7 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json() as UserActionBody;
 
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
@@ -45,12 +57,7 @@ export async function POST(request: NextRequest) {
       targetPassword, // 目标用户密码（仅在添加用户时需要）
       allowRegister,
       action,
-    } = body as {
-      targetUsername?: string;
-      targetPassword?: string;
-      allowRegister?: boolean;
-      action?: (typeof ACTIONS)[number];
-    };
+    } = body;
 
     if (!action || !ACTIONS.includes(action)) {
       return NextResponse.json({ error: '参数格式错误' }, { status: 400 });
@@ -130,10 +137,13 @@ export async function POST(request: NextRequest) {
               { status: 500 }
             );
           }
-          await storage.registerUser(targetUsername!, targetPassword);
+          if (!targetUsername) {
+            return NextResponse.json({ error: '用户名不能为空' }, { status: 400 });
+          }
+          await storage.registerUser(targetUsername, targetPassword);
           // 更新配置
           adminConfig.UserConfig.Users.push({
-            username: targetUsername!,
+            username: targetUsername,
             role: 'user',
           });
           targetEntry =
@@ -260,7 +270,10 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          await storage.changePassword(targetUsername!, targetPassword);
+          if (!targetUsername) {
+            return NextResponse.json({ error: '用户名不能为空' }, { status: 400 });
+          }
+          await storage.changePassword(targetUsername, targetPassword);
           break;
         }
         case 'deleteUser': {
@@ -293,7 +306,10 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          await storage.deleteUser(targetUsername!);
+          if (!targetUsername) {
+            return NextResponse.json({ error: '用户名不能为空' }, { status: 400 });
+          }
+          await storage.deleteUser(targetUsername);
 
           // 从配置中移除用户
           const userIndex = adminConfig.UserConfig.Users.findIndex(
@@ -311,8 +327,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 将更新后的配置写入数据库
-    if (storage && typeof (storage as any).setAdminConfig === 'function') {
-      await (storage as any).setAdminConfig(adminConfig);
+    if (storage && typeof storage.setAdminConfig === 'function') {
+      await storage.setAdminConfig(adminConfig);
     }
 
     return NextResponse.json(
@@ -324,7 +340,7 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('用户管理操作失败:', error);
+    adminuserLogger.logError(error as Error);
     return NextResponse.json(
       {
         error: '用户管理操作失败',

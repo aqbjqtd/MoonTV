@@ -517,8 +517,8 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
                           )}
                         </div>
 
-                        {/* 信息区域 */}
-                        <div className='flex-1 min-w-0 flex flex-col justify-between h-20'>
+                        {/* 信息区域 - 增加高度以容纳更多信息 */}
+                        <div className='flex-1 min-w-0 flex flex-col justify-between h-auto min-h-[80px]'>
                           {/* 标题和分辨率 - 顶部 */}
                           <div className='flex items-start justify-between gap-3 h-6'>
                             <div className='flex-1 min-w-0 relative group/title'>
@@ -572,43 +572,83 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
                             })()}
                           </div>
 
-                          {/* 源名称和集数信息 - 垂直居中 */}
-                          <div className='flex items-center justify-between'>
-                            <span className='text-xs px-2 py-1 border border-gray-500/60 rounded text-gray-700 dark:text-gray-300'>
-                              {source.source_name}
-                            </span>
-                            {source.episodes.length > 1 && (
-                              <span className='text-xs text-gray-500 dark:text-gray-400 font-medium'>
-                                {source.episodes.length} 集
+                          {/* 源名称和集数信息 - 优化显示 */}
+                          <div className='flex items-center justify-between gap-2 my-2'>
+                            <div className='flex items-center gap-2'>
+                              <span className='text-xs px-2.5 py-1.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-800 dark:text-gray-200 font-medium'>
+                                🎬 {source.source_name}
+                              </span>
+                              {source.episodes.length > 0 && (
+                                <span className='text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 rounded border border-blue-200 dark:border-blue-700'>
+                                  📺 {source.episodes.length} 集
+                                </span>
+                              )}
+                            </div>
+                            {isCurrentSource && (
+                              <span className='text-xs px-2 py-1 bg-green-500 text-white rounded font-medium'>
+                                当前源
                               </span>
                             )}
                           </div>
 
-                          {/* 网络信息 - 底部 */}
-                          <div className='flex items-end h-6'>
+                          {/* 详细网络信息 - 底部 */}
+                          <div className='flex flex-col gap-1 h-auto min-h-[24px]'>
                             {(() => {
                               const sourceKey = `${source.source}-${source.id}`;
                               const videoInfo = videoInfoMap.get(sourceKey);
+                              
                               if (videoInfo) {
-                                if (!videoInfo.hasError) {
+                                if (videoInfo.hasError) {
                                   return (
-                                    <div className='flex items-end gap-3 text-xs'>
-                                      <div className='text-green-600 dark:text-green-400 font-medium text-xs'>
-                                        {videoInfo.loadSpeed}
-                                      </div>
-                                      <div className='text-orange-600 dark:text-orange-400 font-medium text-xs'>
-                                        {videoInfo.pingTime}ms
-                                      </div>
+                                    <div className='flex items-center text-xs text-red-500 dark:text-red-400'>
+                                      <span className='mr-1'>⚠️</span>
+                                      <span>检测失败</span>
                                     </div>
                                   );
-                                } else {
-                                  return (
-                                    <div className='text-red-500/90 dark:text-red-400 font-medium text-xs'>
-                                      无测速数据
-                                    </div>
-                                  ); // 占位div
                                 }
+
+                                return (
+                                  <div className='space-y-1'>
+                                    {/* 第一行：速度和延迟 */}
+                                    <div className='flex items-center justify-between text-xs'>
+                                      <div className='flex items-center'>
+                                        <span className='text-gray-500 dark:text-gray-400 mr-1'>速度:</span>
+                                        <span className='text-green-600 dark:text-green-400 font-medium'>
+                                          {videoInfo.loadSpeed}
+                                        </span>
+                                      </div>
+                                      <div className='flex items-center'>
+                                        <span className='text-gray-500 dark:text-gray-400 mr-1'>延迟:</span>
+                                        <span className={`font-medium ${
+                                          videoInfo.pingTime < 100
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : videoInfo.pingTime < 300
+                                            ? 'text-yellow-600 dark:text-yellow-400'
+                                            : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                          {videoInfo.pingTime}ms
+                                        </span>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* 第二行：数据源ID */}
+                                    <div className='flex items-center text-xs'>
+                                      <span className='text-gray-500 dark:text-gray-400 mr-1'>源ID:</span>
+                                      <span className='text-gray-700 dark:text-gray-300 font-mono'>
+                                        {source.source}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
                               }
+
+                              // 加载中状态
+                              return (
+                                <div className='flex items-center text-xs text-gray-500 dark:text-gray-400'>
+                                  <div className='animate-spin rounded-full h-3 w-3 border-b border-gray-400 mr-1'></div>
+                                  <span>检测中...</span>
+                                </div>
+                              );
                             })()}
                           </div>
                         </div>

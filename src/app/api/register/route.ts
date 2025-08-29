@@ -1,4 +1,4 @@
-/* eslint-disable no-console,@typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
@@ -13,6 +13,10 @@ const STORAGE_TYPE =
     | 'upstash'
     | undefined) || 'localstorage';
 
+import { createApiLogger } from '@/lib/request-logger';
+
+const registerLogger = createApiLogger('register');
+
 // 生成签名
 async function generateSignature(
   data: string,
@@ -24,6 +28,8 @@ async function generateSignature(
 
   // 导入密钥
   const key = await crypto.subtle.importKey(
+
+
     'raw',
     keyData,
     { name: 'HMAC', hash: 'SHA-256' },
@@ -42,7 +48,7 @@ async function generateSignature(
 
 // 生成认证Cookie（带签名）
 async function generateAuthCookie(username: string): Promise<string> {
-  const authData: any = {
+  const authData: Record<string, unknown> = {
     role: 'user',
     username,
     timestamp: Date.now(),
@@ -118,11 +124,11 @@ export async function POST(req: NextRequest) {
 
       return response;
     } catch (err) {
-      console.error('数据库注册失败', err);
+      registerLogger.logError(err as Error);
       return NextResponse.json({ error: '数据库错误' }, { status: 500 });
     }
   } catch (error) {
-    console.error('注册接口异常', error);
+    registerLogger.logError(error as Error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

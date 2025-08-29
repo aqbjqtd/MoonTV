@@ -126,24 +126,39 @@ docs/
 *.md
 !README.md
 
-# Additional optimizations for Docker context
-# 开发文件
+# ================================
+# Docker 构建上下文优化配置
+# ================================
+
+# 开发和调试文件
 .serena/
 .github/
 .husky/
 .vscode/
+.idea/
+*.code-workspace
+
+# 文档和说明文件
+*.md
+!README.md
+CLAUDE_*.md
+docs/
+documentation/
 
 # 备份和临时文件
 *.backup
 *.bak
+*.tmp
 *.bundle
 moonTV-backup-*
+temp/
+tmp/
 
-# 环境和配置文件（运行时挂载）
+# 环境配置（运行时通过挂载或环境变量提供）
 .env*
 !.env.example
 
-# 测试相关
+# 测试相关文件
 jest.config.js
 jest.setup.js
 **/__tests__/
@@ -151,30 +166,42 @@ jest.setup.js
 **/*.spec.*
 test-results/
 coverage/
+playwright-report/
+playwright/.cache/
+.nyc_output/
 
-# 构建缓存和输出
+# 构建产物和缓存
 .next/cache/
 out/
 dist/
+.cache/
+.parcel-cache/
 
-# 包管理器缓存
+# 包管理器缓存和存储
 .pnpm-store/
 .npm/
 node_modules/.cache/
+.yarn/
 
-# IDE和编辑器
+# IDE 配置和临时文件
 *.swp
 *.swo
 *~
 .idea/
-*.code-workspace
+.vscode/*
+!.vscode/extensions.json
 
 # 系统文件
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# 大文件和媒体
+# 大文件和媒体（应通过外部存储处理）
 *.mp4
 *.avi
 *.mkv
@@ -182,17 +209,37 @@ desktop.ini
 *.wmv
 *.flv
 *.webm
+*.iso
 
-# Scripts output
+# Git 相关
+.git/
+.gitignore
+.gitmodules
+
+# CI/CD 配置
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# 容器和部署文件
+docker-compose*.yml
+Dockerfile.dev
+*.dockerfile
+k8s/
+helm/
+
+# 脚本输出和临时结果
 scripts/output/
+scripts/temp/
 
-# Test files
-test-results/
-playwright-report/
-playwright/.cache/
+# 依赖分析和安全扫描
+.snyk
+package-lock.json
+yarn.lock
+shrinkwrap.yaml
 
-# Husky
-.husky/_
-
-# Lint-staged cache
+# Lint 和格式化配置缓存
+.eslintcache
+.prettierignore
 .lintstagedrc

@@ -1,11 +1,19 @@
-/* eslint-disable no-console */
-
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { db } from '@/lib/db';
+import { createApiLogger } from '@/lib/request-logger';
 import { Favorite } from '@/lib/types';
+
+type AuthInfo = {
+  username?: string;
+  password?: string;
+  signature?: string;
+  timestamp?: number;
+} | null;
+
+const favoritesLogger = createApiLogger('favorites');
 
 
 /**
@@ -16,18 +24,21 @@ import { Favorite } from '@/lib/types';
  * 2. 带 key=source+id，返回单条收藏（Favorite | null）。
  */
 export async function GET(request: NextRequest) {
+  let authInfo: AuthInfo = null;
   try {
     // 从 cookie 获取用户信息
-    const authInfo = getAuthInfoFromCookie(request);
+    authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const username = authInfo.username; // 已通过null检查，安全使用
 
     const config = await getConfig();
     if (config.UserConfig.Users) {
       // 检查用户是否被封禁
       const user = config.UserConfig.Users.find(
-        (u) => u.username === authInfo.username
+        (u) => u.username === username
       );
       if (user && user.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -46,15 +57,15 @@ export async function GET(request: NextRequest) {
           { status: 400 }
         );
       }
-      const fav = await db.getFavorite(authInfo.username, source, id);
+      const fav = await db.getFavorite(username, source, id);
       return NextResponse.json(fav, { status: 200 });
     }
 
     // 查询全部收藏
-    const favorites = await db.getAllFavorites(authInfo.username);
+    const favorites = await db.getAllFavorites(username);
     return NextResponse.json(favorites, { status: 200 });
   } catch (err) {
-    console.error('获取收藏失败', err);
+    favoritesLogger.logError(err as Error, { username: authInfo?.username });
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 }
@@ -67,18 +78,21 @@ export async function GET(request: NextRequest) {
  * body: { key: string; favorite: Favorite }
  */
 export async function POST(request: NextRequest) {
+  let authInfo: AuthInfo = null;
   try {
     // 从 cookie 获取用户信息
-    const authInfo = getAuthInfoFromCookie(request);
+    authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const username = authInfo.username; // 已通过null检查，安全使用
 
     const config = await getConfig();
     if (config.UserConfig.Users) {
       // 检查用户是否被封禁
       const user = config.UserConfig.Users.find(
-        (u) => u.username === authInfo.username
+        (u) => u.username === username
       );
       if (user && user.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -116,11 +130,11 @@ export async function POST(request: NextRequest) {
       save_time: favorite.save_time ?? Date.now(),
     } as Favorite;
 
-    await db.saveFavorite(authInfo.username, source, id, finalFavorite);
+    await db.saveFavorite(username, source, id, finalFavorite);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
-    console.error('保存收藏失败', err);
+    favoritesLogger.logError(err as Error, { username: authInfo?.username, action: 'add' });
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 }
@@ -135,25 +149,27 @@ export async function POST(request: NextRequest) {
  * 2. 带 key=source+id -> 删除单条收藏
  */
 export async function DELETE(request: NextRequest) {
+  let authInfo: AuthInfo = null;
   try {
     // 从 cookie 获取用户信息
-    const authInfo = getAuthInfoFromCookie(request);
+    authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const username = authInfo.username; // 已通过null检查，安全使用
 
     const config = await getConfig();
     if (config.UserConfig.Users) {
       // 检查用户是否被封禁
       const user = config.UserConfig.Users.find(
-        (u) => u.username === authInfo.username
+        (u) => u.username === username
       );
       if (user && user.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
       }
     }
 
-    const username = authInfo.username;
     const { searchParams } = new URL(request.url);
     const key = searchParams.get('key');
 
@@ -180,7 +196,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
-    console.error('删除收藏失败', err);
+    favoritesLogger.logError(err as Error, { username: authInfo?.username, action: 'delete' });
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 }

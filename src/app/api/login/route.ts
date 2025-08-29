@@ -1,8 +1,11 @@
-/* eslint-disable no-console,@typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
 import { db } from '@/lib/db';
+import {handleError } from '@/lib/error-handler';
+import { createApiLogger } from '@/lib/request-logger';
+
+const loginLogger = createApiLogger('login');
 
 
 // 读取存储类型环境变量，默认 localstorage
@@ -40,6 +43,15 @@ async function generateSignature(
     .join('');
 }
 
+// 认证Cookie数据结构
+interface AuthCookieData {
+  role: 'owner' | 'admin' | 'user';
+  username?: string;
+  signature?: string;
+  timestamp?: number;
+  password?: string;
+}
+
 // 生成认证Cookie（带签名）
 async function generateAuthCookie(
   username?: string,
@@ -47,7 +59,7 @@ async function generateAuthCookie(
   role?: 'owner' | 'admin' | 'user',
   includePassword = false
 ): Promise<string> {
-  const authData: any = { role: role || 'user' };
+  const authData: AuthCookieData = { role: role || 'user' };
 
   // 只在需要时包含 password
   if (includePassword && password) {
@@ -197,11 +209,10 @@ export async function POST(req: NextRequest) {
 
       return response;
     } catch (err) {
-      console.error('数据库验证失败', err);
+      loginLogger.logError(err as Error, { username, dbType: STORAGE_TYPE });
       return NextResponse.json({ error: '数据库错误' }, { status: 500 });
     }
   } catch (error) {
-    console.error('登录接口异常', error);
-    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+    return handleError(error, { path: '/api/login', method: 'POST' });
   }
 }

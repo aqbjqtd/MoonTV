@@ -137,6 +137,7 @@ const DoubanSelector: React.FC<DoubanSelectorProps> = ({
       }, 0);
       return () => clearTimeout(timeoutId);
     }
+    return undefined;
   };
 
   // 组件挂载时立即计算初始位置
@@ -262,6 +263,7 @@ const DoubanSelector: React.FC<DoubanSelectorProps> = ({
       );
       return cleanup;
     }
+    return undefined;
   }, [primarySelection]);
 
   // 监听副选择器变化
@@ -295,6 +297,7 @@ const DoubanSelector: React.FC<DoubanSelectorProps> = ({
       );
       return cleanup;
     }
+    return undefined;
   }, [secondarySelection]);
 
   // 渲染胶囊式选择器

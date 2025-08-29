@@ -1,5 +1,10 @@
+interface ImagePlaceholderProps {
+  /** CSS aspect-ratio 类名，如 'aspect-[2/3]' */
+  aspectRatio: string;
+}
+
 // 图片占位符组件 - 实现骨架屏效果（支持暗色模式）
-const ImagePlaceholder = ({ aspectRatio }: { aspectRatio: string }) => (
+const ImagePlaceholder = ({ aspectRatio }: ImagePlaceholderProps) => (
   <div
     className={`w-full ${aspectRatio} rounded-lg`}
     style={{

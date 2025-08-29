@@ -1,11 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any,no-console */
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { getStorage } from '@/lib/db';
+import { createApiLogger } from '@/lib/request-logger';
 import { IStorage } from '@/lib/types';
+
+const admincategoryLogger = createApiLogger('admin-category');
+
 
 
 // 支持的操作类型
@@ -13,6 +16,13 @@ type Action = 'add' | 'disable' | 'enable' | 'delete' | 'sort';
 
 interface BaseBody {
   action?: Action;
+}
+
+interface CategoryActionBody extends BaseBody {
+  name?: string;
+  type?: 'movie' | 'tv';
+  query?: string;
+  order?: string[];
 }
 
 export async function POST(request: NextRequest) {
@@ -35,7 +45,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = (await request.json()) as BaseBody & Record<string, any>;
+    const body = (await request.json()) as CategoryActionBody;
     const { action } = body;
 
     const authInfo = getAuthInfoFromCookie(request);
@@ -183,8 +193,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 持久化到存储
-    if (storage && typeof (storage as any).setAdminConfig === 'function') {
-      await (storage as any).setAdminConfig(adminConfig);
+    if (storage && typeof storage.setAdminConfig === 'function') {
+      await storage.setAdminConfig(adminConfig);
     }
 
     return NextResponse.json(
@@ -196,7 +206,7 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('分类管理操作失败:', error);
+    admincategoryLogger.logError(error as Error);
     return NextResponse.json(
       {
         error: '分类管理操作失败',
