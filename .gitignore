@@ -45,3 +45,7 @@ sitemap-*.xml
 # generated files
 src/lib/runtime.ts
 public/manifest.json
+
+# backup files and large bundles
+*.bundle
+backup-*.md
