@@ -49,3 +49,16 @@ public/manifest.json
 # backup files and large bundles
 *.bundle
 backup-*.md
+
+# development and IDE files
+*.swp
+*.swo
+*.swn
+*.pid
+*.pid.lock
+
+# build artifacts
+*.tsbuildinfo
+
+# serena project files (local development tool)
+.serena/
