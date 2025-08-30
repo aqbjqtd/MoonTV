@@ -34,7 +34,7 @@ export const DEFAULT_SECURE_COOKIE_OPTIONS: Omit<SecureCookieOptions, 'name' | '
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict',
-  maxAge: 3600, // 1小时
+  maxAge: 2592000, // 30天
   path: '/',
 };
 
@@ -44,7 +44,7 @@ export const DEFAULT_SECURE_COOKIE_OPTIONS: Omit<SecureCookieOptions, 'name' | '
  */
 export const AUTH_COOKIE_OPTIONS: Omit<SecureCookieOptions, 'name' | 'value'> = {
   ...DEFAULT_SECURE_COOKIE_OPTIONS,
-  maxAge: 7 * 24 * 3600, // 7天
+  maxAge: 30 * 24 * 3600, // 30天
 };
 
 /**
@@ -53,8 +53,8 @@ export const AUTH_COOKIE_OPTIONS: Omit<SecureCookieOptions, 'name' | 'value'> = 
  */
 export const SESSION_COOKIE_OPTIONS: Omit<SecureCookieOptions, 'name' | 'value'> = {
   ...DEFAULT_SECURE_COOKIE_OPTIONS,
-  maxAge: 1800, // 30分钟
-};
+  maxAge: 30 * 24 * 3600, // 30天，与认证cookie保持一致
+};;
 
 /**
  * CSRF Token Cookie配置
@@ -64,7 +64,7 @@ export const CSRF_COOKIE_OPTIONS: Omit<SecureCookieOptions, 'name' | 'value'> = 
   ...DEFAULT_SECURE_COOKIE_OPTIONS,
   httpOnly: false, // CSRF token需要前端JavaScript访问
   sameSite: 'lax',
-  maxAge: 3600, // 1小时
+  maxAge: 2592000, // 30天
 };
 
 /**

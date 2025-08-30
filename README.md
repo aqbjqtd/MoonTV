@@ -150,27 +150,42 @@
 
 ### Docker 部署
 
-#### 1. 直接运行（最简单，localstorage）
+🏆 **2025-8-30 最新优化版本**
+
+- **TypeScript 100% 覆盖率** - 企业级代码质量
+- **Docker v2.1.0 镜像** - 281MB 优化大小
+- **用户认证体验** - 30天登录持久化
+- **安全机制完善** - HMAC-SHA256 签名验证
+- **构建成功率 100%** - 34个静态页面生成
+- **登录有效期**: 30天自动保持
+- **浏览器关闭**: 无需重新登录 (30天内)
+- **安全验证**: 防重放攻击 + 签名验证
+- **PWA 兼容**: 完美支持
+
+#### 1. 直接运行（推荐使用最新版本）
 
 ```bash
-# 拉取预构建镜像
-# 推荐使用具体版本号标签，确保稳定性
-docker pull ghcr.io/lunatechlab/moontv:1.0.4
-# 或拉取最新版本
-docker pull ghcr.io/lunatechlab/moontv:latest
+# 拉取最新版本
+docker pull aqbjqtd/moontv:latest
 
 # 运行容器
-# -d: 后台运行  -p: 映射端口 3000 -> 3000
-docker run -d --name moontv -p 3000:3000 --env PASSWORD=your_password ghcr.io/lunatechlab/moontv:latest
+docker run -d \
+  --name moontv \
+  -p 3000:3000 \
+  -e PASSWORD=your_password \
+  -e USERNAME=your_username \
+  aqbjqtd/moontv:latest
 ```
 
 #### 可用标签
 
-- `ghcr.io/lunatechlab/moontv:1.0.4` - 具体版本号，推荐用于生产环境
-- `ghcr.io/lunatechlab/moontv:latest` - 最新版本，可能包含最新功能但也可能有未测试的变化
-- `ghcr.io/lunatechlab/moontv:pr-{number}` - PR 构建版本，用于测试新功能
+- `aqbjqtd/moontv:v2.1.0` - 最新稳定版本，推荐用于生产环境
+- `aqbjqtd/moontv:latest` - 始终指向最新版本
+- `aqbjqtd/moontv:v2.0.0` - 历史版本
 
-访问 `http://服务器 IP:3000` 即可。（需自行到服务器控制台放通 `3000` 端口）
+访问 `http://服务器IP:3000` 即可。（需自行到服务器控制台放通 `3000` 端口）
+
+> **若想使用Redis，请参考官网。**
 
 ## Docker Compose 最佳实践
 

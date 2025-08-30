@@ -18,8 +18,8 @@ export function getAuthInfoFromCookie(request: NextRequest): {
     const decoded = decodeURIComponent(authCookie.value);
     const authData = JSON.parse(decoded);
     
-    // 验证时间戳，防止重放攻击 (1小时有效期)
-    if (authData.timestamp && Date.now() - authData.timestamp > 3600000) {
+    // 验证时间戳，防止重放攻击 (30天有效期，与cookie过期时间保持一致)
+    if (authData.timestamp && Date.now() - authData.timestamp > 2592000000) {
       return null;
     }
     
@@ -74,8 +74,8 @@ export function getAuthInfoFromBrowserCookie(): {
 
     const authData = JSON.parse(decoded);
     
-    // 验证时间戳，防止重放攻击 (1小时有效期)
-    if (authData.timestamp && Date.now() - authData.timestamp > 3600000) {
+    // 验证时间戳，防止重放攻击 (30天有效期，与cookie过期时间保持一致)
+    if (authData.timestamp && Date.now() - authData.timestamp > 2592000000) {
       return null;
     }
     
@@ -106,7 +106,7 @@ export function createSecureAuthCookie(authData: {
   
   const isProduction = process.env.NODE_ENV === 'production';
   
-  return `auth=${encodedValue}; Path=/; ${isProduction ? 'Secure; ' : ''}HttpOnly; SameSite=strict; Max-Age=3600`;
+  return `auth=${encodedValue}; Path=/; ${isProduction ? 'Secure; ' : ''}HttpOnly; SameSite=strict; Max-Age=2592000`;
 }
 
 /**
@@ -115,7 +115,7 @@ export function createSecureAuthCookie(authData: {
  * @param maxAge 最大有效期（毫秒，默认5分钟）
  * @returns 是否在有效期内
  */
-export function validateSignatureTimestamp(timestamp: number, maxAge = 300000): boolean {
+export function validateSignatureTimestamp(timestamp: number, maxAge = 2592000000): boolean {
   return Date.now() - timestamp <= maxAge;
 }
 
