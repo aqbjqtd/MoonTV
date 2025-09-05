@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
   }
 
   const target = `${baseUrl}?${params.toString()}`;
-  console.log(target);
+  // Debug log removed
   try {
     const doubanData = await fetchDoubanData<DoubanRecommendApiResponse>(
       target

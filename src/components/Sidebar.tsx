@@ -218,7 +218,7 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
               </Link>
               <Link
                 href='/search'
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.preventDefault();
                   handleSearchClick();
                   setActive('/search');

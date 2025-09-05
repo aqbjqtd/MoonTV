@@ -766,7 +766,7 @@ function PlayPageClient() {
         detailData = await preferBestSource(sourcesInfo);
       }
 
-      console.log(detailData.source, detailData.id);
+      // Debug log removed
 
       setNeedPrefer(false);
       setCurrentSource(detailData.source);
@@ -1256,7 +1256,7 @@ function PlayPageClient() {
       setError('视频地址无效');
       return;
     }
-    console.log(videoUrl);
+    // Debug log removed
 
     // 检测是否为WebKit浏览器
     const isWebkit =
@@ -1340,8 +1340,8 @@ function PlayPageClient() {
               lowLatencyMode: true, // 开启低延迟 LL-HLS
 
               /* 缓冲/内存相关 */
-              maxBufferLength: 30, // 前向缓冲最大 30s，过大容易导致高延迟
-              backBufferLength: 30, // 仅保留 30s 已播放内容，避免内存占用
+              maxBufferLength: 60, // 前向缓冲最大 60s，拖动时有更多缓冲空间
+              backBufferLength: 90, // 保留 90s 已播放内容，拖动时更流畅
               maxBufferSize: 60 * 1000 * 1000, // 约 60MB，超出后触发清理
 
               /* 自定义loader */
@@ -1362,11 +1362,15 @@ function PlayPageClient() {
                 switch (data.type) {
                   case Hls.ErrorTypes.NETWORK_ERROR:
                     console.log('网络错误，尝试恢复...');
-                    hls.startLoad();
+                    setTimeout(() => {
+                      hls.startLoad();
+                    }, 1000);
                     break;
                   case Hls.ErrorTypes.MEDIA_ERROR:
                     console.log('媒体错误，尝试恢复...');
-                    hls.recoverMediaError();
+                    setTimeout(() => {
+                      hls.recoverMediaError();
+                    }, 1000);
                     break;
                   default:
                     console.log('无法恢复的错误');

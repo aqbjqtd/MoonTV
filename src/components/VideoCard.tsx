@@ -283,7 +283,7 @@ export default function VideoCard({
           referrerPolicy='no-referrer'
           loading='lazy'
           onLoadingComplete={() => setIsLoading(true)}
-          onError={(e) => {
+          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
             // 图片加载失败时的重试机制
             const img = e.target as HTMLImageElement;
             if (!img.dataset.retried) {
