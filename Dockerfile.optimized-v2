@@ -1,38 +1,33 @@
-# 多阶段构建优化Dockerfile - 最小体积镜像
+# 极致优化Dockerfile - 最小体积构建
 
 # ---- 第 1 阶段：依赖安装 ----
 FROM node:20-alpine AS deps
 
-# 启用 corepack 并激活 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+# 仅安装生产依赖
+COPY package.json package-lock.json ./
+RUN npm ci --only=production --ignore-scripts && \
+    npm cache clean --force
+
+# ---- 第 2 阶段：开发依赖安装 ----
+FROM node:20-alpine AS dev-deps
 
 WORKDIR /app
 
-# 安装构建时必需的系统依赖
-RUN apk add --no-cache python3 make g++
+# 安装开发依赖
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts && \
+    npm cache clean --force
 
-# 复制依赖清单文件
-COPY package.json pnpm-lock.yaml ./
-
-# 安装所有依赖，忽略脚本
-ENV HUSKY=0
-RUN pnpm install --frozen-lockfile --ignore-scripts
-
-# ---- 第 2 阶段：构建应用 ----
+# ---- 第 3 阶段：构建应用 ----
 FROM node:20-alpine AS builder
 
-# 启用 corepack 并激活 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 WORKDIR /app
 
-# 安装构建时系统依赖
-RUN apk add --no-cache python3 make g++
-
-# 复制依赖文件
-COPY --from=deps /app/package.json ./
-COPY --from=deps /app/pnpm-lock.yaml ./
+# 复制生产依赖
 COPY --from=deps /app/node_modules ./node_modules/
+COPY --from=dev-deps /app/node_modules/.bin ./node_modules/.bin/
 
 # 复制源代码
 COPY . .
@@ -50,20 +45,13 @@ RUN find ./src -type f -name "route.ts" -print0 \
 RUN sed -i "/const inter = Inter({ subsets: \['latin'] });/a export const dynamic = 'force-dynamic';" src/app/layout.tsx
 
 # 构建应用
-RUN pnpm run build
+RUN npm run build
 
-# 清理开发依赖和不必要文件
-RUN pnpm prune --production --ignore-scripts && \
-    rm -rf .git .vscode .husky .next/cache && \
-    find node_modules -name "*.md" -delete && \
-    find node_modules -name "*.ts" -delete && \
-    find node_modules -name "*.map" -delete
-
-# ---- 第 3 阶段：运行时镜像 ----
+# ---- 第 4 阶段：运行时镜像 ----
 FROM node:20-alpine AS runner
 
 # 安装运行时依赖
-RUN apk add --no-cache dumb-init wget
+RUN apk add --no-cache dumb-init
 
 # 创建非root用户
 RUN addgroup -g 1001 -S nodejs && \
@@ -88,12 +76,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts/
 COPY --from=builder --chown=nextjs:nodejs /app/config.json ./config.json
 
+# 激进清理：删除不必要的文件
+RUN rm -rf node_modules/.cache && \
+    find node_modules -name "*.md" -delete && \
+    find node_modules -name "*.ts" -delete && \
+    find node_modules -name "*.map" -delete && \
+    find node_modules -name "LICENSE" -delete && \
+    find node_modules -name "CHANGELOG*" -delete && \
+    find node_modules -name "*.txt" -not -name "package.json" -delete
+
 # 修复脚本权限
 RUN chmod +x ./scripts/generate-manifest.js
-
-# 清理不必要的文件
-RUN rm -rf node_modules/.cache && \
-    rm -rf node_modules/.pnpm/cache
 
 # 切换到非特权用户
 USER nextjs

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  moontv:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    image: aqbjqtd/moontv:test
+    container_name: moontv
+    ports:
+      - "9000:3000"
+    environment:
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+      - DOCKER_ENV=true
+      - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_SITE_NAME=MoonTV
+      - PASSWORD=${PASSWORD:-123456}  # 默认密码123456
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      # 可选：挂载配置文件用于热更新
+      - ./config.json:/app/config.json:ro
+    networks:
+      - moontv-network
+
+networks:
+  moontv-network:
+    driver: bridge
+
+volumes:
+  moontv-data:

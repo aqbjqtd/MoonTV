@@ -1,69 +1,60 @@
-# 多阶段构建优化Dockerfile - 最小体积镜像
+# 激进优化Dockerfile - 目标300MB以内
 
 # ---- 第 1 阶段：依赖安装 ----
 FROM node:20-alpine AS deps
 
-# 启用 corepack 并激活 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 WORKDIR /app
 
-# 安装构建时必需的系统依赖
+# 只安装必需的系统依赖
 RUN apk add --no-cache python3 make g++
 
-# 复制依赖清单文件
-COPY package.json pnpm-lock.yaml ./
+# 复制并优化npm配置
+COPY package.json package-lock.json ./
+RUN npm config set fund false && \
+    npm config set audit false && \
+    npm config set loglevel error
 
-# 安装所有依赖，忽略脚本
-ENV HUSKY=0
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# 安装生产依赖（使用--omit=dev）
+RUN npm ci --omit=dev --ignore-scripts --no-audit
 
 # ---- 第 2 阶段：构建应用 ----
 FROM node:20-alpine AS builder
 
-# 启用 corepack 并激活 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 WORKDIR /app
 
-# 安装构建时系统依赖
+# 安装构建依赖
 RUN apk add --no-cache python3 make g++
 
-# 复制依赖文件
-COPY --from=deps /app/package.json ./
-COPY --from=deps /app/pnpm-lock.yaml ./
+# 复制生产依赖
 COPY --from=deps /app/node_modules ./node_modules/
+COPY --from=deps /app/package.json ./
+COPY --from=deps /app/package-lock.json ./
 
 # 复制源代码
 COPY . .
 
-# 设置环境变量
+# 设置构建环境变量
 ENV NODE_ENV=production
 ENV DOCKER_ENV=true
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# 修复Edge Runtime为Node Runtime
+# 修复运行时配置
 RUN find ./src -type f -name "route.ts" -print0 \
   | xargs -0 sed -i "s/export const runtime = 'edge';/export const runtime = 'nodejs';/g"
 
-# 启用动态渲染以读取环境变量
 RUN sed -i "/const inter = Inter({ subsets: \['latin'] });/a export const dynamic = 'force-dynamic';" src/app/layout.tsx
 
+# 临时安装dev依赖进行构建
+RUN npm ci --include=dev --ignore-scripts --no-audit
+
 # 构建应用
-RUN pnpm run build
+RUN npm run build
 
-# 清理开发依赖和不必要文件
-RUN pnpm prune --production --ignore-scripts && \
-    rm -rf .git .vscode .husky .next/cache && \
-    find node_modules -name "*.md" -delete && \
-    find node_modules -name "*.ts" -delete && \
-    find node_modules -name "*.map" -delete
-
-# ---- 第 3 阶段：运行时镜像 ----
+# ---- 第 3 阶段：最小运行时 ----
 FROM node:20-alpine AS runner
 
-# 安装运行时依赖
-RUN apk add --no-cache dumb-init wget
+# 只安装运行时必需的
+RUN apk add --no-cache dumb-init
 
 # 创建非root用户
 RUN addgroup -g 1001 -S nodejs && \
@@ -71,7 +62,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-# 设置环境变量
+# 环境变量
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
@@ -79,23 +70,34 @@ ENV DOCKER_ENV=true
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_SITE_NAME=MoonTV
 
-# 从构建阶段复制必需文件
+# 只复制必需文件
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public/
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static/
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules/
 COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts/
 COPY --from=builder --chown=nextjs:nodejs /app/config.json ./config.json
 
-# 修复脚本权限
+# 复制生产依赖（选择性复制，只复制运行时必需的）
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules/
+
+# 修复权限
 RUN chmod +x ./scripts/generate-manifest.js
 
-# 清理不必要的文件
-RUN rm -rf node_modules/.cache && \
-    rm -rf node_modules/.pnpm/cache
+# 激进清理：删除不必要的文件
+RUN find node_modules -name "*.md" -delete && \
+    find node_modules -name "*.txt" -delete && \
+    find node_modules -name "LICENSE" -delete && \
+    find node_modules -name "CHANGELOG*" -delete && \
+    find node_modules -name "*.map" -delete && \
+    find node_modules -name "*.ts" -delete && \
+    find node_modules -name "*.js.map" -delete && \
+    rm -rf node_modules/.cache && \
+    rm -rf node_modules/.pnpm && \
+    rm -rf node_modules/.yarn-integrity && \
+    rm -rf node_modules/.bin 2>/dev/null || true
 
-# 切换到非特权用户
+# 切换用户
 USER nextjs
 
 # 健康检查
@@ -104,6 +106,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 EXPOSE 3000
 
-# 启动命令
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "start.js"]
