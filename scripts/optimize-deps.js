@@ -5,8 +5,7 @@
  * 用于识别和优化大体积依赖
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
 
 // 分析package.json中的依赖
 function analyzeDependencies() {
@@ -75,9 +74,9 @@ function generateOptimizedPackageJson() {
   });
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   analyzeDependencies();
   generateOptimizedPackageJson();
 }
 
-module.exports = { analyzeDependencies, generateOptimizedPackageJson };
+export { analyzeDependencies, generateOptimizedPackageJson };
