@@ -12,7 +12,7 @@ function analyzeDependencies() {
   const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
   const dependencies = {
     ...packageJson.dependencies,
-    ...packageJson.devDependencies
+    ...packageJson.devDependencies,
   };
 
   // 已知的大体积依赖
@@ -27,18 +27,22 @@ function analyzeDependencies() {
     'hls.js',
     '@heroicons/react',
     'lucide-react',
-    'react-icons'
+    'react-icons',
   ];
 
   console.log('📊 MoonTV依赖分析报告');
   console.log('========================');
   console.log(`总依赖数量: ${Object.keys(dependencies).length}`);
-  console.log(`生产依赖: ${Object.keys(packageJson.dependencies || {}).length}`);
-  console.log(`开发依赖: ${Object.keys(packageJson.devDependencies || {}).length}`);
+  console.log(
+    `生产依赖: ${Object.keys(packageJson.dependencies || {}).length}`
+  );
+  console.log(
+    `开发依赖: ${Object.keys(packageJson.devDependencies || {}).length}`
+  );
   console.log('');
 
   console.log('🔍 大体积依赖识别:');
-  heavyDependencies.forEach(dep => {
+  heavyDependencies.forEach((dep) => {
     if (dependencies[dep]) {
       console.log(`  ⚠️  ${dep}: ${dependencies[dep]}`);
     }
@@ -63,8 +67,8 @@ function generateOptimizedPackageJson() {
   const optimizationSuggestions = {
     'framer-motion': '考虑使用更轻量的动画库如react-spring或CSS动画',
     '@heroicons/react': '考虑使用lucide-react统一图标库',
-    'artplayer': '评估是否可以整合到@vidstack/react中',
-    'swiper': '考虑使用更轻量的轮播组件'
+    artplayer: '评估是否可以整合到@vidstack/react中',
+    swiper: '考虑使用更轻量的轮播组件',
   };
 
   Object.entries(optimizationSuggestions).forEach(([dep, suggestion]) => {

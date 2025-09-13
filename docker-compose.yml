@@ -9,7 +9,7 @@ services:
     image: aqbjqtd/moontv:test
     container_name: moontv
     ports:
-      - "9000:3000"
+      - '9000:3000'
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
@@ -17,10 +17,18 @@ services:
       - DOCKER_ENV=true
       - NEXT_TELEMETRY_DISABLED=1
       - NEXT_PUBLIC_SITE_NAME=MoonTV
-      - PASSWORD=${PASSWORD:-123456}  # 默认密码123456
+      - PASSWORD=${PASSWORD:-123456} # 默认密码123456
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/api/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
