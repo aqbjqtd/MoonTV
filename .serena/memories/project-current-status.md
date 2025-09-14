@@ -51,8 +51,7 @@
 │   └── optimize-deps.js      # 依赖分析
 ├── public/                    # 静态资源
 ├── config.json               # 应用配置
-├── Dockerfile               # Docker 构建配置
-├── Dockerfile.v2-optimized  # 优化版本 (备用)
+├── Dockerfile               # 优化版本 (基于273MB成功构建经验)
 ├── docker-compose.yml       # Docker Compose 配置
 └── .serena/                  # 项目记忆和知识库
 ```

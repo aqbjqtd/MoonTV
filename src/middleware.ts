@@ -43,10 +43,15 @@ export async function middleware(request: NextRequest) {
 
   // 验证签名（如果存在）
   if (authInfo.signature) {
+    // 安全检查：确保密码已设置
+    if (!process.env.PASSWORD) {
+      return handleAuthFailure(request, pathname);
+    }
+
     const isValidSignature = await verifySignature(
       authInfo.username,
       authInfo.signature,
-      process.env.PASSWORD || ''
+      process.env.PASSWORD
     );
 
     // 签名验证通过即可

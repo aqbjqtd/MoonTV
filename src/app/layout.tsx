@@ -96,11 +96,12 @@ export default async function RootLayout({
           content='width=device-width, initial-scale=1.0, viewport-fit=cover'
         />
         <link rel='apple-touch-icon' href='/icons/icon-192x192.png' />
-        {/* 将配置序列化后直接写入脚本，浏览器端可通过 window.RUNTIME_CONFIG 获取 */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        {/* 将配置序列化后安全地写入脚本 */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.RUNTIME_CONFIG = ${JSON.stringify(runtimeConfig)};`,
+            __html: `window.RUNTIME_CONFIG = ${JSON.stringify(
+              runtimeConfig
+            ).replace(/</g, '\\u003C').replace(/>/g, '\\u003E').replace(/&/g, '\\u0026').replace(/"/g, '\\u0022').replace(/'/g, '\\u0027')};`,
           }}
         />
       </head>
