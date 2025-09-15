@@ -133,7 +133,7 @@
 ~~1. **Fork** 本仓库到你的 GitHub 账户。~~
 ~~2. 登陆 [Cloudflare](https://cloudflare.com)，点击 **计算（Workers）-> Workers 和 Pages**，点击创建~~
 ~~3. 选择 Pages，导入现有的 Git 存储库，选择 Fork 后的仓库~~
-~~4. 构建命令填写 **pnpm install --frozen-lockfile && pnpm run pages:build**，预设框架为无，**构建输出目录**为 `.vercel/output/static`~~
+~~4. 构建命令填写 **npm ci && npm run pages:build**，预设框架为无，**构建输出目录**为 `.vercel/output/static`~~
 ~~5. 保持默认设置完成首次部署。进入设置，将兼容性标志设置为 `nodejs_compat`，无需选择，直接粘贴~~
 ~~6. 首次部署完成后进入设置，新增 PASSWORD 密钥（变量和机密下），而后重试部署。~~
 ~~7. 如需自定义 `config.json`，请直接修改 Fork 后仓库中该文件。~~

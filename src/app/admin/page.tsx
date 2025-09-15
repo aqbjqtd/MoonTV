@@ -729,7 +729,12 @@ const VideoSourceConfig = ({
       });
   };
 
-  const handleDragEnd = (event: any) => {
+  interface DragEndEvent {
+  active: { id: string | number };
+  over: { id: string | number } | null;
+}
+
+const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = sources.findIndex((s) => s.key === active.id);
@@ -749,7 +754,12 @@ const VideoSourceConfig = ({
       });
   };
 
-  // 可拖拽行封装 (dnd-kit)
+  interface DragEndEvent {
+  active: { id: string | number };
+  over: { id: string | number } | null;
+}
+
+// 可拖拽行封装 (dnd-kit)
   const DraggableRow = ({ source }: { source: DataSource }) => {
     const { attributes, listeners, setNodeRef, transform, transition } =
       useSortable({ id: source.key });
@@ -1071,7 +1081,12 @@ const CategoryConfig = ({
       });
   };
 
-  const handleDragEnd = (event: any) => {
+  interface DragEndEvent {
+  active: { id: string | number };
+  over: { id: string | number } | null;
+}
+
+const handleDragEnd = (event: DragEndEvent) => {
     if (isUpstashStorage) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -1096,7 +1111,12 @@ const CategoryConfig = ({
       });
   };
 
-  // 可拖拽行封装 (dnd-kit)
+  interface DragEndEvent {
+  active: { id: string | number };
+  over: { id: string | number } | null;
+}
+
+// 可拖拽行封装 (dnd-kit)
   const DraggableRow = ({ category }: { category: CustomCategory }) => {
     const { attributes, listeners, setNodeRef, transform, transition } =
       useSortable({ id: `${category.query}:${category.type}` });

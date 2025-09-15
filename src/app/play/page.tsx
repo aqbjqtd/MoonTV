@@ -29,9 +29,18 @@ import PageLayout from '@/components/PageLayout';
 
 // 扩展 HTMLVideoElement 类型以支持 hls 属性
 declare global {
-  interface HTMLVideoElement {
-    hls?: any;
-  }
+  interface HlsInstance {
+  destroy(): void;
+  loadSource(url: string): void;
+  attachMedia(video: HTMLVideoElement): void;
+  on(event: string, callback: (event: any, data: any) => void): void;
+  startLoad(): void;
+  recoverMediaError(): void;
+}
+
+interface HTMLVideoElement {
+  hls?: HlsInstance;
+}
 }
 
 // Wake Lock API 类型声明

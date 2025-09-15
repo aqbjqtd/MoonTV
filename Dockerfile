@@ -1,5 +1,5 @@
-# MoonTV 优化Dockerfile - Node.js 22安全版本
-# 目标：稳定构建，安全性优先
+# MoonTV 超优化Docker镜像 - 最小化版本
+# 目标：最小化镜像大小，充分利用Next.js standalone特性
 
 # ---- 第 1 阶段：依赖安装 ----
 FROM node:22-alpine AS deps
@@ -14,8 +14,8 @@ RUN npm config set fund false && \
 # 复制依赖文件
 COPY package.json package-lock.json ./
 
-# 安装所有依赖（包含开发依赖用于构建）
-RUN npm ci --legacy-peer-deps --ignore-scripts && \
+# 仅安装生产依赖
+RUN npm ci --omit=dev --legacy-peer-deps --ignore-scripts && \
     npm cache clean --force
 
 # ---- 第 2 阶段：构建应用 ----
@@ -23,10 +23,10 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# 复制所有依赖
-COPY --from=deps /app/node_modules ./node_modules/
-COPY --from=deps /app/package.json ./package.json
-COPY --from=deps /app/package-lock.json ./package-lock.json
+# 复制依赖文件并安装所有依赖（包含开发依赖用于构建）
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps --ignore-scripts && \
+    npm cache clean --force
 
 # 复制源代码
 COPY . .
@@ -39,7 +39,7 @@ ENV HUSKY=0
 
 # 修复Edge Runtime为Node Runtime
 RUN find ./src -type f -name "route.ts" -print0 \
-  | xargs -0 sed -i "s/export const runtime = 'edge';/export const runtime = 'nodejs';/g"
+    | xargs -0 sed -i "s/export const runtime = 'edge';/export const runtime = 'nodejs';/g"
 
 # 启用动态渲染以读取环境变量
 RUN sed -i "/const inter = Inter({ subsets: \\['latin'] });/a export const dynamic = 'force-dynamic';" src/app/layout.tsx
@@ -49,15 +49,12 @@ RUN node scripts/convert-config.js && \
     node scripts/generate-manifest.js && \
     npx next build
 
-# 清理开发依赖，保留生产依赖
-RUN npm prune --production --legacy-peer-deps && \
-    npm cache clean --force
-
-# ---- 第 3 阶段：运行时镜像 ----
+# ---- 第 3 阶段：运行时镜像（超小化） ----
 FROM node:22-alpine AS runner
 
-# 安装运行时依赖
-RUN apk add --no-cache dumb-init curl
+# 仅安装必要的运行时工具
+RUN apk add --no-cache dumb-init curl && \
+    rm -rf /var/cache/apk/*
 
 # 创建非root用户
 RUN addgroup -g 1001 -S nodejs && \
@@ -67,55 +64,36 @@ WORKDIR /app
 
 # 设置环境变量
 ENV NODE_ENV=production
-ENV NODE_OPTIONS=--max-old-space-size=256 --max-semi-space-size=128
+ENV NODE_OPTIONS=--max-old-space-size=256
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 ENV DOCKER_ENV=true
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_SITE_NAME=MoonTV
 ENV TZ=Asia/Shanghai
 
-# 从构建阶段复制必需文件
+# 从构建阶段复制standalone输出（Next.js已经包含了所有必要的依赖）
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public/
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static/
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules/
-COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
-COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts/
-COPY --from=builder --chown=nextjs:nodejs /app/config.json ./config.json
 
-# 激进清理策略
-RUN rm -rf node_modules/.cache && \
-    find node_modules -name "*.md" -delete 2>/dev/null || true && \
-    find node_modules -name "*.ts" -delete 2>/dev/null || true && \
-    find node_modules -name "*.map" -delete 2>/dev/null || true && \
-    find node_modules -name "LICENSE*" -delete 2>/dev/null || true && \
-    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
-    find node_modules -name "*.txt" -not -name "package.json" -delete 2>/dev/null || true && \
-    find node_modules -name "README*" -delete 2>/dev/null || true && \
-    find node_modules -name "test*" -type d -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -name "tests*" -type d -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -name "__tests__*" -type d -exec rm -rf {} + 2>/dev/null || true && \
-    find node_modules -name "*.bin" -delete 2>/dev/null || true
+# 复制必要的配置文件和scripts目录
+COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
+COPY --from=builder --chown=nextjs:nodejs /app/config.json ./config.json
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts/
 
 # 创建必要的目录
 RUN mkdir -p /app/data /app/logs && \
     chown -R nextjs:nodejs /app/data /app/logs
 
-# 添加版本信息
-RUN echo "MoonTV v1.1-security-patched" > /app/VERSION && \
-    echo "Build Date: $(date '+%Y-%m-%d %H:%M:%S')" >> /app/VERSION && \
-    echo "Node.js: $(node --version)" >> /app/VERSION
-
 # 修复脚本权限
-RUN chmod +x ./scripts/generate-manifest.js
+RUN chmod +x ./start.js
 
 # 切换到非特权用户
 USER nextjs
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+    CMD curl -f http://localhost:3000/api/health || exit 1
 
 EXPOSE 3000
 

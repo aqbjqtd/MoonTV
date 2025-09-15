@@ -34,6 +34,12 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+interface CustomCategory {
+  name?: string;
+  type: 'movie' | 'tv';
+  query: string;
+}
+
 export default async function RootLayout({
   children,
 }: {
@@ -52,7 +58,7 @@ export default async function RootLayout({
   let disableYellowFilter =
     process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true';
   let customCategories =
-    (RuntimeConfig as any).custom_category?.map((category: any) => ({
+    (RuntimeConfig as { custom_category?: CustomCategory[] }).custom_category?.map((category: CustomCategory) => ({
       name: 'name' in category ? category.name : '',
       type: category.type,
       query: category.query,

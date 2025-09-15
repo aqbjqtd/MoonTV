@@ -41,9 +41,17 @@ async function generateSignature(
     .join('');
 }
 
+interface AuthData {
+  role: 'owner' | 'admin' | 'user';
+  username?: string;
+  password?: string;
+  signature?: string;
+  timestamp?: number;
+}
+
 // 生成认证Cookie（带签名）
 async function generateAuthCookie(username: string): Promise<string> {
-  const authData: any = {
+  const authData: AuthData = {
     role: 'user',
     username,
     timestamp: Date.now(),
