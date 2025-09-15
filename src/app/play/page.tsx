@@ -105,6 +105,43 @@ function PlayPageClient() {
     blockAdEnabledRef.current = blockAdEnabled;
   }, [blockAdEnabled]);
 
+  // 画质选择状态
+  const [qualityMode, setQualityMode] = useState<'auto' | 'manual'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('quality_mode');
+      return (saved as 'auto' | 'manual') || 'auto';
+    }
+    return 'auto';
+  });
+  const [selectedQuality, setSelectedQuality] = useState<number>(-1); // -1表示自动
+  const qualityModeRef = useRef(qualityMode);
+  const selectedQualityRef = useRef(selectedQuality);
+  
+  useEffect(() => {
+    qualityModeRef.current = qualityMode;
+    selectedQualityRef.current = selectedQuality;
+  }, [qualityMode, selectedQuality]);
+
+  // 网络状态检测
+  const [networkQuality, setNetworkQuality] = useState<'good' | 'medium' | 'poor'>('good');
+  const networkQualityRef = useRef(networkQuality);
+  useEffect(() => {
+    networkQualityRef.current = networkQuality;
+  }, [networkQuality]);
+
+  // 性能监控状态
+  const [performanceStats, setPerformanceStats] = useState({
+    bufferHealth: 0, // 缓冲健康度
+    droppedFrames: 0, // 丢帧数
+    loadTime: 0, // 加载时间
+    rebufferCount: 0, // 重新缓冲次数
+    averageBitrate: 0, // 平均码率
+  });
+  const performanceStatsRef = useRef(performanceStats);
+  useEffect(() => {
+    performanceStatsRef.current = performanceStats;
+  }, [performanceStats]);
+
   // 视频基本信息
   const [videoTitle, setVideoTitle] = useState(searchParams.get('title') || '');
   const [videoYear, setVideoYear] = useState(searchParams.get('year') || '');
@@ -218,6 +255,178 @@ function PlayPageClient() {
   // -----------------------------------------------------------------------------
   // 工具函数（Utils）
   // -----------------------------------------------------------------------------
+
+  // 预加载相关状态
+  const [preloadedEpisodes, setPreloadedEpisodes] = useState<Set<number>>(new Set());
+  const preloadedEpisodesRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    preloadedEpisodesRef.current = preloadedEpisodes;
+  }, [preloadedEpisodes]);
+
+  // 预加载下一集
+  const preloadNextEpisode = async () => {
+    const currentDetail = detailRef.current;
+    const currentIndex = currentEpisodeIndexRef.current;
+    
+    if (!currentDetail?.episodes || currentIndex >= currentDetail.episodes.length - 1) {
+      return; // 已是最后一集
+    }
+    
+    const nextIndex = currentIndex + 1;
+    if (preloadedEpisodesRef.current.has(nextIndex)) {
+      return; // 已预加载
+    }
+    
+    try {
+      const nextEpisodeUrl = currentDetail.episodes[nextIndex];
+      if (nextEpisodeUrl) {
+        // 创建隐藏的video元素进行预加载
+        const preloadVideo = document.createElement('video');
+        preloadVideo.preload = 'metadata';
+        preloadVideo.src = nextEpisodeUrl;
+        preloadVideo.style.display = 'none';
+        document.body.appendChild(preloadVideo);
+        
+        // 监听预加载完成
+        preloadVideo.addEventListener('loadedmetadata', () => {
+          console.log(`第${nextIndex + 1}集预加载完成`);
+          setPreloadedEpisodes(prev => new Set([...Array.from(prev), nextIndex]));
+          
+          // 清理预加载元素
+          setTimeout(() => {
+            document.body.removeChild(preloadVideo);
+          }, 1000);
+        });
+        
+        // 预加载失败处理
+        preloadVideo.addEventListener('error', () => {
+          console.warn(`第${nextIndex + 1}集预加载失败`);
+          document.body.removeChild(preloadVideo);
+        });
+      }
+    } catch (err) {
+      console.warn('预加载下一集失败:', err);
+    }
+  };
+
+  // 性能监控函数
+  const updatePerformanceStats = (hls: any) => {
+    if (!hls || !artPlayerRef.current) return;
+    
+    try {
+      const video = artPlayerRef.current.video;
+      const stats = hls.stats;
+      
+      // 计算缓冲健康度
+      const buffered = video.buffered;
+      const currentTime = video.currentTime;
+      let bufferHealth = 0;
+      
+      if (buffered.length > 0) {
+        for (let i = 0; i < buffered.length; i++) {
+          if (currentTime >= buffered.start(i) && currentTime <= buffered.end(i)) {
+            bufferHealth = buffered.end(i) - currentTime;
+            break;
+          }
+        }
+      }
+      
+      // 获取视频质量统计
+      const droppedFrames = video.webkitDroppedFrameCount || video.mozDroppedFrameCount || 0;
+      const loadTime = stats?.loading?.first || 0;
+      
+      setPerformanceStats(prev => ({
+        ...prev,
+        bufferHealth: Math.round(bufferHealth * 100) / 100,
+        droppedFrames,
+        loadTime,
+        averageBitrate: Math.round((hls.currentLevel?.bitrate || 0) / 1000),
+      }));
+    } catch (err) {
+      console.warn('性能统计更新失败:', err);
+    }
+  };
+
+  // 网络状态检测函数
+  const detectNetworkQuality = async (): Promise<'good' | 'medium' | 'poor'> => {
+    try {
+      // 使用Navigator API检测网络状态
+      if ('connection' in navigator) {
+        const connection = (navigator as any).connection;
+        const effectiveType = connection?.effectiveType;
+        
+        switch (effectiveType) {
+          case '4g':
+            return 'good';
+          case '3g':
+            return 'medium';
+          case '2g':
+          case 'slow-2g':
+            return 'poor';
+          default:
+            return 'good';
+        }
+      }
+      
+      // 备用检测：通过小文件下载测试网速
+      const testStart = performance.now();
+      const response = await fetch('/favicon.ico', { cache: 'no-cache' });
+      const testEnd = performance.now();
+      const duration = testEnd - testStart;
+      
+      if (duration < 100) return 'good';
+      if (duration < 300) return 'medium';
+      return 'poor';
+    } catch {
+      return 'medium'; // 默认中等网络
+    }
+  };
+
+  // 根据网络状态调整HLS配置
+  const getOptimalHlsConfig = (networkQuality: 'good' | 'medium' | 'poor') => {
+    const baseConfig = {
+      debug: false,
+      enableWorker: true,
+      lowLatencyMode: true,
+      loader: blockAdEnabledRef.current ? CustomHlsJsLoader : Hls.DefaultConfig.loader,
+    };
+
+    switch (networkQuality) {
+      case 'good':
+        return {
+          ...baseConfig,
+          maxBufferLength: 15,
+          backBufferLength: 10,
+          maxBufferSize: 40 * 1000 * 1000,
+          maxBufferHole: 0.5,
+          abrEwmaFastVoD: 3.0,
+          abrEwmaSlowVoD: 9.0,
+          abrBandWidthFactor: 0.95,
+        };
+      case 'medium':
+        return {
+          ...baseConfig,
+          maxBufferLength: 10,
+          backBufferLength: 8,
+          maxBufferSize: 25 * 1000 * 1000,
+          maxBufferHole: 1.0,
+          abrEwmaFastVoD: 5.0,
+          abrEwmaSlowVoD: 15.0,
+          abrBandWidthFactor: 0.8,
+        };
+      case 'poor':
+        return {
+          ...baseConfig,
+          maxBufferLength: 8,
+          backBufferLength: 5,
+          maxBufferSize: 15 * 1000 * 1000,
+          maxBufferHole: 2.0,
+          abrEwmaFastVoD: 8.0,
+          abrEwmaSlowVoD: 25.0,
+          abrBandWidthFactor: 0.6,
+        };
+    }
+  };
 
   // 播放源优选函数
   const preferBestSource = async (
@@ -1080,6 +1289,70 @@ function PlayPageClient() {
         e.preventDefault();
       }
     }
+
+    // m 键 = 静音/取消静音
+    if (e.key === 'm' || e.key === 'M') {
+      if (artPlayerRef.current) {
+        artPlayerRef.current.muted = !artPlayerRef.current.muted;
+        artPlayerRef.current.notice.show = artPlayerRef.current.muted ? '已静音' : '取消静音';
+        e.preventDefault();
+      }
+    }
+
+    // p 键 = 画中画
+    if (e.key === 'p' || e.key === 'P') {
+      if (artPlayerRef.current) {
+        artPlayerRef.current.pip = !artPlayerRef.current.pip;
+        e.preventDefault();
+      }
+    }
+
+    // 数字键 1-9 = 跳转到对应百分比位置
+    if (e.key >= '1' && e.key <= '9') {
+      if (artPlayerRef.current && artPlayerRef.current.duration) {
+        const percentage = parseInt(e.key) / 10;
+        artPlayerRef.current.currentTime = artPlayerRef.current.duration * percentage;
+        artPlayerRef.current.notice.show = `跳转到 ${parseInt(e.key) * 10}%`;
+        e.preventDefault();
+      }
+    }
+
+    // 数字键 0 = 跳转到开头
+    if (e.key === '0') {
+      if (artPlayerRef.current) {
+        artPlayerRef.current.currentTime = 0;
+        artPlayerRef.current.notice.show = '跳转到开头';
+        e.preventDefault();
+      }
+    }
+
+    // + 键 = 加速播放
+    if (e.key === '+' || e.key === '=') {
+      if (artPlayerRef.current) {
+        const rates = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+        const currentRate = artPlayerRef.current.playbackRate;
+        const currentIndex = rates.indexOf(currentRate);
+        if (currentIndex < rates.length - 1) {
+          artPlayerRef.current.playbackRate = rates[currentIndex + 1];
+          artPlayerRef.current.notice.show = `播放速度: ${rates[currentIndex + 1]}x`;
+        }
+        e.preventDefault();
+      }
+    }
+
+    // - 键 = 减速播放
+    if (e.key === '-') {
+      if (artPlayerRef.current) {
+        const rates = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+        const currentRate = artPlayerRef.current.playbackRate;
+        const currentIndex = rates.indexOf(currentRate);
+        if (currentIndex > 0) {
+          artPlayerRef.current.playbackRate = rates[currentIndex - 1];
+          artPlayerRef.current.notice.show = `播放速度: ${rates[currentIndex - 1]}x`;
+        }
+        e.preventDefault();
+      }
+    }
   };
 
   // ---------------------------------------------------------------------------
@@ -1334,7 +1607,7 @@ function PlayPageClient() {
         },
         // HLS 支持配置
         customType: {
-          m3u8: function (video: HTMLVideoElement, url: string) {
+          m3u8: async function (video: HTMLVideoElement, url: string) {
             if (!Hls) {
               console.error('HLS.js 未加载');
               return;
@@ -1343,21 +1616,12 @@ function PlayPageClient() {
             if (video.hls) {
               video.hls.destroy();
             }
-            const hls = new Hls({
-              debug: false, // 关闭日志
-              enableWorker: true, // WebWorker 解码，降低主线程压力
-              lowLatencyMode: true, // 开启低延迟 LL-HLS
-
-              /* 缓冲/内存相关 */
-              maxBufferLength: 30, // 前向缓冲最大 30s，过大容易导致高延迟
-              backBufferLength: 30, // 仅保留 30s 已播放内容，避免内存占用
-              maxBufferSize: 60 * 1000 * 1000, // 约 60MB，超出后触发清理
-
-              /* 自定义loader */
-              loader: blockAdEnabledRef.current
-                ? CustomHlsJsLoader
-                : Hls.DefaultConfig.loader,
-            });
+            // 检测网络状态并获取优化配置
+            const currentNetworkQuality = await detectNetworkQuality();
+            setNetworkQuality(currentNetworkQuality);
+            const hlsConfig = getOptimalHlsConfig(currentNetworkQuality);
+            
+            const hls = new Hls(hlsConfig);
 
             hls.loadSource(url);
             hls.attachMedia(video);
@@ -1415,6 +1679,42 @@ function PlayPageClient() {
                 // ignore
               }
               return newVal ? '当前开启' : '当前关闭';
+            },
+          },
+          {
+            html: '画质选择',
+            icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/></svg>',
+            tooltip: qualityMode === 'auto' ? '自动画质' : '手动画质',
+            selector: [
+              {
+                html: '自动画质',
+                value: 'auto',
+              },
+              {
+                html: '手动选择',
+                value: 'manual',
+              },
+            ],
+            onSelect(item: any) {
+              const newMode = item.value as 'auto' | 'manual';
+              setQualityMode(newMode);
+              localStorage.setItem('quality_mode', newMode);
+              
+              if (artPlayerRef.current?.video?.hls) {
+                if (newMode === 'auto') {
+                  artPlayerRef.current.video.hls.currentLevel = -1; // 自动选择
+                  setSelectedQuality(-1);
+                }
+              }
+              return item.html;
+            },
+          },
+          {
+            html: '网络状态',
+            icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9z"/><path d="M5 13l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/><path d="M9 17l2 2c.87-.87 2.13-.87 3 0l2-2C14.24 15.24 9.76 15.24 9 17z"/></svg>',
+            tooltip: `网络状态: ${networkQuality === 'good' ? '良好' : networkQuality === 'medium' ? '一般' : '较差'}`,
+            onClick() {
+              return `当前: ${networkQuality === 'good' ? '良好' : networkQuality === 'medium' ? '一般' : '较差'}`;
             },
           },
           {
@@ -1575,47 +1875,56 @@ function PlayPageClient() {
         setIsVideoLoading(false);
       });
 
-      // 监听视频时间更新事件，实现跳过片头片尾
+      // 监听视频时间更新事件，实现跳过片头片尾和预加载
       artPlayerRef.current.on('video:timeupdate', () => {
-        if (!skipConfigRef.current.enable) return;
-
         const currentTime = artPlayerRef.current.currentTime || 0;
         const duration = artPlayerRef.current.duration || 0;
         const now = Date.now();
 
-        // 限制跳过检查频率为1.5秒一次
-        if (now - lastSkipCheckRef.current < 1500) return;
-        lastSkipCheckRef.current = now;
+        // 跳过片头片尾逻辑
+        if (skipConfigRef.current.enable) {
+          // 限制跳过检查频率为1.5秒一次
+          if (now - lastSkipCheckRef.current < 1500) return;
+          lastSkipCheckRef.current = now;
 
-        // 跳过片头
-        if (
-          skipConfigRef.current.intro_time > 0 &&
-          currentTime < skipConfigRef.current.intro_time
-        ) {
-          artPlayerRef.current.currentTime = skipConfigRef.current.intro_time;
-          artPlayerRef.current.notice.show = `已跳过片头 (${formatTime(
-            skipConfigRef.current.intro_time
-          )})`;
+          // 跳过片头
+          if (
+            skipConfigRef.current.intro_time > 0 &&
+            currentTime < skipConfigRef.current.intro_time
+          ) {
+            artPlayerRef.current.currentTime = skipConfigRef.current.intro_time;
+            artPlayerRef.current.notice.show = `已跳过片头 (${formatTime(
+              skipConfigRef.current.intro_time
+            )})`;
+          }
+
+          // 跳过片尾
+          if (
+            skipConfigRef.current.outro_time < 0 &&
+            duration > 0 &&
+            currentTime >
+              artPlayerRef.current.duration + skipConfigRef.current.outro_time
+          ) {
+            if (
+              currentEpisodeIndexRef.current <
+              (detailRef.current?.episodes?.length || 1) - 1
+            ) {
+              handleNextEpisode();
+            } else {
+              artPlayerRef.current.pause();
+            }
+            artPlayerRef.current.notice.show = `已跳过片尾 (${formatTime(
+              skipConfigRef.current.outro_time
+            )})`;
+          }
         }
 
-        // 跳过片尾
-        if (
-          skipConfigRef.current.outro_time < 0 &&
-          duration > 0 &&
-          currentTime >
-            artPlayerRef.current.duration + skipConfigRef.current.outro_time
-        ) {
-          if (
-            currentEpisodeIndexRef.current <
-            (detailRef.current?.episodes?.length || 1) - 1
-          ) {
-            handleNextEpisode();
-          } else {
-            artPlayerRef.current.pause();
+        // 预加载逻辑：当播放进度超过50%时预加载下一集
+        if (duration > 0 && currentTime / duration > 0.5) {
+          const nextIndex = currentEpisodeIndexRef.current + 1;
+          if (!preloadedEpisodesRef.current.has(nextIndex)) {
+            preloadNextEpisode();
           }
-          artPlayerRef.current.notice.show = `已跳过片尾 (${formatTime(
-            skipConfigRef.current.outro_time
-          )})`;
         }
       });
 
