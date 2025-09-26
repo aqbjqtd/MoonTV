@@ -17,10 +17,12 @@ FROM node:20-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-# 复制依赖
-COPY --from=deps /app/node_modules ./node_modules
-# 复制全部源代码
+# 复制源代码
 COPY . .
+# 复制依赖，排除有问题的包
+COPY --from=deps /app/node_modules ./node_modules
+# 删除有问题的包并重新安装
+RUN rm -rf node_modules/@cloudflare/next-on-pages && npm install @cloudflare/next-on-pages@1.13.16 --no-save
 
 # 在构建阶段也显式设置 DOCKER_ENV，
 # 确保 Next.js 在编译时即选择 Node Runtime 而不是 Edge Runtime

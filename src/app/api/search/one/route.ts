@@ -4,6 +4,7 @@ import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getAvailableApiSites, getCacheTime, getConfig } from '@/lib/config';
 import { searchFromApiStream } from '@/lib/downstream';
 import { yellowWords } from '@/lib/yellow';
+import { SearchResult } from '@/lib/types';
 
 export const runtime = 'edge';
 
@@ -51,8 +52,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 聚合搜索（使用流式实现做非流式聚合）
-    const allResults: any[] = [];
-    for await (const batch of searchFromApiStream(targetSite, query!, true, timeout)) {
+    const allResults: SearchResult[] = [];
+    for await (const batch of searchFromApiStream(targetSite, query as string, true, timeout)) {
       allResults.push(...batch);
     }
 

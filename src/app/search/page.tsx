@@ -28,7 +28,7 @@ function SearchPageClient() {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  const router = useRouter();
+  const _router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +54,7 @@ function SearchPageClient() {
         try {
           return JSON.parse(savedSources);
         } catch (error) {
-          console.error('Failed to parse saved sources:', error);
+          // Error handling for source parsing
         }
       }
     }
@@ -136,7 +136,7 @@ function SearchPageClient() {
       .filter(([key, group]) => {
         // 来源筛选：如果没有选择任何来源（filterSources.length === 0），默认显示全部；如果选择了来源，只保留包含至少一个选中来源的影片组
         const sourceMatch = filterSources.length === 0 ||
-          group.some(item => filterSources.includes(item.source_name));
+          group.some((_item) => filterSources.includes(_item.source_name));
         // 标题筛选：如果选择了标题，只保留标题匹配的影片组
         const titleMatch = selectedTitles.length === 0 ||
           selectedTitles.includes(group[0].title);
@@ -308,7 +308,7 @@ const sortedAggregatedResults: { exact: [string, SearchResult[]][], others: [str
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return;
-      console.error('搜索失败', err);
+      // Search error handling
       setSearchResults([]);
     }
   };
