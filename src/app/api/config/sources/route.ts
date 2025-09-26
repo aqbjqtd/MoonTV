@@ -4,7 +4,7 @@ import { getCacheTime,getConfig } from '@/lib/config';
 
 export const runtime = 'edge';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const config = await getConfig();
     const sources = config.SourceConfig || [];
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Failed to get sources:', error);
+    // Error handling for source fetching
     return new Response(JSON.stringify([]), {
       status: 500,
       headers: {

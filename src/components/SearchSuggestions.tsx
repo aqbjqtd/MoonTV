@@ -63,14 +63,14 @@ export default function SearchSuggestions({
             if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
               setSuggestions((prev) => [
                 ...prev,
-                ...parsed.suggestions.map((s: any) => ({
+                ...parsed.suggestions.map((s: {text: string; type?: string}) => ({
                   text: s.text,
                   type: s.type || 'related',
                 })),
               ]);
             }
           } catch (err) {
-            console.error('解析流式数据失败', err);
+            // Error handling for stream data parsing
           }
         }
       }
