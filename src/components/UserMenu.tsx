@@ -85,6 +85,58 @@ export const UserMenu: React.FC = () => {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
+  // TVBox 设置
+  const [tvboxEnabled, setTvboxEnabled] = useState(false);
+  const [tvboxPassword, setTvboxPassword] = useState('');
+  const [tvboxUrl, setTvboxUrl] = useState('');
+  const [tvboxLoading, setTvboxLoading] = useState(false);
+  const isPrivileged = (authInfo?.role === 'owner' || authInfo?.role === 'admin');
+
+  const fetchTvboxConfig = async () => {
+    try {
+      setTvboxLoading(true);
+      const res = await fetch('/api/admin/tvbox', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setTvboxEnabled(!!data.enabled);
+      setTvboxPassword(data.password || '');
+      setTvboxUrl(data.url || '');
+    } catch (err) {
+      console.warn('Failed to load TVBox admin config:', err);
+    }
+    finally {
+      setTvboxLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isSettingsOpen) {
+      fetchTvboxConfig();
+    }
+  }, [isSettingsOpen]);
+
+  const saveTvboxConfig = async (payload: { enabled?: boolean; password?: string; mode?: 'custom' | 'random' | 'keep'; }) => {
+    if (storageType === 'localstorage' || !isPrivileged) {
+      return; // 本地模式下禁止在前端修改
+    }
+    setTvboxLoading(true);
+    try {
+      const res = await fetch('/api/admin/tvbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTvboxEnabled(!!data.enabled);
+        setTvboxPassword(data.password || '');
+        setTvboxUrl(data.url || '');
+      }
+    } finally {
+      setTvboxLoading(false);
+    }
+  };
+
   // 确保组件已挂载
   useEffect(() => {
     setMounted(true);
@@ -890,6 +942,111 @@ export const UserMenu: React.FC = () => {
               </div>
             </label>
           </div>
+
+          {/* TVBox 设置 */}
+          <div className='space-y-3'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                  启用 TVBox 接口
+                </h4>
+                <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                  开启后可在 TVBox 中使用本站数据。访问需携带密码。
+                  {storageType === 'localstorage' && (
+                    <span className='ml-1 text-amber-600 dark:text-amber-400'>（本地模式由环境变量 TVBOX_ENABLED 控制，口令为 PASSWORD）</span>
+                  )}
+                  {!isPrivileged && storageType !== 'localstorage' && (
+                    <span className='ml-1 text-amber-600 dark:text-amber-400'>（仅管理员可修改，当前为只读）</span>
+                  )}
+                </p>
+              </div>
+              <label className='flex items-center cursor-pointer'>
+                <div className='relative'>
+                  <input
+                    type='checkbox'
+                    className='sr-only peer'
+                    checked={tvboxEnabled}
+                    onChange={(e) => {
+                      const value = e.target.checked;
+                      setTvboxEnabled(value);
+                      if (storageType !== 'localstorage' && isPrivileged) {
+                        saveTvboxConfig({ enabled: value, mode: 'keep' });
+                      }
+                    }}
+                    disabled={tvboxLoading || storageType === 'localstorage' || !isPrivileged}
+                  />
+                  <div className='w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-green-500 transition-colors dark:bg-gray-600'></div>
+                  <div className='absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5'></div>
+                </div>
+              </label>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start'>
+              <div className='space-y-2'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>接口地址</label>
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    className='flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    value={tvboxUrl ? `${tvboxUrl}?pwd=${encodeURIComponent(tvboxPassword || '')}` : ''}
+                    readOnly
+                  />
+                  {tvboxUrl && (
+                    <button
+                      type='button'
+                      className='shrink-0 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600'
+                      onClick={() => navigator.clipboard.writeText(`${tvboxUrl}?pwd=${encodeURIComponent(tvboxPassword || '')}`)}
+                    >复制</button>
+                  )}
+                </div>
+                <p className='text-xs text-gray-500 dark:text-gray-400'>将该地址填入 TVBox 的订阅/配置接口。</p>
+              </div>
+
+              <div className='space-y-2'>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>访问密码</label>
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    className='flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    placeholder='可自定义或随机生成'
+                    value={tvboxPassword}
+                    onChange={(e) => setTvboxPassword(e.target.value)}
+                  disabled={tvboxLoading || storageType === 'localstorage' || !isPrivileged}
+                  />
+                  <div className='flex gap-2'>
+                    <button
+                      type='button'
+                      className='shrink-0 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600'
+                    onClick={() => saveTvboxConfig({ mode: 'random' })}
+                    disabled={tvboxLoading || storageType === 'localstorage' || !isPrivileged}
+                    >随机</button>
+                    <button
+                      type='button'
+                      className='shrink-0 px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700'
+                    onClick={() => saveTvboxConfig({ mode: 'custom', password: tvboxPassword, enabled: tvboxEnabled })}
+                    disabled={tvboxLoading || storageType === 'localstorage' || !isPrivileged}
+                    >保存</button>
+                  </div>
+                </div>
+              {storageType === 'localstorage' ? (
+                  <p className='text-xs text-amber-600 dark:text-amber-400'>本地模式口令为环境变量 PASSWORD，按钮不可用。</p>
+                ) : (
+                isPrivileged ? (
+                  <p className='text-xs text-gray-500 dark:text-gray-400'>修改后立即生效，建议使用随机口令并妥善保存。</p>
+                ) : (
+                  <p className='text-xs text-amber-600 dark:text-amber-400'>你没有权限修改，需管理员或站长账户。</p>
+                )
+                )}
+              </div>
+            </div>
+
+            <p className='text-xs text-gray-500 dark:text-gray-400'>
+              在 TVBox 中将以上地址填入订阅/配置接口即可使用。
+            </p>
+          </div>
+
+          {/* 分割线 */}
+          <div className='border-t border-gray-200 dark:border-gray-700'></div>
         </div>
 
         {/* 底部说明 */}

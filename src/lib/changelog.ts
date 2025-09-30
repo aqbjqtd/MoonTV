@@ -11,6 +11,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "3.0.0",
+    date: "2025-09-30",
+    added: [
+    "添加TVBox配置接口",
+    "添加对Selene的兼容"
+    ],
+    changed: [
+      // 无变更内容
+    ],
+    fixed: [
+    "修复首页动漫接口引起的崩溃",
+    "修复docker播放刷新崩溃问题"
+    ]
+  },
+  {
     version: "2.9.1",
     date: "2025-09-19",
     added: [
