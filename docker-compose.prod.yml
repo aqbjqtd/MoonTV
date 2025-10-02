@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  moontv:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: runner
+      cache_from:
+        - moontv:latest
+      args:
+        - NODE_ENV=production
+    image: moontv:latest
+    container_name: moontv-prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Core configuration
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+
+      # Authentication
+      - PASSWORD=${PASSWORD:-}
+      - JWT_SECRET=${JWT_SECRET}
+      - HMAC_SECRET=${HMAC_SECRET}
+
+      # Storage configuration
+      - NEXT_PUBLIC_STORAGE_TYPE=${NEXT_PUBLIC_STORAGE_TYPE:-localstorage}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+      - CLOUDFLARE_D1_API_TOKEN=${CLOUDFLARE_D1_API_TOKEN}
+      - CLOUDFLARE_D1_ACCOUNT_ID=${CLOUDFLARE_D1_ACCOUNT_ID}
+      - CLOUDFLARE_D1_DATABASE_ID=${CLOUDFLARE_D1_DATABASE_ID}
+
+      # External services
+      - DOUBAN_API_BASE=${DOUBAN_API_BASE}
+      - TVBOX_API_BASE=${TVBOX_API_BASE}
+      - CORS_PROXY_URL=${CORS_PROXY_URL}
+
+      # Performance and security
+      - NEXT_TELEMETRY_DISABLED=1
+      - NODE_OPTIONS=--max-old-space-size=2048
+
+      # Edge Runtime configuration
+      - NEXT_RUNTIME=nodejs
+    volumes:
+      # Mount configuration files
+      - ./config.json:/app/config.json:ro
+      # Persist data for localstorage
+      - moontv_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    networks:
+      - moontv-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Redis service (if using Redis storage)
+  redis:
+    image: redis:7-alpine
+    container_name: moontv-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    networks:
+      - moontv-network
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: moontv-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - moontv
+    networks:
+      - moontv-network
+    profiles:
+      - nginx
+
+volumes:
+  moontv_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  moontv-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

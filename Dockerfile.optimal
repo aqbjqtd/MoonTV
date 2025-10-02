@@ -1,0 +1,175 @@
+# syntax=docker/dockerfile:1
+# MoonTV Ultra-Optimized Dockerfile v4.0
+# 基于深度研究的终极优化版本 - 目标<600MB
+# 解决pnpm存储膨胀、依赖管理、构建缓存等核心问题
+
+# ==================== 阶段0: 构建参数 ====================
+ARG NODE_VERSION=20
+
+# ==================== 阶段1: 基础环境 ====================
+FROM node:${NODE_VERSION}-alpine AS base
+# 核心系统依赖 - 最小化安装
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        libc6-compat \
+        ca-certificates \
+        tzdata \
+        curl \
+        dumb-init && \
+    rm -rf /var/cache/apk/* \
+             /tmp/* \
+             /var/tmp/* \
+             /var/log/* \
+             /usr/share/man/* \
+             /usr/share/doc/*
+
+# 环境变量优化
+ENV NODE_ENV=production \
+    DOCKER_ENV=true \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NPM_CONFIG_LOGLEVEL=warn \
+    NPM_CONFIG_PROGRESS=false \
+    PNPM_HOME="/pnpm" \
+    PATH="$PNPM_HOME:$PATH"
+
+# 工作目录
+WORKDIR /app
+
+# ==================== 阶段2: 依赖解析与缓存 ====================
+FROM base AS deps
+# 包管理器文件
+COPY package.json pnpm-lock.yaml* package-lock.json* ./
+
+# 启用pnpm并准备存储
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+
+# 关键优化：使用外部缓存挂载，避免镜像内存储膨胀
+RUN --mount=type=cache,target=/pnpm/store \
+    --mount=type=cache,target=/root/.cache \
+    pnpm install --frozen-lockfile
+
+# 创建生产依赖快照 - 关键优化点
+RUN mkdir -p /prod-snapshot && \
+    pnpm install --frozen-lockfile --prod --ignore-scripts && \
+    cp -R node_modules /prod-snapshot/ && \
+    # 清理开发依赖，为下一步做准备
+    rm -rf node_modules
+
+# 重新安装完整依赖（用于构建）
+RUN --mount=type=cache,target=/pnpm/store \
+    --mount=type=cache,target=/root/.cache \
+    pnpm install --frozen-lockfile
+
+# ==================== 阶段3: 源代码构建 ====================
+FROM base AS builder
+# 复制生产依赖（来自deps阶段的生产快照）
+COPY --from=deps /prod-snapshot/node_modules ./node_modules
+
+# 复制包管理文件和源代码
+COPY package.json pnpm-lock.yaml* package-lock.json* ./
+COPY . .
+
+# 启用pnpm
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+
+# 修复Edge Runtime配置（Docker环境强制Node.js）
+RUN find ./src -type f \( -name "route.ts" -o -name "layout.tsx" -o -name "not-found.tsx" \) \
+    -exec sed -i "s/export const runtime = 'edge';/export const runtime = 'nodejs';/g" {} + || true
+
+# 启用动态渲染
+RUN sed -i "/const inter = Inter({ subsets: \['latin'] });/a export const dynamic = 'force-dynamic';" \
+    src/app/layout.tsx 2>/dev/null || true
+
+# 修复@cloudflare/next-on-pages包问题
+RUN pnpm add @cloudflare/next-on-pages@1.13.16 --save-dev
+
+# 生成PWA manifest和runtime配置
+RUN pnpm run gen:manifest && \
+    pnpm run gen:runtime
+
+# 构建应用 - 使用缓存优化
+RUN --mount=type=cache,target=/pnpm/store \
+    --mount=type=cache,target=/root/.cache \
+    pnpm run build
+
+# ==================== 阶段4: 生产依赖精炼 ====================
+FROM base AS prod-deps
+# 仅安装必需的生产依赖
+COPY package.json pnpm-lock.yaml* package-lock.json* ./
+
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+
+# 关键优化：精确的生产依赖安装 + 激进清理
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod --ignore-scripts --strict-peer-dependencies && \
+    # 激进的node_modules清理
+    find node_modules -name "*.md" -delete && \
+    find node_modules -name "test*" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -name "*.ts.map" -delete 2>/dev/null || true && \
+    find node_modules -name "*.js.map" -delete 2>/dev/null || true && \
+    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
+    find node_modules -name "LICENSE*" -delete 2>/dev/null || true && \
+    find node_modules -name "*.d.ts" -delete 2>/dev/null || true && \
+    # 清理pnpm特有的文件 - 但保留必要的bin目录
+    find node_modules -name ".pnpm" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# ==================== 阶段5: 极简运行时 ====================
+FROM node:${NODE_VERSION}-alpine AS runner
+# 安装运行时依赖
+RUN apk add --no-cache dumb-init curl && \
+    addgroup -g 1001 -S nodejs && \
+    adduser -u 1001 -S nextjs -G nodejs
+
+# 生产环境变量
+ENV NODE_ENV=production \
+    DOCKER_ENV=true \
+    HOSTNAME="0.0.0.0" \
+    PORT=3000 \
+    NODE_OPTIONS="--max-old-space-size=3072" \
+    NEXT_TELEMETRY_DISABLED=1
+
+# 工作目录
+WORKDIR /app
+
+# 复制精炼的生产依赖（关键优化点）
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# 复制构建产物
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/start.js ./
+COPY --from=builder --chown=nextjs:nodejs /app/config.json ./
+
+# 复制脚本
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
+# 确保PWA文件存在
+RUN if [ -f "./public/manifest.json" ]; then \
+        echo "✅ PWA manifest exists"; \
+    else \
+        echo "⚠️ Warning: PWA manifest missing"; \
+    fi
+
+# 权限设置和最终清理
+RUN chmod +x start.js && \
+    chown -R nextjs:nodejs /app && \
+    # 清理所有不必要的文件
+    find . -name "*.md" -delete 2>/dev/null || true && \
+    find . -name "LICENSE*" -delete 2>/dev/null || true && \
+    find . -name ".git*" -type f -delete 2>/dev/null || true
+
+# 切换到非特权用户
+USER nextjs
+
+# 暴露端口
+EXPOSE 3000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:3000/login || exit 1
+
+# 启动应用
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "start.js"]

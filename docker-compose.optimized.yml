@@ -1,0 +1,133 @@
+# ===================================================================
+# MoonTV 优化的Docker Compose配置
+# ===================================================================
+version: '3.8'
+
+services:
+  moontv:
+    # 使用优化的构建配置
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized-v4
+      args:
+        NODE_ENV: production
+        DOCKER_ENV: true
+        BUILDKIT_INLINE_CACHE: 1
+      cache_from:
+        - moontv:latest
+      target: runner
+
+    # 镜像配置
+    image: moontv:optimized
+    container_name: moontv-app
+
+    # 端口映射
+    ports:
+      - "3000:3000"
+
+    # 环境变量
+    environment:
+      - NODE_ENV=production
+      - DOCKER_ENV=true
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # 数据库配置 (根据需要调整)
+      - NEXT_PUBLIC_STORAGE_TYPE=${STORAGE_TYPE:-localstorage}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      # 性能优化
+      - NODE_OPTIONS=--max-old-space-size=2048
+      - NEXT_TELEMETRY_DISABLED=1
+
+    # 卷挂载 (用于数据持久化)
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - moontv_data:/app/data
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+    # 重启策略
+    restart: unless-stopped
+
+    # 网络配置
+    networks:
+      - moontv-network
+
+    # 依赖服务
+    depends_on:
+      - redis
+
+  # Redis服务 (如果使用Redis存储)
+  redis:
+    image: redis:7-alpine
+    container_name: moontv-redis
+    restart: unless-stopped
+
+    # Redis配置
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+    # 数据持久化
+    volumes:
+      - redis_data:/data
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+    # 网络配置
+    networks:
+      - moontv-network
+
+    # 安全配置
+    read_only: true
+    tmpfs:
+      - /tmp
+
+# 网络配置
+networks:
+  moontv-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+# 数据卷
+volumes:
+  moontv_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/data
+
+  redis_data:
+    driver: local
