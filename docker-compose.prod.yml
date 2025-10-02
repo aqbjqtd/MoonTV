@@ -10,7 +10,7 @@ services:
         - moontv:latest
       args:
         - NODE_ENV=production
-    image: moontv:latest
+    image: moontv:v3.1.1
     container_name: moontv-prod
     restart: unless-stopped
     ports:

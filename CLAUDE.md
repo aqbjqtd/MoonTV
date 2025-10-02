@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MoonTV is a modern video streaming aggregator built with Next.js 14, supporting multi-source search, online playback, user management, and flexible deployment options. **Project maturity score: 8.6/10 (Excellent)**
 
-**Version**: v3.1.0 | **Package Manager**: pnpm 10.14.0 | **TypeScript**: Strict mode enabled
+**Version**: v3.1.1 | **Package Manager**: pnpm 10.14.0 | **TypeScript**: Strict mode enabled
 
 ## Essential Development Commands
 
