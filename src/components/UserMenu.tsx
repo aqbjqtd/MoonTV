@@ -934,7 +934,10 @@ export const UserMenu: React.FC = () => {
               ) : (
                 !tvboxEnabled && (
                   <span className='text-xs text-gray-500 dark:text-gray-400'>
-                    {isPrivileged ? '请前往管理面板的站点配置中开启' : '请联系管理员开启'}
+                    {storageType === 'localstorage' 
+                      ? '请修改环境变量 TVBOX_ENABLED 以开启' 
+                      : (isPrivileged ? '请前往管理面板的站点配置中开启' : '请联系管理员开启')
+                    }
                   </span>
                 )
               )}
@@ -945,12 +948,13 @@ export const UserMenu: React.FC = () => {
               <div className='space-y-2'>
                 <p className='text-xs text-gray-500 dark:text-gray-400'>
                   将该地址填入 TVBox 的订阅/配置接口即可使用。
-                  {storageType === 'localstorage' && (
-                    <span className='ml-1 text-amber-600 dark:text-amber-400'>
-                      (本地模式，开关由环境变量 TVBOX_ENABLED 控制，口令为 PASSWORD)
-                    </span>
-                  )}
                 </p>
+                
+                {storageType === 'localstorage' && (
+                  <p className='text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg'>
+                    💡 本地模式，开关由环境变量 TVBOX_ENABLED 控制，口令为 PASSWORD
+                  </p>
+                )}
                 
                 {isPrivileged && storageType !== 'localstorage' && (
                   <p className='text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg'>
