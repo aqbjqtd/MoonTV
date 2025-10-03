@@ -237,7 +237,7 @@ const sortedAggregatedResults: { exact: [string, SearchResult[]][], others: [str
       setShowResults(true);
 
       const params = new URLSearchParams({ q: query.trim() });
-      if (!streamEnabled) params.set('stream', '0');
+      params.set('stream', streamEnabled ? '1' : '0');
       
       // 添加选中的搜索源到请求参数
       if (searchSources.length > 0) {
@@ -254,7 +254,7 @@ const sortedAggregatedResults: { exact: [string, SearchResult[]][], others: [str
 
       if (!streamEnabled) {
         const json = await response.json();
-        setSearchResults(json.aggregatedResults || []);
+        setSearchResults(json.results || []);
         setFailedSources(json.failedSources || []);
         setIsLoading(false);
       } else {
