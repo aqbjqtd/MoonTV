@@ -34,8 +34,6 @@
 <details>
   <summary>点击查看项目截图</summary>
   <img src="public/screenshot1.png" alt="项目截图" style="max-width:600px">
-  <img src="public/screenshot2.png" alt="项目截图" style="max-width:600px">
-  <img src="public/screenshot3.png" alt="项目截图" style="max-width:600px">
 </details>
 
 ## 🗺 目录
@@ -175,11 +173,11 @@
 ```bash
 # 拉取预构建镜像
 # 或拉取最新版本
-docker pull stardm/startv:latest
+docker pull ghcr.io/stardm0/moontv:latest
 
 # 运行容器
 # -d: 后台运行  -p: 映射端口 3000 -> 3000
-docker run -d --name moontv -p 3000:3000 --env PASSWORD=your_password stardm/startv:latest
+docker run -d --name moontv -p 3000:3000 --env PASSWORD=your_password ghcr.io/stardm0/moontv:latest
 ```
 
 #### Docker Compose
@@ -189,7 +187,7 @@ docker run -d --name moontv -p 3000:3000 --env PASSWORD=your_password stardm/sta
 ```yaml
 services:
   startv-core:
-    image: stardm/startv:latest
+    image: ghcr.io/stardm0/moontv:latest
     container_name: startv-core
     restart: on-failure
     ports:
@@ -203,7 +201,7 @@ services:
 ```yaml
 services:
   startv-core:
-    image: stardm/startv:latest
+    image: ghcr.io/stardm0/moontv:latest
     container_name: startv-core
     restart: on-failure
     ports:
