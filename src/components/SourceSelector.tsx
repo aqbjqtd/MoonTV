@@ -1,5 +1,5 @@
 'use client';
-import { ChevronDown, Save,Settings } from 'lucide-react';
+import { ChevronDown, Save, Settings, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 
@@ -24,6 +24,7 @@ export default function SourceSelector({
   const [availableSources, setAvailableSources] = useState<{ key: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timeoutSeconds, setTimeoutSeconds] = useState<number>(30);
+  const [enableSearchSuggestions, setEnableSearchSuggestions] = useState<boolean>(true);
   
   // 由父组件控制是否展开
   const open = openFilter === 'sources';
@@ -93,6 +94,20 @@ export default function SourceSelector({
     });
   };
 
+  // 切换搜索建议开关时立即生效
+  const handleToggleSearchSuggestions = () => {
+    const newValue = !enableSearchSuggestions;
+    setEnableSearchSuggestions(newValue);
+    
+    // 立即保存到 localStorage
+    localStorage.setItem('enableSearchSuggestions', newValue.toString());
+    
+    // 触发自定义事件通知其他组件设置已更改
+    window.dispatchEvent(new CustomEvent('searchSettingsChanged', {
+      detail: { enableSearchSuggestions: newValue }
+    }));
+  };
+
   // 加载保存的搜索源，并清理不存在的源
   useEffect(() => {
     if (typeof window !== 'undefined' && availableSources.length > 0) {
@@ -121,6 +136,12 @@ export default function SourceSelector({
       // 加载保存的超时时间
       const timeout = getRequestTimeout();
       setTimeoutSeconds(timeout);
+      
+      // 加载搜索建议设置
+      const savedEnableSearchSuggestions = localStorage.getItem('enableSearchSuggestions');
+      if (savedEnableSearchSuggestions !== null) {
+        setEnableSearchSuggestions(savedEnableSearchSuggestions === 'true');
+      }
     }
   }, [availableSources, onChange]);
 
@@ -197,18 +218,34 @@ export default function SourceSelector({
             max-h-[50vh] overflow-auto
           "
         >
-          <div className="mb-3 flex gap-2">
+          <div
+            className="mb-3 grid gap-2"
+            style={{
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            }}
+          >
+            {/* 保存按钮 */}
             <button
               onClick={handleSaveSources}
-              className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-800/50 flex items-center gap-1"
+              className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-800/50 flex items-center justify-center gap-1"
               title="保存当前选中的搜索源和超时设置"
             >
               <Save className="w-3 h-3" />
               保存
             </button>
             
+            {/* 清空按钮 */}
+            <button
+              onClick={handleClearAll}
+              className="px-2 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-800/50 flex items-center justify-center gap-1"
+              title="清空所有选中的搜索源"
+            >
+              <X className="w-4 h-4" />
+              清空
+            </button>
+            
             {/* 超时时间设置 */}
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded px-2 py-1">
+            <div className="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 rounded px-2 py-1">
               <label className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
                 超时:
               </label>
@@ -224,12 +261,25 @@ export default function SourceSelector({
               <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">秒</span>
             </div>
             
-            <button
-              onClick={handleClearAll}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-            >
-              清空
-            </button>
+            {/* 搜索建议开关 */}
+            <div className="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 rounded px-2 py-1">
+              <label className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                搜索建议
+              </label>
+              <button
+                onClick={handleToggleSearchSuggestions}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  enableSearchSuggestions ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+                title={enableSearchSuggestions ? '点击关闭搜索建议（立即生效）' : '点击开启搜索建议（立即生效）'}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    enableSearchSuggestions ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
           
           <div
@@ -242,7 +292,7 @@ export default function SourceSelector({
               <button
                 key={source.key}
                 onClick={() => handleSourceClick(source.key)}
-                className={`px-3 py-2 text-sm rounded-lg transition-all duration-200 text-left ${
+                className={`px-3 py-2 text-sm rounded-lg transition-all duration-200 text-center ${
                   selectedSources.includes(source.key)
                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-700'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80'

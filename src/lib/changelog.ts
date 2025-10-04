@@ -11,6 +11,26 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "3.2.0",
+    date: "2025-10-04",
+    added: [
+    "添加Docker镜像自动构建工作流",
+    "搜索建议添加开关控制"
+    ],
+    changed: [
+    "优化搜索设置UI布局",
+    "调整搜索建议排序逻辑",
+    "优化搜索参数设置逻辑",
+    "调整并简化播放页面UI",
+    "调整移动端播放页面UI",
+    "微调站点配置UI",
+    "微调TVBox配置UI"
+    ],
+    fixed: [
+      // 无修复内容
+    ]
+  },
+  {
     version: "3.1.0",
     date: "2025-10-02",
     added: [
