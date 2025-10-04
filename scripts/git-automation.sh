@@ -434,6 +434,7 @@ show_help() {
     echo "  $0 commit 'feat: add video player'"
     echo "  $0 feature video-player"
     echo "  $0 workflow complete user-auth"
+}
 
 # 主程序
 main() {
