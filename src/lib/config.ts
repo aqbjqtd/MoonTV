@@ -50,8 +50,15 @@ let cachedConfig: AdminConfig;
 
 export function refineConfig(adminConfig: AdminConfig): AdminConfig {
   try {
-    fileConfig = JSON.parse(adminConfig.ConfigFile) as ConfigFileStruct;
+    // 安全的JSON解析，避免EvalError
+    const parsedConfig = JSON.parse(adminConfig.ConfigFile);
+    if (parsedConfig && typeof parsedConfig === 'object') {
+      fileConfig = parsedConfig as ConfigFileStruct;
+    } else {
+      fileConfig = {} as ConfigFileStruct;
+    }
   } catch (e) {
+    console.error('Failed to parse admin config file:', e);
     fileConfig = {} as ConfigFileStruct;
   }
   // 合并文件中的源信息
@@ -139,18 +146,34 @@ async function initConfig() {
   }
 
   if (process.env.DOCKER_ENV === 'true') {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const _require = eval('require') as NodeJS.Require;
-    const fs = _require('fs') as typeof import('fs');
-    const path = _require('path') as typeof import('path');
+    try {
+      // 使用动态import替代eval('require')，提高Edge Runtime兼容性
+      const fs = await import('fs');
+      const path = await import('path');
 
-    const configPath = path.join(process.cwd(), 'config.json');
-    const raw = fs.readFileSync(configPath, 'utf-8');
-    fileConfig = JSON.parse(raw) as ConfigFileStruct;
-    console.log('load dynamic config success');
+      const configPath = path.join(process.cwd(), 'config.json');
+      const raw = fs.readFileSync(configPath, 'utf-8');
+
+      // 安全的JSON解析，避免EvalError
+      const parsedConfig = JSON.parse(raw);
+      if (parsedConfig && typeof parsedConfig === 'object') {
+        fileConfig = parsedConfig as ConfigFileStruct;
+        console.log('load dynamic config success');
+      } else {
+        throw new Error('Invalid config structure');
+      }
+    } catch (error) {
+      console.error('Failed to load dynamic config, falling back to runtime config:', error);
+      // 确保runtimeConfig是有效的对象结构
+      fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
+        ? runtimeConfig as unknown as ConfigFileStruct
+        : {} as ConfigFileStruct;
+    }
   } else {
-    // 默认使用编译时生成的配置
-    fileConfig = runtimeConfig as unknown as ConfigFileStruct;
+    // 默认使用编译时生成的配置，确保类型安全
+    fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
+      ? runtimeConfig as unknown as ConfigFileStruct
+      : {} as ConfigFileStruct;
   }
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
   if (storageType !== 'localstorage') {
@@ -182,7 +205,14 @@ async function initConfig() {
   
       if (adminConfig) {
         try {
-          fileConfig = JSON.parse(adminConfig.ConfigFile) as ConfigFileStruct;
+          // 安全的JSON解析，避免EvalError
+          const parsedConfig = JSON.parse(adminConfig.ConfigFile);
+          if (parsedConfig && typeof parsedConfig === 'object') {
+            fileConfig = parsedConfig as ConfigFileStruct;
+          } else {
+            console.warn('Invalid config structure, using empty config');
+            fileConfig = {} as ConfigFileStruct;
+          }
         } catch (e) {
           console.error('解析配置文件失败:', e);
           fileConfig = {} as ConfigFileStruct;
@@ -326,6 +356,29 @@ async function initConfig() {
       cachedConfig = adminConfig;
     } catch (err) {
       console.error('加载管理员配置失败:', err);
+      // 创建一个最小配置作为fallback
+      cachedConfig = {
+        ConfigFile: '{}',
+        SiteConfig: {
+          SiteName: process.env.NEXT_PUBLIC_SITE_NAME || 'MoonTV',
+          Announcement: process.env.ANNOUNCEMENT || '网站暂时不可用',
+          SearchDownstreamMaxPage: 5,
+          SiteInterfaceCacheTime: 7200,
+          DoubanProxyType: 'direct',
+          DoubanProxy: '',
+          DoubanImageProxyType: 'direct',
+          DoubanImageProxy: '',
+          DisableYellowFilter: false,
+          TVBoxEnabled: false,
+          TVBoxPassword: '',
+        },
+        UserConfig: {
+          AllowRegister: false,
+          Users: [],
+        },
+        SourceConfig: [],
+        CustomCategories: [],
+      };
     }
   } else {
     // 本地存储直接使用文件配置
@@ -375,8 +428,38 @@ async function initConfig() {
 export async function getConfig(): Promise<AdminConfig> {
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
   if (process.env.DOCKER_ENV === 'true' || storageType === 'localstorage') {
-    await initConfig();
-    return cachedConfig;
+    try {
+      await initConfig();
+      if (!cachedConfig) {
+        throw new Error('Configuration failed to initialize');
+      }
+      return cachedConfig;
+    } catch (error) {
+      console.error('Critical error in getConfig:', error);
+      // 返回一个最小的安全配置
+      return {
+        ConfigFile: '{}',
+        SiteConfig: {
+          SiteName: 'MoonTV',
+          Announcement: 'Configuration temporarily unavailable',
+          SearchDownstreamMaxPage: 5,
+          SiteInterfaceCacheTime: 7200,
+          DoubanProxyType: 'direct',
+          DoubanProxy: '',
+          DoubanImageProxyType: 'direct',
+          DoubanImageProxy: '',
+          DisableYellowFilter: false,
+          TVBoxEnabled: false,
+          TVBoxPassword: '',
+        },
+        UserConfig: {
+          AllowRegister: false,
+          Users: [],
+        },
+        SourceConfig: [],
+        CustomCategories: [],
+      };
+    }
   }
 
   // 非 docker 环境且 DB 存储，直接读 db 配置
@@ -434,7 +517,13 @@ export async function getConfig(): Promise<AdminConfig> {
     }
 
     try {
-      fileConfig = JSON.parse(adminConfig.ConfigFile) as ConfigFileStruct;
+      // 安全的JSON解析，避免EvalError
+      const parsedConfig = JSON.parse(adminConfig.ConfigFile);
+      if (parsedConfig && typeof parsedConfig === 'object') {
+        fileConfig = parsedConfig as ConfigFileStruct;
+      } else {
+        fileConfig = {} as ConfigFileStruct;
+      }
     } catch (e) {
       console.error('解析配置文件失败:', e);
       fileConfig = {} as ConfigFileStruct;
@@ -563,18 +652,34 @@ export async function resetConfig() {
   }
 
   if (process.env.DOCKER_ENV === 'true') {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const _require = eval('require') as NodeJS.Require;
-    const fs = _require('fs') as typeof import('fs');
-    const path = _require('path') as typeof import('path');
+    try {
+      // 使用动态import替代eval('require')，提高Edge Runtime兼容性
+      const fs = await import('fs');
+      const path = await import('path');
 
-    const configPath = path.join(process.cwd(), 'config.json');
-    const raw = fs.readFileSync(configPath, 'utf-8');
-    fileConfig = JSON.parse(raw) as ConfigFileStruct;
-    console.log('load dynamic config success');
+      const configPath = path.join(process.cwd(), 'config.json');
+      const raw = fs.readFileSync(configPath, 'utf-8');
+
+      // 安全的JSON解析，避免EvalError
+      const parsedConfig = JSON.parse(raw);
+      if (parsedConfig && typeof parsedConfig === 'object') {
+        fileConfig = parsedConfig as ConfigFileStruct;
+        console.log('load dynamic config success');
+      } else {
+        throw new Error('Invalid config structure');
+      }
+    } catch (error) {
+      console.error('Failed to load dynamic config, falling back to runtime config:', error);
+      // 确保runtimeConfig是有效的对象结构
+      fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
+        ? runtimeConfig as unknown as ConfigFileStruct
+        : {} as ConfigFileStruct;
+    }
   } else {
-    // 默认使用编译时生成的配置
-    fileConfig = runtimeConfig as unknown as ConfigFileStruct;
+    // 默认使用编译时生成的配置，确保类型安全
+    fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
+      ? runtimeConfig as unknown as ConfigFileStruct
+      : {} as ConfigFileStruct;
   }
 
   const apiSiteEntries = Object.entries(fileConfig.api_site);

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export const runtime = 'edge';
+// export const runtime = 'edge'; // 在Docker环境中使用Node.js Runtime
 
 export default function NotFound() {
   return (

@@ -6,7 +6,7 @@ import { searchFromApiStream } from '@/lib/downstream';
 import { yellowWords } from '@/lib/yellow';
 import { SearchResult } from '@/lib/types';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 // OrionTV 兼容接口（JSON 非流式）
 export async function GET(request: NextRequest) {

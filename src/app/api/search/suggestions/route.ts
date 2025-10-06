@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCacheTime, getConfig } from '@/lib/config';
 import { searchFromApiStream } from '@/lib/downstream'; // 改用流式方法
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {

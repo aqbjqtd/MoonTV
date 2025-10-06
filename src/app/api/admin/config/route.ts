@@ -6,7 +6,7 @@ import { AdminConfigResult } from '@/lib/admin.types';
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
@@ -27,6 +27,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const config = await getConfig();
+    if (!config) {
+      return NextResponse.json(
+        { error: 'Configuration not available' },
+        { status: 500 }
+      );
+    }
+
     const result: AdminConfigResult = {
       Role: 'owner',
       Config: config,

@@ -7,18 +7,19 @@ import { getAuthInfoFromCookie } from '@/lib/auth';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 跳过不需要认证的路径
-  if (shouldSkipAuth(pathname)) {
-    return NextResponse.next();
-  }
+  try {
+    // 跳过不需要认证的路径
+    if (shouldSkipAuth(pathname)) {
+      return NextResponse.next();
+    }
 
-  const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
+    const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
 
-  if (!process.env.PASSWORD) {
-    // 如果没有设置密码，重定向到警告页面
-    const warningUrl = new URL('/warning', request.url);
-    return NextResponse.redirect(warningUrl);
-  }
+    if (!process.env.PASSWORD) {
+      // 如果没有设置密码，重定向到警告页面
+      const warningUrl = new URL('/warning', request.url);
+      return NextResponse.redirect(warningUrl);
+    }
 
   // 从cookie获取认证信息
   const authInfo = getAuthInfoFromCookie(request);
@@ -57,6 +58,12 @@ export async function middleware(request: NextRequest) {
 
   // 签名验证失败或不存在签名
   return handleAuthFailure(request, pathname);
+  } catch (error) {
+    console.error('Middleware error:', error);
+    // 发生错误时，重定向到登录页面
+    const loginUrl = new URL('/login', request.url);
+    return NextResponse.redirect(loginUrl);
+  }
 }
 
 // 验证签名

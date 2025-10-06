@@ -1,0 +1,151 @@
+# =================================================================
+# MoonTV Docker Compose 配置
+# 支持开发、测试和生产环境
+# =================================================================
+
+version: '3.9'
+
+services:
+  # MoonTV 应用服务
+  moontv:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: runner
+    container_name: moontv-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - DOCKER_ENV=true
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+      - NEXT_TELEMETRY_DISABLED=1
+      # 存储配置（根据需要选择）
+      - NEXT_PUBLIC_STORAGE_TYPE=${STORAGE_TYPE:-localstorage}
+      # Redis配置（如果使用Redis存储）
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      # Upstash配置（如果使用Upstash）
+      - UPSTASH_URL=${UPSTASH_URL}
+      - UPSTASH_TOKEN=${UPSTASH_TOKEN}
+      # 认证配置
+      - PASSWORD=${PASSWORD:-admin}
+      - USERNAME=${USERNAME}
+      - NEXT_PUBLIC_ENABLE_REGISTER=${ENABLE_REGISTER:-false}
+      # 站点配置
+      - NEXT_PUBLIC_SITE_NAME=${SITE_NAME:-MoonTV}
+      - NEXT_PUBLIC_SEARCH_MAX_PAGE=${SEARCH_MAX_PAGE:-5}
+    volumes:
+      # 挂载配置文件以支持运行时修改
+      - ./config.json:/app/config.json:ro
+      # 挂载日志目录（可选）
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+    networks:
+      - moontv-network
+    healthcheck:
+      test: ["CMD", "node", "--eval", "require('http').get('http://localhost:3000/login', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis 服务（用于Redis存储模式）
+  redis:
+    image: redis:7.2-alpine
+    container_name: moontv-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - moontv-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Nginx 反向代理（可选，用于生产环境）
+  nginx:
+    image: nginx:alpine
+    container_name: moontv-nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - moontv
+    networks:
+      - moontv-network
+    profiles:
+      - production
+
+  # 监控服务（可选）
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: moontv-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - moontv-network
+    profiles:
+      - monitoring
+
+  # Grafana 仪表板（可选）
+  grafana:
+    image: grafana/grafana:latest
+    container_name: moontv-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - moontv-network
+    profiles:
+      - monitoring
+
+# 网络配置
+networks:
+  moontv-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 数据卷
+volumes:
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

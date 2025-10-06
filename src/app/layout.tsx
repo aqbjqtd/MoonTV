@@ -14,16 +14,22 @@ import { NavigationLoadingProvider } from '../components/NavigationLoadingProvid
 import { SiteProvider } from '../components/SiteProvider';
 import { ThemeProvider } from '../components/ThemeProvider';
 
-export const runtime = 'edge';
+// export const runtime = 'edge'; // 在Docker环境中使用Node.js Runtime
 
 const inter = Inter({ subsets: ['latin'] });
 
 // 动态生成 metadata，支持配置更新后的标题变化
 export async function generateMetadata(): Promise<Metadata> {
   let siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'MoonTV';
-  if (process.env.NEXT_PUBLIC_STORAGE_TYPE !== 'localstorage') {
-    const config = await getConfig();
-    siteName = config.SiteConfig.SiteName;
+
+  try {
+    if (process.env.NEXT_PUBLIC_STORAGE_TYPE !== 'localstorage') {
+      const config = await getConfig();
+      siteName = config.SiteConfig.SiteName;
+    }
+  } catch (error) {
+    console.error('Failed to load config for metadata:', error);
+    // 使用默认值
   }
 
   return {
@@ -56,16 +62,22 @@ export default async function RootLayout({
   let doubanImageProxy = process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '';
   let disableYellowFilter =
     process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true';
+
   if (storageType !== 'localstorage') {
-    const config = await getConfig();
-    siteName = config.SiteConfig.SiteName;
-    announcement = config.SiteConfig.Announcement;
-    enableRegister = config.UserConfig.AllowRegister;
-    doubanProxyType = config.SiteConfig.DoubanProxyType;
-    doubanProxy = config.SiteConfig.DoubanProxy;
-    doubanImageProxyType = config.SiteConfig.DoubanImageProxyType;
-    doubanImageProxy = config.SiteConfig.DoubanImageProxy;
-    disableYellowFilter = config.SiteConfig.DisableYellowFilter;
+    try {
+      const config = await getConfig();
+      siteName = config.SiteConfig.SiteName;
+      announcement = config.SiteConfig.Announcement;
+      enableRegister = config.UserConfig.AllowRegister;
+      doubanProxyType = config.SiteConfig.DoubanProxyType;
+      doubanProxy = config.SiteConfig.DoubanProxy;
+      doubanImageProxyType = config.SiteConfig.DoubanImageProxyType;
+      doubanImageProxy = config.SiteConfig.DoubanImageProxy;
+      disableYellowFilter = config.SiteConfig.DisableYellowFilter;
+    } catch (error) {
+      console.error('Failed to load config in RootLayout:', error);
+      // 使用环境变量作为fallback
+    }
   }
 
   // 将运行时配置注入到全局 window 对象，供客户端在运行时读取

@@ -25,7 +25,7 @@ interface DoubanRecommendApiResponse {
   }>;
 }
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);

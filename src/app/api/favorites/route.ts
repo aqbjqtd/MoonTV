@@ -7,7 +7,7 @@ import { getConfig } from '@/lib/config';
 import { db } from '@/lib/db';
 import { Favorite } from '@/lib/types';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 /**
  * GET /api/favorites
