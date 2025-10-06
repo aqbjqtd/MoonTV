@@ -1,10 +1,18 @@
-# CLAUDE.md
+# MoonTV Project Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> 本文档定义 MoonTV 项目的特定架构约束和开发规则。
+> 通用开发规范由 SuperClaude 框架提供（~/.claude/CLAUDE.md）。
 
-## Project Overview
+## 项目概述
 
-MoonTV is a cross-platform video aggregation player built with Next.js 14 App Router. It aggregates content from 20+ video API sources (Apple CMS V10 format), supports multiple storage backends, and can be deployed to Docker, Vercel, Netlify, or Cloudflare Pages.
+MoonTV 是基于 Next.js 14 App Router 的跨平台视频聚合播放器。聚合 20+ 视频 API 源（Apple CMS V10 格式），支持多种存储后端，可部署到 Docker、Vercel、Netlify、Cloudflare Pages。
+
+**核心特性**：
+- 🔌 **插件化存储**：localstorage/redis/upstash/d1 可切换
+- 🔄 **双模配置**：静态 config.json + 动态数据库配置
+- 🔒 **双模认证**：密码模式 + 用户名/密码/HMAC 模式
+- 🌊 **流式搜索**：WebSocket 实时多源并行搜索
+- ⚡ **Edge Runtime**：所有 API 路由支持边缘计算
 
 ## Development Commands
 

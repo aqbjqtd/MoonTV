@@ -1,0 +1,80 @@
+# =================================================================
+# MoonTV 增强型四阶段构建方案
+# 专为视频聚合应用优化
+# 基于深度研究的最优多阶段构建策略
+# =================================================================
+
+# ---- 第1阶段：基础系统层 ----
+FROM node:20.10.0-alpine AS base
+# 安装系统依赖和构建工具
+RUN apk add --no-cache libc6-compat dumb-init python3 make g++
+# 启用 corepack 并锁定 pnpm 版本与项目一致
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+WORKDIR /app
+
+# ---- 第2阶段：依赖解析层 ----
+FROM base AS deps
+# 安全：仅复制依赖清单文件，提高层缓存命中率
+COPY --chown=node:node package.json pnpm-lock.yaml ./
+# 安装生产依赖，忽略脚本避免husky问题
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
+    pnpm store prune && \
+    rm -rf /tmp/* && \
+    rm -rf /root/.cache
+# 切换到非特权用户
+USER node
+
+# ---- 第3阶段：应用构建层 ----
+FROM base AS builder
+# 复制所有源代码（优化 .dockerignore 会过滤不必要文件）
+COPY --chown=node:node . .
+# 复制生产依赖（从deps阶段）
+COPY --from=deps /app/node_modules ./node_modules
+# 设置构建环境变量
+ENV NODE_ENV=production DOCKER_ENV=true NEXT_TELEMETRY_DISABLED=1
+# 重新安装开发依赖用于构建
+RUN pnpm install --frozen-lockfile
+# 生成运行时配置和PWA manifest
+RUN pnpm gen:manifest && pnpm gen:runtime
+# 修复Edge Runtime兼容性问题：替换为Node.js Runtime
+RUN find ./src/app/api -name "route.ts" -type f -print0 | xargs -0 sed -i 's/export const runtime = '\''edge'\'';/export const runtime = '\''nodejs'\'';/g' || true
+# 强制动态渲染以支持运行时环境变量
+RUN sed -i "/const inter = Inter({ subsets: \['latin'] });/a export const dynamic = 'force-dynamic';" src/app/layout.tsx || true
+# 构建Next.js应用（standalone模式，适合Docker部署）
+RUN pnpm build
+# 清理开发依赖，保留构建产物
+RUN pnpm prune --prod --ignore-scripts && \
+    rm -rf node_modules/.cache && \
+    rm -rf .next/cache
+
+# ---- 第4阶段：生产运行时层 ----
+# 使用 Alpine Linux 镜像（平衡体积和兼容性）
+FROM node:20.10.0-alpine AS runner
+# 设置生产环境变量
+ENV NODE_ENV=production \
+    DOCKER_ENV=true \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000 \
+    NEXT_TELEMETRY_DISABLED=1 \
+    # 视频聚合应用特殊优化
+    NODE_OPTIONS="--max-old-space-size=4096 --http-parser=2" \
+    # 多存储后端支持
+    NEXT_PUBLIC_STORAGE_TYPE=d1
+# 设置工作目录
+WORKDIR /app
+# 从构建阶段复制文件（使用正确的文件所有权）
+COPY --from=builder --chown=1001:1001 /app/.next/standalone ./
+COPY --from=builder --chown=1001:1001 /app/.next/static ./.next/static
+COPY --from=builder --chown=1001:1001 /app/public ./public
+COPY --from=builder --chown=1001:1001 /app/config.json ./config.json
+COPY --from=builder --chown=1001:1001 /app/scripts ./scripts
+COPY --from=builder --chown=1001:1001 /app/start.js ./start.js
+# 切换到非特权用户
+USER 1001:1001
+# 暴露端口
+EXPOSE 3000
+# 健康检查配置
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD node --eval "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+# 启动应用
+CMD ["node", "start.js"]

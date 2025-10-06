@@ -92,9 +92,50 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: '获取豆瓣数据失败', details: (error as Error).message },
-      { status: 500 }
-    );
+    // 详细的错误分类和处理
+    const errorMessage = (error as Error).message;
+    let errorType = 'unknown_error';
+    let userMessage = '获取豆瓣数据失败，请稍后重试';
+    let statusCode = 500;
+
+    if (errorMessage.includes('HTTP error! Status: 429')) {
+      errorType = 'rate_limit';
+      userMessage = '豆瓣API请求过于频繁，请稍等片刻再试';
+      statusCode = 429;
+    } else if (errorMessage.includes('HTTP error! Status: 403')) {
+      errorType = 'access_denied';
+      userMessage = '豆瓣API访问受限，正在尝试其他方式';
+      statusCode = 403;
+    } else if (errorMessage.includes('HTTP error! Status: 404')) {
+      errorType = 'not_found';
+      userMessage = '未找到相关数据，请检查分类参数';
+      statusCode = 404;
+    } else if (errorMessage.includes('AbortError') || errorMessage.includes('timeout')) {
+      errorType = 'timeout';
+      userMessage = '网络连接超时，正在重试其他连接方式';
+      statusCode = 408;
+    } else if (errorMessage.includes('fetch failed') || errorMessage.includes('NetworkError')) {
+      errorType = 'network_error';
+      userMessage = '网络连接异常，正在尝试备用连接';
+      statusCode = 503;
+    } else if (errorMessage.includes('代理HTTP错误')) {
+      errorType = 'proxy_error';
+      userMessage = '代理服务暂时不可用，已切换到直连模式';
+      statusCode = 502;
+    } else if (errorMessage.includes('豆瓣API连接失败')) {
+      errorType = 'all_failed';
+      userMessage = '豆瓣服务暂时不可用，请稍后再试';
+      statusCode = 503;
+    }
+
+    // 记录详细错误日志
+    console.error(`[豆瓣API错误] 类型: ${errorType}, 消息: ${errorMessage}, 参数: kind=${kind}, category=${category}, type=${type}`);
+
+    return NextResponse.json({
+      error: userMessage,
+      error_type: errorType,
+      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      retry_suggested: ['timeout', 'network_error', 'proxy_error', 'all_failed'].includes(errorType)
+    }, { status: statusCode });
   }
 }
