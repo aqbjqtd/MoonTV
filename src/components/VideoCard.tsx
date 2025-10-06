@@ -17,6 +17,7 @@ import { SearchResult } from '@/lib/types';
 import { processImageUrl } from '@/lib/utils';
 
 import { ImagePlaceholder } from '@/components/ImagePlaceholder';
+import { useNavigationLoading } from '@/components/NavigationLoadingProvider';
 
 interface VideoCardProps {
   id?: string;
@@ -58,6 +59,7 @@ export default function VideoCard({
   isBangumi = false,
 }: VideoCardProps) {
   const router = useRouter();
+  const { startLoading } = useNavigationLoading();
   const [favorited, setFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showSources, setShowSources] = useState(false);
@@ -186,6 +188,8 @@ export default function VideoCard({
 
   const handleClick = useCallback(() => {
     // 点击时不再检查收藏状态
+    // 触发加载动画
+    startLoading();
 
     if (from === 'douban') {
       router.push(
@@ -214,6 +218,7 @@ export default function VideoCard({
     isAggregate,
     actualQuery,
     actualSearchType,
+    startLoading,
   ]);
 
   const config = useMemo(() => {

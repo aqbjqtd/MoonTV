@@ -16,6 +16,7 @@ import {
   subscribeToDataUpdates,
 } from '@/lib/db.client';
 
+import { useNavigationLoading } from './NavigationLoadingProvider';
 import SearchSuggestions from './SearchSuggestions';
 import { useSite } from './SiteProvider';
 import SourceSelector from './SourceSelector';
@@ -31,6 +32,7 @@ const TopNav = ({ activePath = '/' }: TopNavProps) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { siteName } = useSite();
+  const { startLoading } = useNavigationLoading();
 
   const [active, setActive] = useState(activePath);
   const [searchQuery, setSearchQuery] = useState('');
@@ -141,6 +143,11 @@ const TopNav = ({ activePath = '/' }: TopNavProps) => {
       // 添加到搜索历史
       addSearchHistory(trimmedQuery);
       
+      // 如果不在搜索页面，触发加载动画
+      if (pathname !== '/search') {
+        startLoading();
+      }
+      
       const params = new URLSearchParams();
       params.set('q', trimmedQuery);
       if (searchSources.length > 0) {
@@ -166,6 +173,11 @@ const TopNav = ({ activePath = '/' }: TopNavProps) => {
     
     // 添加到搜索历史
     addSearchHistory(suggestion);
+    
+    // 如果不在搜索页面，触发加载动画
+    if (pathname !== '/search') {
+      startLoading();
+    }
     
     const params = new URLSearchParams();
     params.set('q', suggestion);
@@ -194,6 +206,11 @@ const TopNav = ({ activePath = '/' }: TopNavProps) => {
     
     // 添加到搜索历史（更新时间戳）
     addSearchHistory(item);
+    
+    // 如果不在搜索页面，触发加载动画
+    if (pathname !== '/search') {
+      startLoading();
+    }
     
     const params = new URLSearchParams();
     params.set('q', item);
@@ -240,6 +257,11 @@ const TopNav = ({ activePath = '/' }: TopNavProps) => {
         <Link
           href='/'
           className='flex items-center justify-center select-none hover:opacity-80 transition-opacity duration-200 flex-shrink-0'
+          onClick={() => {
+            if (active !== '/') {
+              startLoading();
+            }
+          }}
         >
           <span className='text-2xl font-bold text-green-600 tracking-tight'>
             {siteName}
@@ -248,15 +270,20 @@ const TopNav = ({ activePath = '/' }: TopNavProps) => {
 
         {/* 导航菜单 */}
         <nav className='flex items-center gap-1 flex-shrink-0'>
-          <Link
-            href='/'
-            onClick={() => setActive('/')}
-            data-active={active === '/'}
-            className='group flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100/50 hover:text-green-600 data-[active=true]:bg-green-500/10 data-[active=true]:text-green-600 font-medium transition-colors duration-200 dark:text-gray-300 dark:hover:text-green-400 dark:hover:bg-gray-700/50 dark:data-[active=true]:bg-green-500/10 dark:data-[active=true]:text-green-400'
-          >
-            <Home className='h-4 w-4' />
-            <span>首页</span>
-          </Link>
+        <Link
+          href='/'
+          onClick={() => {
+            if (active !== '/') {
+              startLoading();
+            }
+            setActive('/');
+          }}
+          data-active={active === '/'}
+          className='group flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100/50 hover:text-green-600 data-[active=true]:bg-green-500/10 data-[active=true]:text-green-600 font-medium transition-colors duration-200 dark:text-gray-300 dark:hover:text-green-400 dark:hover:bg-gray-700/50 dark:data-[active=true]:bg-green-500/10 dark:data-[active=true]:text-green-400'
+        >
+          <Home className='h-4 w-4' />
+          <span>首页</span>
+        </Link>
 
           {isClient && !simpleMode && menuItems.map((item) => {
             const typeMatch = item.href.match(/type=([^&]+)/)?.[1];
@@ -272,7 +299,12 @@ const TopNav = ({ activePath = '/' }: TopNavProps) => {
               <Link
                 key={item.label}
                 href={item.href}
-                onClick={() => setActive(item.href)}
+                onClick={() => {
+                  if (!isActive) {
+                    startLoading();
+                  }
+                  setActive(item.href);
+                }}
                 data-active={isActive}
                 className='group flex items-center gap-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100/50 hover:text-green-600 data-[active=true]:bg-green-500/10 data-[active=true]:text-green-600 font-medium transition-colors duration-200 dark:text-gray-300 dark:hover:text-green-400 dark:hover:bg-gray-700/50 dark:data-[active=true]:bg-green-500/10 dark:data-[active=true]:text-green-400'
               >

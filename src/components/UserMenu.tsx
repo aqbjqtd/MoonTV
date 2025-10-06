@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { checkForUpdates, CURRENT_VERSION, UpdateStatus } from '@/lib/version';
 
+import { useNavigationLoading } from './NavigationLoadingProvider';
 import { VersionPanel } from './VersionPanel';
 
 interface AuthInfo {
@@ -29,6 +30,7 @@ interface AuthInfo {
 
 export const UserMenu: React.FC = () => {
   const router = useRouter();
+  const { startLoading } = useNavigationLoading();
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -265,6 +267,7 @@ export const UserMenu: React.FC = () => {
   };
 
   const handleAdminPanel = () => {
+    startLoading();
     router.push('/admin');
   };
 
