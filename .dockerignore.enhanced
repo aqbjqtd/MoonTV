@@ -1,0 +1,194 @@
+# =================================================================
+# MoonTV 增强版 .dockerignore 文件
+# 版本: v4.0.0
+# 目标: 最大化构建性能，最小化上下文大小
+# =================================================================
+
+# 基础忽略规则
+.git
+.gitignore
+README.md
+CHANGELOG.md
+LICENSE
+.github
+
+# 开发工具配置
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 依赖目录
+node_modules
+npm-debug.log*
+.npm
+.eslintcache
+
+# 构建产物
+.next
+out
+build
+dist
+
+# 测试相关
+coverage
+.nyc_output
+*.lcov
+.jest
+
+# 环境配置
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 缓存目录
+.cache
+.parcel-cache
+.pnpm-cache
+.tmp
+
+# 监控和数据文件
+data/
+cache/
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# Docker相关
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# 脚本和工具（保留必要的）
+scripts/dev-*
+scripts/test-*
+scripts/local-*
+scripts/docker-build-*.sh
+
+# 文档和示例
+docs/
+examples/
+demo/
+
+# 编辑器配置
+.editorconfig
+.prettierrc*
+.eslintrc*
+
+# 配置文件（保留必要的）
+config.example.json
+config.development.json
+config.test.json
+
+# CI/CD文件
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# 部署相关
+deploy/
+k8s/
+helm/
+
+# 临时文件
+*.tmp
+*.temp
+temp/
+tmp/
+
+# 备份文件
+*.bak
+*.backup
+*~
+
+# 压缩文件
+*.tar.gz
+*.zip
+*.rar
+
+# 媒体文件（非必要）
+*.mp4
+*.avi
+*.mov
+*.mp3
+*.wav
+
+# 大型数据文件
+*.sql
+*.csv
+*.json.backup
+
+# 本地开发文件
+.local
+.localrc
+.*profile
+
+# IDE和编辑器
+.vscode/settings.json
+.idea/
+*.iml
+
+# 包管理器锁文件（保留项目主要文件）
+package-lock.json
+yarn.lock
+
+# 测试覆盖率报告
+coverage/
+coverage.lcov
+junit.xml
+
+# 性能测试文件
+benchmarks/
+performance/
+
+# 安全相关
+*.pem
+*.key
+*.crt
+*.p12
+ssl/
+
+# 数据库文件
+*.sqlite
+*.sqlite3
+*.db
+
+# 系统监控
+prometheus-data/
+grafana-data/
+
+# 开发环境配置
+.env.development
+.env.test
+.env.staging
+
+# 生产环境配置（根据需要保留）
+# config.json（运行时需要挂载）
+# start.js（启动脚本需要）
+
+# 保留的重要文件（不会被忽略）
+!package.json
+!pnpm-lock.yaml
+!.npmrc
+!tsconfig.json
+!next.config.js
+!tailwind.config.ts
+!postcss.config.js
+!public/
+!src/
+!config.json
+!start.js
+!scripts/gen-*.js
