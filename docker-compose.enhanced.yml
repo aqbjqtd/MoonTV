@@ -1,0 +1,451 @@
+# =================================================================
+# MoonTV 增强版 Docker Compose 配置
+# 版本: v4.0.0 - 企业级容器编排
+# 支持: 开发、测试、生产和云原生部署
+# =================================================================
+
+version: '3.9'
+
+services:
+  # MoonTV 主应用服务（增强版）
+  moontv:
+    build:
+      context: .
+      dockerfile: Dockerfile.enhanced
+      target: runner
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: moontv:enhanced
+    container_name: moontv-app-enhanced
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      # 基础配置
+      - NODE_ENV=production
+      - DOCKER_ENV=true
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+      - NEXT_TELEMETRY_DISABLED=1
+
+      # 性能优化配置
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - UV_THREADPOOL_SIZE=16
+      - TZ=Asia/Shanghai
+
+      # 存储配置
+      - NEXT_PUBLIC_STORAGE_TYPE=${STORAGE_TYPE:-localstorage}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - UPSTASH_URL=${UPSTASH_URL}
+      - UPSTASH_TOKEN=${UPSTASH_TOKEN}
+
+      # 认证配置
+      - PASSWORD=${PASSWORD:-admin}
+      - USERNAME=${USERNAME}
+      - NEXT_PUBLIC_ENABLE_REGISTER=${ENABLE_REGISTER:-false}
+
+      # 站点配置
+      - NEXT_PUBLIC_SITE_NAME=${SITE_NAME:-MoonTV}
+      - NEXT_PUBLIC_SEARCH_MAX_PAGE=${SEARCH_MAX_PAGE:-5}
+
+      # 监控配置
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+    volumes:
+      # 配置文件挂载（支持运行时修改）
+      - ./config.json:/app/config.json:ro
+      # 日志目录挂载
+      - ./logs:/app/logs
+      # 媒体缓存目录（视频应用特需）
+      - media-cache:/app/cache/media
+      - temp-cache:/app/cache/temp
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    networks:
+      - moontv-network
+
+    # 资源限制和保留
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    # 增强版健康检查
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '--eval',
+          "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # 标签配置
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.moontv.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.moontv.tls=true"
+      - "traefik.http.services.moontv.loadbalancer.server.port=3000"
+      - "com.monitoring.scrape=true"
+      - "com.monitoring.port=3000"
+      - "com.monitoring.path=/api/health"
+
+  # Redis 服务（增强配置）
+  redis:
+    image: redis:7.2-alpine
+    container_name: moontv-redis-enhanced
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+
+    volumes:
+      - redis-data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis/redis-aof.conf:/usr/local/etc/redis/redis-aof.conf:ro
+
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+
+    environment:
+      - TZ=Asia/Shanghai
+
+    networks:
+      - moontv-network
+
+    # Redis健康检查
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # 标签配置
+    labels:
+      - "com.monitoring.scrape=true"
+      - "com.monitoring.port=6379"
+
+  # Nginx 反向代理（增强版）
+  nginx:
+    image: nginx:alpine
+    container_name: moontv-nginx-enhanced
+    restart: unless-stopped
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/includes:/etc/nginx/includes:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+      - ./webroot:/var/www/html:ro
+
+    depends_on:
+      moontv:
+        condition: service_healthy
+
+    networks:
+      - moontv-network
+
+    # Nginx健康检查
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+
+    profiles:
+      - production
+      - edge
+
+    # 标签配置
+    labels:
+      - "com.monitoring.scrape=true"
+      - "com.monitoring.port=80"
+
+  # Prometheus 监控（增强版）
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: moontv-prometheus-enhanced
+    restart: unless-stopped
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules:/etc/prometheus/rules:ro
+      - ./monitoring/targets:/etc/prometheus/targets:ro
+      - prometheus-data:/prometheus
+      - ./logs:/var/log/moontv:ro
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--log.level=info'
+
+    environment:
+      - TZ=Asia/Shanghai
+
+    networks:
+      - moontv-network
+
+    # Prometheus健康检查
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:9090/-/healthy']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    profiles:
+      - monitoring
+      - production
+
+  # Grafana 仪表板（增强版）
+  grafana:
+    image: grafana/grafana:latest
+    container_name: moontv-grafana-enhanced
+    restart: unless-stopped
+    ports:
+      - '${GRAFANA_PORT:-3001}:3000'
+
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SERVER_DOMAIN=${DOMAIN:-localhost}
+      - GF_SERVER_ROOT_URL=http://${DOMAIN:-localhost}:${GRAFANA_PORT:-3001}/
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/plugins:/var/lib/grafana/plugins
+
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+    networks:
+      - moontv-network
+
+    # Grafana健康检查
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+    profiles:
+      - monitoring
+      - production
+
+  # Redis Exporter（Redis监控）
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: moontv-redis-exporter
+    restart: unless-stopped
+    ports:
+      - '${REDIS_EXPORTER_PORT:-9121}:9121'
+
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_EXPORTER_LOG_FORMAT=txt
+      - REDIS_EXPORTER_DEBUG=false
+      - REDIS_EXPORTER_CHECK_SINGLE_KEYS=false
+      - REDIS_EXPORTER_CHECK_KEYS=moontv:*
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    networks:
+      - moontv-network
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    profiles:
+      - monitoring
+
+  # Node Exporter（系统监控）
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: moontv-node-exporter
+    restart: unless-stopped
+    ports:
+      - '${NODE_EXPORTER_PORT:-9100}:9100'
+
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.cpu.info'
+      - '--collector.meminfo'
+
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+    networks:
+      - moontv-network
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    profiles:
+      - monitoring
+
+# 增强版网络配置
+networks:
+  moontv-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    labels:
+      - "com.network.moontv=enhanced"
+      - "com.network.purpose=application"
+
+# 增强版数据卷配置
+volumes:
+  # Redis数据卷（启用快照）
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+    labels:
+      - "com.volume.moontv=redis"
+      - "com.volume.type=data"
+
+  # Prometheus数据卷
+  prometheus-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+    labels:
+      - "com.volume.moontv=prometheus"
+      - "com.volume.type=data"
+
+  # Grafana数据卷
+  grafana-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/grafana
+    labels:
+      - "com.volume.moontv=grafana"
+      - "com.volume.type=data"
+
+  # 媒体缓存卷（视频应用特需）
+  media-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./cache/media
+    labels:
+      - "com.volume.moontv=media"
+      - "com.volume.type=cache"
+
+  # 临时缓存卷
+  temp-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./cache/temp
+    labels:
+      - "com.volume.moontv=temp"
+      - "com.volume.type=cache"
