@@ -1,6 +1,6 @@
 # MoonTV Docker/SSR 修复快速参考指南
 
-**适用场景**: 快速解决Docker构建和SSR相关问题
+**适用场景**: 快速解决 Docker 构建和 SSR 相关问题
 **最后更新**: 2025-10-06
 **状态**: 生产验证 ✅
 
@@ -8,7 +8,8 @@
 
 ## 🚨 紧急修复命令
 
-### Docker构建失败快速修复
+### Docker 构建失败快速修复
+
 ```bash
 # 1. husky依赖问题修复
 sed -i 's/pnpm install --frozen-lockfile --prod/pnpm install --frozen-lockfile --prod --ignore-scripts/g' Dockerfile
@@ -26,7 +27,8 @@ docker run -d -p 3000:3000 moontv-fix
 curl -f http://localhost:3000
 ```
 
-### SSR错误快速修复
+### SSR 错误快速修复
+
 ```bash
 # 1. 统一运行时配置
 find src/app/api -name "*.ts" -exec sed -i 's/export const runtime = .edge./export const runtime = "nodejs"/g' {} \;
@@ -43,7 +45,8 @@ docker run -d -p 3000:3000 moontv-ssr-fix
 
 ## 🔍 问题诊断清单
 
-### Docker构建诊断
+### Docker 构建诊断
+
 ```bash
 # 检查清单
 echo "=== Docker构建诊断 ==="
@@ -64,7 +67,8 @@ echo "✓ 4. 检查基础镜像"
 grep "FROM" Dockerfile
 ```
 
-### SSR错误诊断
+### SSR 错误诊断
+
 ```bash
 # 检查清单
 echo "=== SSR错误诊断 ==="
@@ -86,6 +90,7 @@ grep -A 3 -B 3 "try.*catch" src/lib/config.ts | head -10
 ## 🛠️ 标准修复流程
 
 ### 完整修复流程
+
 ```bash
 # 第一步：备份当前配置
 cp Dockerfile Dockerfile.backup
@@ -161,6 +166,7 @@ docker rm moontv-test
 ## 📊 性能验证脚本
 
 ### 构建性能测试
+
 ```bash
 #!/bin/bash
 # 性能测试脚本: performance-test.sh
@@ -197,6 +203,7 @@ echo "=== 性能测试完成 ==="
 ```
 
 ### 功能验证脚本
+
 ```bash
 #!/bin/bash
 # 功能验证脚本: functional-test.sh
@@ -248,7 +255,8 @@ echo "=== 功能验证完成 ==="
 
 ## 🆘 常见问题解决方案
 
-### 问题1: "husky: not found"
+### 问题 1: "husky: not found"
+
 ```bash
 # 症状
 sh: husky: not found
@@ -261,7 +269,8 @@ Docker构建时husky开发依赖未安装，但prepare脚本尝试执行
 sed -i 's/pnpm install --frozen-lockfile --prod/pnpm install --frozen-lockfile --prod --ignore-scripts/g' Dockerfile
 ```
 
-### 问题2: "Module not found: Can't resolve 'tailwindcss'"
+### 问题 2: "Module not found: Can't resolve 'tailwindcss'"
+
 ```bash
 # 症状
 Module not found: Can't resolve 'tailwindcss'
@@ -281,7 +290,8 @@ node_modules
 EOF
 ```
 
-### 问题3: "digest xxxxxx: EvalError"
+### 问题 3: "digest xxxxxx: EvalError"
+
 ```bash
 # 症状
 digest 2652919541: EvalError
@@ -302,34 +312,40 @@ find src/app/api -name "*.ts" -exec sed -i 's/export const runtime = .edge./expo
 ## 📞 紧急联系方式
 
 ### 团队联系人
+
 - **技术负责人**: 系统架构师
 - **质量保证**: 质量工程师
-- **运维支持**: DevOps专家
+- **运维支持**: DevOps 专家
 
 ### 外部资源
-- **Docker文档**: https://docs.docker.com/
-- **Next.js文档**: https://nextjs.org/docs/
-- **GitHub Issues**: 项目Issues页面
+
+- **Docker 文档**: https://docs.docker.com/
+- **Next.js 文档**: https://nextjs.org/docs/
+- **GitHub Issues**: 项目 Issues 页面
 
 ---
 
 ## 📝 快速记录模板
 
 ### 问题记录模板
+
 ```markdown
 ## 问题描述
-- 问题类型: [Docker构建/SSR错误/性能问题]
+
+- 问题类型: [Docker 构建/SSR 错误/性能问题]
 - 发生时间: [YYYY-MM-DD HH:MM]
 - 错误信息: [具体错误信息]
 - 影响范围: [功能影响描述]
 
 ## 解决过程
+
 - 诊断步骤: [排查步骤]
 - 根本原因: [问题根因]
 - 解决方案: [修复方案]
 - 验证结果: [验证结果]
 
 ## 经验教训
+
 - 预防措施: [如何预防]
 - 改进建议: [改进建议]
 ```

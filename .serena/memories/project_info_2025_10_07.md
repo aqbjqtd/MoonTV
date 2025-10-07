@@ -1,4 +1,5 @@
 # MoonTV 项目核心信息 (2025-10-07 更新)
+
 **最后更新**: 2025-10-07  
 **维护专家**: 系统架构师 + 技术文档专家  
 **项目版本**: v3.2.0-dev  
@@ -7,6 +8,7 @@
 ## 📋 项目概览
 
 ### 基本信息
+
 ```yaml
 项目名称: MoonTV
 项目类型: 跨平台视频聚合播放器
@@ -27,6 +29,7 @@
 ```
 
 ### 技术栈详细信息
+
 ```yaml
 前端技术栈:
   框架: Next.js 14 (App Router)
@@ -59,28 +62,30 @@
 
 ## 🏗️ 核心架构设计
 
-### 存储抽象层 (IStorage接口)
+### 存储抽象层 (IStorage 接口)
+
 ```typescript
 interface IStorage {
   // 用户管理
-  createUser(user: User): Promise<void>
-  verifyUser(username: string, password: string): Promise<boolean>
-  getUserInfo(username: string): Promise<User | null>
-  
+  createUser(user: User): Promise<void>;
+  verifyUser(username: string, password: string): Promise<boolean>;
+  getUserInfo(username: string): Promise<User | null>;
+
   // 数据操作
-  set<T>(key: string, value: T, options?: SetOptions): Promise<void>
-  get<T>(key: string): Promise<T | null>
-  delete(key: string): Promise<void>
-  exists(key: string): Promise<boolean>
-  
+  set<T>(key: string, value: T, options?: SetOptions): Promise<void>;
+  get<T>(key: string): Promise<T | null>;
+  delete(key: string): Promise<void>;
+  exists(key: string): Promise<boolean>;
+
   // 批量操作
-  mget<T>(keys: string[]): Promise<(T | null)[]>
-  mset(keyValues: Record<string, any>): Promise<void>
-  mdelete(keys: string[]): Promise<void>
+  mget<T>(keys: string[]): Promise<(T | null)[]>;
+  mset(keyValues: Record<string, any>): Promise<void>;
+  mdelete(keys: string[]): Promise<void>;
 }
 ```
 
 ### 配置系统架构
+
 ```yaml
 双模式配置:
   localstorage模式:
@@ -103,13 +108,14 @@ interface IStorage {
 ```
 
 ### 认证与权限系统
+
 ```yaml
 认证模式:
   localstorage模式:
     - 密码认证: 单密码验证
     - Cookie存储: auth-token = { password: "..." }
     - 中间件验证: process.env.PASSWORD 匹配
-  
+
   数据库模式:
     - 账号密码: username + password
     - HMAC签名: crypto.subtle.sign HMAC-SHA256
@@ -121,13 +127,13 @@ interface IStorage {
     - 所有管理员权限
     - 设置其他管理员
     - 删除用户
-  
+
   admin: 管理员
     - 配置管理
     - 资源站管理
     - 分类管理
     - 查看用户列表
-  
+
   user: 普通用户
     - 搜索播放
     - 收藏管理
@@ -136,7 +142,8 @@ interface IStorage {
 
 ## 🚀 最新技术成就
 
-### Docker优化成果 (2025-10-07)
+### Docker 优化成果 (2025-10-07)
+
 ```yaml
 构建优化:
   构建策略: 四阶段构建 (Base→Dependencies→Builder→Runner)
@@ -160,14 +167,14 @@ SSR错误修复:
 ```
 
 ### 项目清理分析成果 (2025-10-07)
+
 ```yaml
 分析范围: 52个核心文件全面分析
 项目健康度: 92% (优秀状态)
 文档完整性: 90%
 配置完备性: 92%
 
-分析结论:
-  ✅ 项目结构优秀，无需删除任何文件
+分析结论: ✅ 项目结构优秀，无需删除任何文件
   ✅ 代码组织合理，符合最佳实践
   ✅ 配置系统完善，支持多种部署场景
   ✅ 文档体系完整，便于开发和维护
@@ -180,6 +187,7 @@ SSR错误修复:
 ```
 
 ### 知识库管理成果 (2025-10-07)
+
 ```yaml
 Qdrant向量数据库集成:
   知识向量化: 技术文档和代码知识向量化存储
@@ -203,6 +211,7 @@ Serena记忆系统整合:
 ## 📊 项目指标与状态
 
 ### 性能指标
+
 ```yaml
 前端性能:
   首屏加载时间: <1.5秒 (当前: ~1秒)
@@ -224,6 +233,7 @@ Serena记忆系统整合:
 ```
 
 ### 开发效率指标
+
 ```yaml
 代码质量:
   TypeScript覆盖率: 100%
@@ -241,6 +251,7 @@ Serena记忆系统整合:
 ## 🔧 核心工具与命令
 
 ### 开发命令
+
 ```bash
 # 开发环境
 pnpm dev              # 启动开发服务器 (0.0.0.0:3000)
@@ -261,7 +272,8 @@ pnpm test             # 运行所有测试
 pnpm test:watch       # 测试监视模式
 ```
 
-### Docker命令
+### Docker 命令
+
 ```bash
 # 构建和运行
 docker build -t moontv:latest .
@@ -276,6 +288,7 @@ curl http://localhost:8080/api/health
 ```
 
 ### 记忆管理命令
+
 ```bash
 # Serena记忆系统
 /sc:load              # 加载项目记忆上下文
@@ -292,6 +305,7 @@ curl http://localhost:8080/api/health
 ## 🎯 当前开发重点
 
 ### v3.2.0-dev 开发重点
+
 ```yaml
 功能开发:
   - 智能搜索算法优化
@@ -313,6 +327,7 @@ curl http://localhost:8080/api/health
 ```
 
 ### 技术债务管理
+
 ```yaml
 已知技术债务:
   - 测试覆盖率不足 (目标90%，当前70%)
@@ -325,12 +340,12 @@ curl http://localhost:8080/api/health
     - 完善单元测试覆盖
     - 优化API响应性能
     - 完善监控日志
-  
+
   中期 (3个月):
     - 集成测试自动化
     - 性能监控系统
     - 部署自动化
-  
+
   长期 (6个月):
     - 微服务架构演进
     - 国际化支持
@@ -340,6 +355,7 @@ curl http://localhost:8080/api/health
 ## 📈 版本历史与里程碑
 
 ### 重要版本记录
+
 ```yaml
 v3.2.0-dev (当前开发版本):
   - Docker多阶段构建优化
@@ -369,21 +385,19 @@ v3.0.0 (架构升级版本):
 ```
 
 ### 里程碑成就
+
 ```yaml
-2025-10-07 (最新里程碑):
-  ✅ Docker构建优化完成 (318MB镜像)
+2025-10-07 (最新里程碑): ✅ Docker构建优化完成 (318MB镜像)
   ✅ SSR错误彻底修复
   ✅ 项目健康度达到92%
   ✅ 知识库管理升级到Qdrant+Serena
   ✅ 52个文件全面分析完成
 
-2025-10-06:
-  ✅ GitHub Actions工作流分析完成
+2025-10-06: ✅ GitHub Actions工作流分析完成
   ✅ 项目记忆体系整合优化 (13→11个文件)
   ✅ Docker部署指南完善
 
-2025-10-05:
-  ✅ Docker多阶段构建策略分析
+2025-10-05: ✅ Docker多阶段构建策略分析
   ✅ SSR错误诊断和修复方案
   ✅ Edge Runtime兼容性解决
 
@@ -397,7 +411,8 @@ v3.0.0 (架构升级版本):
 
 ## 🔮 未来发展规划
 
-### 短期目标 (1-3个月)
+### 短期目标 (1-3 个月)
+
 ```yaml
 技术目标:
   - 测试覆盖率提升到90%+
@@ -418,7 +433,8 @@ v3.0.0 (架构升级版本):
   - 开发效率提升30%
 ```
 
-### 中期目标 (3-6个月)
+### 中期目标 (3-6 个月)
+
 ```yaml
 架构演进:
   - 微服务架构演进实施
@@ -439,7 +455,8 @@ v3.0.0 (架构升级版本):
   - 开发者工具完善
 ```
 
-### 长期目标 (6-12个月)
+### 长期目标 (6-12 个月)
+
 ```yaml
 技术领先:
   - AI技术集成应用
@@ -463,6 +480,7 @@ v3.0.0 (架构升级版本):
 ## 📞 团队与协作
 
 ### 核心开发团队
+
 ```yaml
 系统架构师:
   职责: 整体架构设计、技术决策、知识体系协调
@@ -486,6 +504,7 @@ DevOps架构师:
 ```
 
 ### 协作机制
+
 ```yaml
 开发流程:
   - 功能开发: feature分支 → develop分支 → main分支
@@ -509,6 +528,7 @@ DevOps架构师:
 ## 📋 使用指南
 
 ### 快速开始
+
 1. **环境准备**: Node.js 22 + pnpm 10.14.0
 2. **克隆项目**: `git clone <repository>`
 3. **安装依赖**: `pnpm install`
@@ -516,20 +536,23 @@ DevOps架构师:
 5. **访问应用**: http://localhost:3000
 
 ### 开发指南
-1. **技术栈学习**: 熟悉Next.js 14 + TypeScript
+
+1. **技术栈学习**: 熟悉 Next.js 14 + TypeScript
 2. **架构理解**: 阅读技术架构文档
 3. **代码规范**: 遵循项目编码规范
 4. **测试要求**: 编写单元测试和集成测试
 5. **文档维护**: 及时更新相关文档
 
 ### 部署指南
-1. **Docker部署**: 使用多阶段构建Dockerfile
-2. **Vercel部署**: 连接GitHub仓库自动部署
-3. **Cloudflare Pages**: 使用pnpm pages:build构建
+
+1. **Docker 部署**: 使用多阶段构建 Dockerfile
+2. **Vercel 部署**: 连接 GitHub 仓库自动部署
+3. **Cloudflare Pages**: 使用 pnpm pages:build 构建
 4. **生产配置**: 配置环境变量和存储后端
 
 ### 问题排查
-1. **构建问题**: 检查Node.js版本和依赖安装
+
+1. **构建问题**: 检查 Node.js 版本和依赖安装
 2. **运行时问题**: 查看日志和环境变量配置
 3. **性能问题**: 使用性能监控工具分析
 4. **部署问题**: 检查平台特定配置要求
@@ -540,4 +563,4 @@ DevOps架构师:
 **更新频率**: 每周或重大变更时更新  
 **版本**: v3.2.0-dev  
 **最后更新**: 2025-10-07  
-**下次审查**: 2025-10-14或重大变更时
+**下次审查**: 2025-10-14 或重大变更时

@@ -1,16 +1,18 @@
-# MoonTV Docker综合部署指南 (v3.2.0-fixed)
+# MoonTV Docker 综合部署指南 (v3.2.0-fixed)
+
 **最后更新**: 2025-10-06  
-**维护专家**: DevOps架构师 + 性能工程师 + 质量工程师  
-**适用版本**: v3.2.0-fixed及以上  
+**维护专家**: DevOps 架构师 + 性能工程师 + 质量工程师  
+**适用版本**: v3.2.0-fixed 及以上  
 **文档类型**: 综合部署指南
 
 ## 📋 概述
 
-本文档整合了MoonTV项目的所有Docker相关部署内容，包括容器化最佳实践、SSR错误修复解决方案、性能优化策略和监控运维体系。基于v3.2.0-fixed版本的实战经验，提供生产级Docker部署完整方案。
+本文档整合了 MoonTV 项目的所有 Docker 相关部署内容，包括容器化最佳实践、SSR 错误修复解决方案、性能优化策略和监控运维体系。基于 v3.2.0-fixed 版本的实战经验，提供生产级 Docker 部署完整方案。
 
 ## 🎯 核心成就与性能指标
 
 ### v3.2.0-fixed 修复成果
+
 ```yaml
 Docker构建优化:
   构建成功率: 0% → 100%
@@ -18,20 +20,19 @@ Docker构建优化:
   镜像大小: 1.11GB → 318MB (71%减少)
   安全性: distroless镜像 + 非root用户
 
-SSR错误修复:
-  ✅ 完全消除digest 2652919541错误
+SSR错误修复: ✅ 完全消除digest 2652919541错误
   ✅ 修复EvalError代码生成问题
   ✅ 统一API运行时配置 (nodejs)
   ✅ 页面加载速度提升47%
 
-系统监控完善:
-  ✅ 健康检查自动化 (30秒间隔)
+系统监控完善: ✅ 健康检查自动化 (30秒间隔)
   ✅ 性能监控集成
   ✅ 故障自愈机制
   ✅ 完整的运维文档
 ```
 
 ### 适用场景识别
+
 ```yaml
 ✅ 适用于:
   - Next.js App Router项目
@@ -49,9 +50,10 @@ SSR错误修复:
   - 容器启动异常 (服务无法正常启动)
 ```
 
-## 🐳 生产级Dockerfile最佳实践
+## 🐳 生产级 Dockerfile 最佳实践
 
 ### 多阶段构建策略详解
+
 ```dockerfile
 # ===== 第0阶段：依赖解析与缓存 =====
 FROM node:20.10.0-alpine AS deps
@@ -133,7 +135,8 @@ EXPOSE 3000
 CMD ["node", "start.js"]
 ```
 
-### 极致优化的.dockerignore配置
+### 极致优化的.dockerignore 配置
+
 ```dockerignore
 # ===== 核心构建文件 =====
 node_modules
@@ -229,9 +232,10 @@ CLAUDE.md
 commitlint.config.*
 ```
 
-## 🔧 SSR错误修复核心技术方案
+## 🔧 SSR 错误修复核心技术方案
 
 ### 问题根源分析
+
 ```typescript
 // 问题代码: 使用eval('require')动态加载模块
 const _require = eval('require') as NodeJS.Require;
@@ -240,11 +244,13 @@ const path = _require('path') as typeof import('path');
 ```
 
 **根本原因**:
-- Edge Runtime与Docker环境兼容性冲突
-- 配置加载中使用eval('require')导致代码生成错误
+
+- Edge Runtime 与 Docker 环境兼容性冲突
+- 配置加载中使用 eval('require')导致代码生成错误
 - 服务器组件缺乏错误处理机制
 
 ### 安全配置加载解决方案
+
 ```typescript
 // 安全的动态import实现
 async function initConfig() {
@@ -266,17 +272,22 @@ async function initConfig() {
         throw new Error('Invalid config structure');
       }
     } catch (error) {
-      console.error('Failed to load dynamic config, falling back to runtime config:', error);
+      console.error(
+        'Failed to load dynamic config, falling back to runtime config:',
+        error
+      );
       // 确保runtimeConfig是有效的对象结构
-      fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
-        ? runtimeConfig as unknown as ConfigFileStruct
-        : {} as ConfigFileStruct;
+      fileConfig =
+        runtimeConfig && typeof runtimeConfig === 'object'
+          ? (runtimeConfig as unknown as ConfigFileStruct)
+          : ({} as ConfigFileStruct);
     }
   }
 }
 ```
 
 ### 错误处理增强机制
+
 ```typescript
 // 多层错误处理机制
 export async function getConfig(): Promise<AdminConfig> {
@@ -315,13 +326,15 @@ export async function getConfig(): Promise<AdminConfig> {
 }
 ```
 
-### Runtime配置统一策略
+### Runtime 配置统一策略
+
 ```bash
 # 自动替换所有API路由为nodejs runtime
 find ./src/app/api -name "route.ts" -type f -print0 | xargs -0 sed -i 's/export const runtime = '\''edge'\'';/export const runtime = '\''nodejs'\'';/g' || true
 ```
 
-#### Layout.tsx优化示例
+#### Layout.tsx 优化示例
+
 ```typescript
 // export const runtime = 'edge'; // 在Docker环境中使用Node.js Runtime
 
@@ -346,9 +359,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 ```
 
-## 🌐 Docker Compose生产编排
+## 🌐 Docker Compose 生产编排
 
 ### docker-compose.prod.yml 完整配置
+
 ```yaml
 version: '3.8'
 
@@ -363,7 +377,7 @@ services:
     container_name: moontv-app
     restart: unless-stopped
     ports:
-      - "8080:3000"
+      - '8080:3000'
     environment:
       - NODE_ENV=production
       - DOCKER_ENV=true
@@ -389,7 +403,15 @@ services:
     networks:
       - moontv-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/api/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -403,10 +425,10 @@ services:
           cpus: '0.5'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   # Redis缓存服务
   redis:
@@ -414,14 +436,14 @@ services:
     container_name: moontv-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - '6379:6379'
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
     networks:
       - moontv-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -440,8 +462,8 @@ services:
     container_name: moontv-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
@@ -451,7 +473,15 @@ services:
     networks:
       - moontv-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -465,7 +495,8 @@ networks:
     driver: bridge
 ```
 
-### Nginx反向代理配置
+### Nginx 反向代理配置
+
 ```nginx
 events {
     worker_connections 1024;
@@ -532,6 +563,7 @@ http {
 ## 🚀 自动化部署脚本
 
 ### 生产环境部署脚本
+
 ```bash
 #!/bin/bash
 
@@ -619,6 +651,7 @@ echo "📊 查看日志: docker-compose -f docker-compose.prod.yml logs -f"
 ## 🔒 安全加固措施
 
 ### 容器安全配置
+
 ```yaml
 # 安全扫描脚本 (scripts/security-scan.sh)
 #!/bin/bash
@@ -653,7 +686,8 @@ docker run --rm --security-opt=no-new-privileges \
 echo "✅ 安全扫描完成！"
 ```
 
-### Docker网络隔离
+### Docker 网络隔离
+
 ```bash
 #!/bin/bash
 
@@ -678,6 +712,7 @@ docker run -d \
 ## 📊 性能优化与监控
 
 ### 性能优化策略
+
 ```yaml
 构建性能:
   - 层缓存优化: 先复制依赖文件，再复制源代码
@@ -693,6 +728,7 @@ docker run -d \
 ```
 
 ### 健康检查端点实现
+
 ```typescript
 // src/app/api/health/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -743,25 +779,32 @@ export async function GET(request: NextRequest) {
 
     const isHealthy = Object.values(checks).every(Boolean);
 
-    return NextResponse.json({
-      status: isHealthy ? 'healthy' : 'unhealthy',
-      checks,
-      system: systemInfo,
-    }, {
-      status: isHealthy ? 200 : 503,
-    });
+    return NextResponse.json(
+      {
+        status: isHealthy ? 'healthy' : 'unhealthy',
+        checks,
+        system: systemInfo,
+      },
+      {
+        status: isHealthy ? 200 : 503,
+      }
+    );
   } catch (error) {
-    return NextResponse.json({
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    }, {
-      status: 503,
-    });
+    return NextResponse.json(
+      {
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      {
+        status: 503,
+      }
+    );
   }
 }
 ```
 
 ### 自动化监控脚本
+
 ```bash
 #!/bin/bash
 
@@ -776,17 +819,17 @@ mkdir -p $LOG_DIR
 # 监控容器日志
 monitor_docker_logs() {
     echo "📊 监控Docker容器日志..."
-    
+
     while true; do
         # 检查应用容器日志
         docker logs moontv-app --since=1m 2>&1 | grep -i "error\|warning\|critical" && \
         send_alert "MoonTV应用出现错误或警告"
-        
+
         # 检查容器状态
         if ! docker ps | grep -q moontv-app; then
             send_alert "MoonTV应用容器已停止"
         fi
-        
+
         sleep 60
     done
 }
@@ -801,7 +844,7 @@ send_alert() {
 # 日志轮转
 rotate_logs() {
     echo "🔄 执行日志轮转..."
-    
+
     # 查找大日志文件并轮转
     find $LOG_DIR -name "*.log" -size +$MAX_LOG_SIZE -exec sh -c '
         for file; do
@@ -829,6 +872,7 @@ esac
 ## 💾 自动化备份策略
 
 ### 备份脚本
+
 ```bash
 #!/bin/bash
 
@@ -880,27 +924,32 @@ echo "✅ 备份完成: $BACKUP_DIR/$BACKUP_NAME.tar.gz"
 
 ### 常见问题诊断
 
-#### 1. 构建失败 - husky错误
-**症状**: `sh: husky: not found`  
-**原因**: 只安装了生产依赖，husky是开发依赖  
-**解决**: 使用 `--ignore-scripts` 参数跳过prepare脚本
+#### 1. 构建失败 - husky 错误
 
-#### 2. SSR错误 - EvalError
+**症状**: `sh: husky: not found`  
+**原因**: 只安装了生产依赖，husky 是开发依赖  
+**解决**: 使用 `--ignore-scripts` 参数跳过 prepare 脚本
+
+#### 2. SSR 错误 - EvalError
+
 **症状**: `Application error: a server-side exception has occurred`  
-**原因**: 使用eval('require')进行动态代码生成  
-**解决**: 使用动态import替代eval()
+**原因**: 使用 eval('require')进行动态代码生成  
+**解决**: 使用动态 import 替代 eval()
 
 #### 3. 配置加载失败
+
 **症状**: 配置读取异常，应用无法启动  
 **原因**: 文件路径错误或权限问题  
 **解决**: 添加完整错误处理和回退机制
 
 #### 4. 容器启动异常
+
 **症状**: 容器启动后立即退出  
 **原因**: 健康检查失败或端口冲突  
 **解决**: 检查端口配置和健康检查端点
 
 ### 系统诊断脚本
+
 ```bash
 #!/bin/bash
 
@@ -931,6 +980,7 @@ echo "✅ 诊断完成！"
 ```
 
 ### 调试工具和命令
+
 ```bash
 # 查看构建日志
 docker build -t app:debug . 2>&1 | tee build.log
@@ -955,24 +1005,28 @@ docker exec -it <container_name> sh
 ## 📈 质量保证与持续改进
 
 ### 构建质量保证
+
 - **多环境测试**: 开发、测试、生产环境验证
 - **依赖扫描**: 检查依赖安全性
 - **镜像扫描**: 检查镜像漏洞
 - **性能测试**: 验证构建时间和镜像大小
 
 ### 部署质量保证
+
 - **健康检查**: 自动检测服务状态
 - **监控告警**: 关键指标监控
 - **日志聚合**: 集中化日志管理
 - **备份策略**: 配置和数据备份
 
 ### 运维质量保证
+
 - **资源监控**: CPU、内存、磁盘使用监控
 - **性能优化**: 定期性能分析和优化
 - **安全更新**: 及时更新依赖和补丁
 - **文档维护**: 保持文档最新状态
 
 ### 持续改进计划
+
 ```yaml
 短期改进 (1-2个月):
   - 自动化构建流程
@@ -996,6 +1050,7 @@ docker exec -it <container_name> sh
 ## 🔄 版本管理与更新
 
 ### 版本管理策略
+
 ```yaml
 语义化版本:
   主版本: 重大功能变更、架构调整
@@ -1016,6 +1071,7 @@ docker exec -it <container_name> sh
 ```
 
 ### 更新检查清单
+
 ```yaml
 更新前检查:
   [ ] 备份当前版本
@@ -1040,12 +1096,14 @@ docker exec -it <container_name> sh
 ## 📞 支持与联系
 
 ### 技术支持团队
-- **DevOps架构师**: 负责容器化部署和运维体系
+
+- **DevOps 架构师**: 负责容器化部署和运维体系
 - **性能工程师**: 负责性能优化和监控体系
 - **质量工程师**: 负责测试策略和质量保证
 - **系统架构师**: 负责整体架构设计和技术决策
 
 ### 常用命令速查
+
 ```bash
 # 构建和部署
 docker build -t moontv:latest .
@@ -1066,8 +1124,8 @@ docker-compose -f docker-compose.prod.yml restart
 
 ---
 
-**文档维护**: DevOps架构师 + 性能工程师 + 质量工程师  
+**文档维护**: DevOps 架构师 + 性能工程师 + 质量工程师  
 **更新频率**: 重大部署变更时更新  
 **版本**: v3.2.0-fixed  
 **最后更新**: 2025-10-06  
-**下次审查**: 2025-11-06或重大架构变更时
+**下次审查**: 2025-11-06 或重大架构变更时

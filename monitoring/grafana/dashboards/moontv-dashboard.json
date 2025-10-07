@@ -122,9 +122,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": ""
         }
       },
@@ -144,9 +142,7 @@
   "refresh": "5s",
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [
-    "moontv"
-  ],
+  "tags": ["moontv"],
   "templating": {
     "list": []
   },

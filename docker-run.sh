@@ -75,7 +75,7 @@ check_docker() {
 check_image() {
     if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
         log_error "镜像 $IMAGE_NAME 不存在"
-        log_info "请先构建镜像: docker build -t $IMAGE_NAME -f Dockerfile.four-stage ."
+        log_info "请先构建镜像: docker build -t $IMAGE_NAME ."
         exit 1
     fi
 }

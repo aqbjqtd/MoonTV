@@ -1,0 +1,17 @@
+{
+  "cache_time": 3600,
+  "api_site": {
+    "test1": {
+      "api": "https://bfzyapi.com/api.php/provide/vod",
+      "name": "测试-暴风资源"
+    },
+    "test2": {
+      "api": "https://tyyszy.com/api.php/provide/vod",
+      "name": "测试-天涯资源"
+    },
+    "test3": {
+      "api": "https://360zy.com/api.php/provide/vod",
+      "name": "测试-360资源"
+    }
+  }
+}

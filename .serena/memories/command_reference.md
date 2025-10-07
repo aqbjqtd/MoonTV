@@ -2,7 +2,8 @@
 
 ## 📦 包管理
 
-### pnpm命令
+### pnpm 命令
+
 ```bash
 # 安装依赖
 pnpm install
@@ -24,6 +25,7 @@ pnpm remove <package>
 ## 🚀 开发命令
 
 ### 开发服务器
+
 ```bash
 # 启动开发服务器（监听所有网络接口）
 pnpm dev
@@ -34,6 +36,7 @@ next dev
 ```
 
 ### 构建与启动
+
 ```bash
 # 生产构建
 pnpm build
@@ -52,7 +55,8 @@ pnpm pages:build
 
 ## 🧹 代码质量
 
-### Lint与格式化
+### Lint 与格式化
+
 ```bash
 # ESLint检查
 pnpm lint               # 检查src目录
@@ -68,7 +72,8 @@ pnpm typecheck
 # 执行: tsc --noEmit --incremental false
 ```
 
-### Git钩子（自动执行）
+### Git 钩子（自动执行）
+
 ```bash
 # pre-commit（提交前）
 # → lint-staged → ESLint + Prettier
@@ -81,7 +86,8 @@ pnpm typecheck
 
 ## 🧪 测试
 
-### Jest测试
+### Jest 测试
+
 ```bash
 # 运行所有测试
 pnpm test
@@ -101,6 +107,7 @@ pnpm test --coverage
 ## 🛠 工具脚本
 
 ### 自定义脚本
+
 ```bash
 # 生成PWA manifest
 pnpm gen:manifest
@@ -117,9 +124,10 @@ pnpm prepare
 
 ---
 
-## 🐳 Docker命令
+## 🐳 Docker 命令
 
 ### 构建镜像
+
 ```bash
 # 构建本地镜像
 docker build -t moontv:latest .
@@ -129,6 +137,7 @@ docker build --platform linux/amd64 -t moontv:latest .
 ```
 
 ### 运行容器
+
 ```bash
 # 基础运行（localstorage模式）
 docker run -d \
@@ -160,6 +169,7 @@ docker run -d \
 ```
 
 ### 容器管理
+
 ```bash
 # 查看运行状态
 docker ps
@@ -185,6 +195,7 @@ docker rmi ghcr.io/stardm0/moontv:latest
 ```
 
 ### Docker Compose
+
 ```bash
 # 启动服务
 docker-compose up -d
@@ -204,9 +215,10 @@ docker-compose ps
 
 ---
 
-## 🗂 Git命令
+## 🗂 Git 命令
 
 ### 基础操作
+
 ```bash
 # 查看状态
 git status
@@ -233,7 +245,8 @@ git commit -m "feat: 提交信息"
 git push origin <branch>
 ```
 
-### 项目提供的Git工具
+### 项目提供的 Git 工具
+
 ```bash
 # 简化Git操作（scripts/git-simple.sh）
 ./scripts/git-simple.sh
@@ -256,6 +269,7 @@ git push origin <branch>
 ## 🌐 环境变量
 
 ### 开发环境
+
 ```bash
 # 创建.env.local文件
 cp .env.example .env.local
@@ -265,6 +279,7 @@ nano .env.local
 ```
 
 ### 关键环境变量
+
 ```bash
 # 必需
 PASSWORD=your_secure_password
@@ -297,7 +312,8 @@ NEXT_PUBLIC_DISABLE_YELLOW_FILTER=false
 
 ## 🔍 调试命令
 
-### Next.js调试
+### Next.js 调试
+
 ```bash
 # 详细构建日志
 VERBOSE=1 pnpm build
@@ -307,6 +323,7 @@ ANALYZE=true pnpm build
 ```
 
 ### 网络调试
+
 ```bash
 # 检查端口占用
 lsof -i :3000
@@ -323,6 +340,7 @@ curl http://localhost:3000/api/config/sources
 ## 📊 性能分析
 
 ### Lighthouse
+
 ```bash
 # 全局安装
 npm install -g lighthouse
@@ -331,7 +349,8 @@ npm install -g lighthouse
 lighthouse http://localhost:3000 --view
 ```
 
-### Bundle分析
+### Bundle 分析
+
 ```bash
 # 安装分析工具
 pnpm add -D @next/bundle-analyzer
@@ -349,7 +368,8 @@ ANALYZE=true pnpm build
 
 ## 🚢 部署命令
 
-### Vercel部署
+### Vercel 部署
+
 ```bash
 # 安装Vercel CLI
 npm install -g vercel
@@ -362,7 +382,8 @@ vercel        # 预览部署
 vercel --prod # 生产部署
 ```
 
-### Netlify部署
+### Netlify 部署
+
 ```bash
 # 安装Netlify CLI
 npm install -g netlify-cli
@@ -380,12 +401,14 @@ netlify deploy --prod # 生产部署
 ## 🧰 实用命令组合
 
 ### 完整检查流程
+
 ```bash
 # 代码质量全面检查
 pnpm format && pnpm lint && pnpm typecheck && pnpm test
 ```
 
 ### 清理与重置
+
 ```bash
 # 清理依赖和缓存
 rm -rf node_modules .next pnpm-lock.yaml
@@ -398,6 +421,7 @@ pnpm dev
 ```
 
 ### 快速调试
+
 ```bash
 # 检查构建输出
 pnpm build && ls -lh .next/standalone

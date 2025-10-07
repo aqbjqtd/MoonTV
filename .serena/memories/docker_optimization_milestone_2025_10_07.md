@@ -1,12 +1,14 @@
-# MoonTV Docker优化里程碑记录 (2025-10-07)
+# MoonTV Docker 优化里程碑记录 (2025-10-07)
+
 **最后更新**: 2025-10-07  
-**维护专家**: DevOps架构师 + 性能工程师 + 质量工程师  
+**维护专家**: DevOps 架构师 + 性能工程师 + 质量工程师  
 **项目版本**: v3.2.0-dev → v3.2.0-fixed  
-**文档类型**: Docker优化专项记录
+**文档类型**: Docker 优化专项记录
 
 ## 🎯 优化目标与成果概览
 
 ### 优化背景
+
 ```yaml
 问题识别 (2025-10-05):
   构建失败: husky prepare脚本错误导致构建失败
@@ -24,6 +26,7 @@
 ```
 
 ### 最终优化成果
+
 ```yaml
 构建成果:
   ✅ 构建成功率: 0% → 100%
@@ -32,15 +35,13 @@
   ✅ 缓存命中率: 85%
   ✅ 安全性: distroless镜像 + 非root用户
 
-性能提升:
-  ✅ SSR错误完全解决
+性能提升: ✅ SSR错误完全解决
   ✅ 页面加载速度提升47%
   ✅ API响应时间优化30%
   ✅ 内存使用减少40%
   ✅ CPU使用率优化25%
 
-生产级特性:
-  ✅ 健康检查自动化 (30秒间隔)
+生产级特性: ✅ 健康检查自动化 (30秒间隔)
   ✅ 性能监控集成
   ✅ 故障自愈机制
   ✅ 完整的运维文档
@@ -49,7 +50,8 @@
 
 ## 🔍 问题诊断与根因分析
 
-### 问题1: 构建失败 - husky prepare脚本错误
+### 问题 1: 构建失败 - husky prepare 脚本错误
+
 ```yaml
 错误症状:
   构建日志: sh: husky: not found
@@ -67,8 +69,9 @@
   RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 ```
 
-### 问题2: SSR错误 - digest 2652919541
-```yaml
+### 问题 2: SSR 错误 - digest 2652919541
+
+````yaml
 错误症状:
   浏览器显示: Application error: a server-side exception has occurred
   控制台错误: digest 2652919541
@@ -85,15 +88,17 @@
 const _require = eval('require') as NodeJS.Require;
 const fs = _require('fs') as typeof import('fs');
 const path = _require('path') as typeof import('path');
-```
+````
 
 解决方案:
-  使用动态import替代eval('require'):
+使用动态 import 替代 eval('require'):
+
 ```typescript
 const fs = await import('fs');
 const path = await import('path');
 ```
-```
+
+````
 
 ### 问题3: 配置加载失败
 ```yaml
@@ -124,8 +129,9 @@ try {
   console.error('Failed to load dynamic config, falling back:', error);
   fileConfig = runtimeConfig || {} as ConfigFileStruct;
 }
-```
-```
+````
+
+````
 
 ## 🐳 多阶段构建策略演进
 
@@ -135,12 +141,12 @@ try {
   阶段1: deps (依赖安装)
   阶段2: builder (应用构建)
   阶段3: runner (生产运行)
-  
+
   优点:
     - 基础分离，缓存友好
     - 构建逻辑清晰
     - 镜像大小适中
-  
+
   缺点:
     - 依赖安装和构建分离不够优化
     - 层缓存利用率不够高
@@ -151,7 +157,7 @@ try {
   阶段1: dependencies (依赖管理)
   阶段2: builder (应用构建)
   阶段3: runner (生产运行)
-  
+
   优点:
     - 最大化层缓存利用
     - 依赖管理更精细
@@ -165,18 +171,19 @@ try {
   阶段2: dev-deps
   阶段3: builder
   阶段4: runner
-  
+
   优点:
     - 层分离最精细
-  
+
   缺点:
     - 构建复杂度过高
     - Dockerfile维护成本高
     - 实际收益有限
     - 调试难度增加
-```
+````
 
 ### 最终四阶段构建方案
+
 ```dockerfile
 # ===== 第0阶段：基础环境 =====
 FROM node:20.10.0-alpine AS base
@@ -242,9 +249,10 @@ EXPOSE 3000
 CMD ["node", "start.js"]
 ```
 
-## 🔧 SSR错误修复核心技术
+## 🔧 SSR 错误修复核心技术
 
 ### 配置加载安全化
+
 ```typescript
 // 修复前 (存在问题)
 const _require = eval('require') as NodeJS.Require;
@@ -258,10 +266,10 @@ async function initConfig() {
       // 使用动态import替代eval('require')
       const fs = await import('fs');
       const path = await import('path');
-      
+
       const configPath = path.join(process.cwd(), 'config.json');
       const raw = fs.readFileSync(configPath, 'utf-8');
-      
+
       // 安全的JSON解析
       const parsedConfig = JSON.parse(raw);
       if (parsedConfig && typeof parsedConfig === 'object') {
@@ -273,21 +281,24 @@ async function initConfig() {
     } catch (error) {
       console.error('Failed to load dynamic config, falling back:', error);
       // 确保runtimeConfig是有效的对象结构
-      fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
-        ? runtimeConfig as unknown as ConfigFileStruct
-        : {} as ConfigFileStruct;
+      fileConfig =
+        runtimeConfig && typeof runtimeConfig === 'object'
+          ? (runtimeConfig as unknown as ConfigFileStruct)
+          : ({} as ConfigFileStruct);
     }
   }
 }
 ```
 
 ### 运行时统一策略
+
 ```bash
 # 自动替换所有API路由为nodejs runtime
 find ./src/app/api -name "route.ts" -type f -print0 | xargs -0 sed -i 's/export const runtime = '\''edge'\'';/export const runtime = '\''nodejs'\'';/g' || true
 ```
 
-### Layout.tsx优化
+### Layout.tsx 优化
+
 ```typescript
 // 修复前 (Edge Runtime配置)
 export const runtime = 'edge';
@@ -319,6 +330,7 @@ export async function generateMetadata(): Promise<Metadata> {
 ## 📊 性能优化成果分析
 
 ### 镜像大小优化分析
+
 ```yaml
 优化前镜像 (1.11GB):
   - Node.js基础镜像: ~800MB
@@ -342,6 +354,7 @@ export async function generateMetadata(): Promise<Metadata> {
 ```
 
 ### 构建时间优化分析
+
 ```yaml
 优化前构建时间 (3分45秒):
   - 依赖安装: 2分30秒
@@ -363,11 +376,12 @@ export async function generateMetadata(): Promise<Metadata> {
 ```
 
 ### 运行时性能提升
+
 ```yaml
 内存使用优化:
   优化前: ~500MB
   优化后: ~300MB (40%减少)
-  
+
   优化策略:
     - Alpine Linux基础镜像
     - 移除开发依赖
@@ -377,7 +391,7 @@ export async function generateMetadata(): Promise<Metadata> {
 CPU使用率优化:
   优化前: 平均40%
   优化后: 平均30% (25%减少)
-  
+
   优化策略:
     - 更轻量的基础镜像
     - 优化的启动流程
@@ -386,7 +400,7 @@ CPU使用率优化:
 响应时间优化:
   API响应: ~100ms → ~70ms (30%提升)
   页面加载: ~1.5s → ~0.8s (47%提升)
-  
+
   优化策略:
     - 更快的文件系统
     - 优化的依赖加载
@@ -396,6 +410,7 @@ CPU使用率优化:
 ## 🛡️ 安全加固措施
 
 ### 容器安全配置
+
 ```yaml
 用户安全:
   创建用户: adduser -u 1001 -S nextjs -G nodejs
@@ -423,6 +438,7 @@ CPU使用率优化:
 ```
 
 ### 安全扫描结果
+
 ```yaml
 漏洞扫描:
   严重漏洞: 0个
@@ -446,6 +462,7 @@ CPU使用率优化:
 ## 🔄 自动化部署体系
 
 ### docker-compose.prod.yml 完整配置
+
 ```yaml
 version: '3.8'
 
@@ -459,7 +476,7 @@ services:
     container_name: moontv-app
     restart: unless-stopped
     ports:
-      - "8080:3000"
+      - '8080:3000'
     environment:
       - NODE_ENV=production
       - DOCKER_ENV=true
@@ -478,7 +495,15 @@ services:
     networks:
       - moontv-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/api/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -492,24 +517,24 @@ services:
           cpus: '0.5'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   redis:
     image: redis:7-alpine
     container_name: moontv-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - '6379:6379'
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
     networks:
       - moontv-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -532,6 +557,7 @@ networks:
 ```
 
 ### 自动化部署脚本
+
 ```bash
 #!/bin/bash
 # MoonTV生产环境部署脚本
@@ -616,6 +642,7 @@ echo "📊 查看日志: docker-compose -f docker-compose.prod.yml logs -f"
 ## 📈 监控与运维体系
 
 ### 健康检查端点实现
+
 ```typescript
 // src/app/api/health/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -663,25 +690,32 @@ export async function GET(request: NextRequest) {
 
     const isHealthy = Object.values(checks).every(Boolean);
 
-    return NextResponse.json({
-      status: isHealthy ? 'healthy' : 'unhealthy',
-      checks,
-      system: systemInfo,
-    }, {
-      status: isHealthy ? 200 : 503,
-    });
+    return NextResponse.json(
+      {
+        status: isHealthy ? 'healthy' : 'unhealthy',
+        checks,
+        system: systemInfo,
+      },
+      {
+        status: isHealthy ? 200 : 503,
+      }
+    );
   } catch (error) {
-    return NextResponse.json({
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    }, {
-      status: 503,
-    });
+    return NextResponse.json(
+      {
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      {
+        status: 503,
+      }
+    );
   }
 }
 ```
 
 ### 监控脚本体系
+
 ```bash
 #!/bin/bash
 # scripts/monitor.sh - 监控脚本
@@ -696,17 +730,17 @@ mkdir -p $LOG_DIR
 # 监控容器日志
 monitor_docker_logs() {
     echo "📊 监控Docker容器日志..."
-    
+
     while true; do
         # 检查应用容器日志
         docker logs moontv-app --since=1m 2>&1 | grep -i "error\|warning\|critical" && \
         send_alert "MoonTV应用出现错误或警告"
-        
+
         # 检查容器状态
         if ! docker ps | grep -q moontv-app; then
             send_alert "MoonTV应用容器已停止"
         fi
-        
+
         sleep 60
     done
 }
@@ -721,7 +755,7 @@ send_alert() {
 # 日志轮转
 rotate_logs() {
     echo "🔄 执行日志轮转..."
-    
+
     find $LOG_DIR -name "*.log" -size +$MAX_LOG_SIZE -exec sh -c '
         for file; do
             mv "$file" "$file.$(date +%Y%m%d-%H%M%S).old"
@@ -748,6 +782,7 @@ esac
 ## 💾 备份与恢复策略
 
 ### 自动备份脚本
+
 ```bash
 #!/bin/bash
 # scripts/backup.sh - 自动备份脚本
@@ -796,6 +831,7 @@ echo "✅ 备份完成: $BACKUP_DIR/$BACKUP_NAME.tar.gz"
 ```
 
 ### 恢复脚本
+
 ```bash
 #!/bin/bash
 # scripts/restore.sh - 恢复脚本
@@ -845,6 +881,7 @@ echo "✅ 恢复完成！"
 ## 🧪 测试与验证
 
 ### 构建测试
+
 ```bash
 #!/bin/bash
 # scripts/test-build.sh - 构建测试脚本
@@ -897,6 +934,7 @@ echo "🎉 构建测试完成！"
 ```
 
 ### 性能测试
+
 ```bash
 #!/bin/bash
 # scripts/performance-test.sh - 性能测试脚本
@@ -968,58 +1006,53 @@ echo "✅ 性能测试完成！报告已保存到 performance_report.txt"
 
 ## 📝 最佳实践总结
 
-### Docker最佳实践
+### Docker 最佳实践
+
 ```yaml
-多阶段构建:
-  ✅ 使用四阶段构建优化
+多阶段构建: ✅ 使用四阶段构建优化
   ✅ 最大化层缓存利用率
   ✅ 分离依赖和构建步骤
   ✅ 及时清理临时文件
 
-镜像优化:
-  ✅ 使用Alpine Linux基础镜像
+镜像优化: ✅ 使用Alpine Linux基础镜像
   ✅ 创建非特权用户
   ✅ 设置健康检查
   ✅ 优化环境变量
 
-安全加固:
-  ✅ 非root用户运行
+安全加固: ✅ 非root用户运行
   ✅ 最小权限原则
   ✅ 网络隔离
   ✅ 安全扫描和漏洞修复
 ```
 
-### SSR错误处理最佳实践
+### SSR 错误处理最佳实践
+
 ```yaml
-配置加载:
-  ✅ 使用动态import替代eval
+配置加载: ✅ 使用动态import替代eval
   ✅ 完整的错误处理机制
   ✅ 安全的JSON解析
   ✅ 合理的回退策略
 
-运行时统一:
-  ✅ 统一API路由运行时为nodejs
+运行时统一: ✅ 统一API路由运行时为nodejs
   ✅ 避免Edge Runtime兼容性问题
   ✅ 优化错误处理流程
   ✅ 提升整体稳定性
 ```
 
 ### 部署运维最佳实践
+
 ```yaml
-自动化部署:
-  ✅ 完整的部署脚本
+自动化部署: ✅ 完整的部署脚本
   ✅ 健康检查集成
   ✅ 自动回滚机制
   ✅ 环境配置管理
 
-监控运维:
-  ✅ 实时健康监控
+监控运维: ✅ 实时健康监控
   ✅ 日志轮转和清理
   ✅ 性能指标收集
   ✅ 告警机制集成
 
-备份恢复:
-  ✅ 自动备份策略
+备份恢复: ✅ 自动备份策略
   ✅ 数据完整性检查
   ✅ 快速恢复流程
   ✅ 备份验证机制
@@ -1027,7 +1060,8 @@ echo "✅ 性能测试完成！报告已保存到 performance_report.txt"
 
 ## 🔮 未来优化方向
 
-### 短期优化 (1个月)
+### 短期优化 (1 个月)
+
 ```yaml
 构建优化:
   - 并行构建优化
@@ -1042,7 +1076,8 @@ echo "✅ 性能测试完成！报告已保存到 performance_report.txt"
   - 监控指标完善
 ```
 
-### 中期优化 (3个月)
+### 中期优化 (3 个月)
+
 ```yaml
 容器编排:
   - Kubernetes部署支持
@@ -1057,7 +1092,8 @@ echo "✅ 性能测试完成！报告已保存到 performance_report.txt"
   - 多云部署支持
 ```
 
-### 长期规划 (6个月)
+### 长期规划 (6 个月)
+
 ```yaml
 智能化运维:
   - AI辅助故障诊断
@@ -1074,8 +1110,8 @@ echo "✅ 性能测试完成！报告已保存到 performance_report.txt"
 
 ---
 
-**文档维护**: DevOps架构师 + 性能工程师 + 质量工程师  
+**文档维护**: DevOps 架构师 + 性能工程师 + 质量工程师  
 **更新频率**: 重大部署变更时更新  
 **版本**: v3.2.0-fixed  
 **最后更新**: 2025-10-07  
-**下次审查**: 2025-11-07或重大变更时
+**下次审查**: 2025-11-07 或重大变更时

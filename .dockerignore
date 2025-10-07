@@ -81,8 +81,6 @@ package-lock.json
 yarn.lock
 
 # 开发配置
-.prettierrc*
-.eslintrc*
 jest.config.*
 # tsconfig.json - 构建需要，保留
 # tailwind.config.* - 构建需要，保留

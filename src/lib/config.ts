@@ -163,17 +163,22 @@ async function initConfig() {
         throw new Error('Invalid config structure');
       }
     } catch (error) {
-      console.error('Failed to load dynamic config, falling back to runtime config:', error);
+      console.error(
+        'Failed to load dynamic config, falling back to runtime config:',
+        error
+      );
       // 确保runtimeConfig是有效的对象结构
-      fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
-        ? runtimeConfig as unknown as ConfigFileStruct
-        : {} as ConfigFileStruct;
+      fileConfig =
+        runtimeConfig && typeof runtimeConfig === 'object'
+          ? (runtimeConfig as unknown as ConfigFileStruct)
+          : ({} as ConfigFileStruct);
     }
   } else {
     // 默认使用编译时生成的配置，确保类型安全
-    fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
-      ? runtimeConfig as unknown as ConfigFileStruct
-      : {} as ConfigFileStruct;
+    fileConfig =
+      runtimeConfig && typeof runtimeConfig === 'object'
+        ? (runtimeConfig as unknown as ConfigFileStruct)
+        : ({} as ConfigFileStruct);
   }
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
   if (storageType !== 'localstorage') {
@@ -182,17 +187,17 @@ async function initConfig() {
       cachedConfig = refineConfig(cachedConfig);
       return;
     }
-  
+
     // 数据库存储，读取并补全管理员配置
     const storage = getStorage();
-  
+
     try {
       // 尝试从数据库获取管理员配置
       let adminConfig: AdminConfig | null = null;
       if (storage && typeof (storage as any).getAdminConfig === 'function') {
         adminConfig = await (storage as any).getAdminConfig();
       }
-  
+
       // 获取所有用户名，用于补全 Users
       let userNames: string[] = [];
       if (storage && typeof (storage as any).getAllUsers === 'function') {
@@ -202,7 +207,7 @@ async function initConfig() {
           console.error('获取用户列表失败:', e);
         }
       }
-  
+
       if (adminConfig) {
         try {
           // 安全的JSON解析，避免EvalError
@@ -219,12 +224,12 @@ async function initConfig() {
         }
         const apiSiteEntries = Object.entries(fileConfig.api_site || []);
         const customCategories = fileConfig.custom_category || [];
-  
+
         // 补全 SourceConfig
         const sourceConfigMap = new Map(
           (adminConfig.SourceConfig || []).map((s) => [s.key, s])
         );
-  
+
         apiSiteEntries.forEach(([key, site]) => {
           sourceConfigMap.set(key, {
             key,
@@ -235,10 +240,10 @@ async function initConfig() {
             disabled: false,
           });
         });
-  
+
         // 将 Map 转换回数组
         adminConfig.SourceConfig = Array.from(sourceConfigMap.values());
-  
+
         // 检查现有源是否在 fileConfig.api_site 中，如果不在则标记为 custom
         const apiSiteKeys = new Set(apiSiteEntries.map(([key]) => key));
         adminConfig.SourceConfig.forEach((source) => {
@@ -246,17 +251,17 @@ async function initConfig() {
             source.from = 'custom';
           }
         });
-  
+
         // 确保 CustomCategories 被初始化
         if (!adminConfig.CustomCategories) {
           adminConfig.CustomCategories = [];
         }
-  
+
         // 补全 CustomCategories
         const customCategoriesMap = new Map(
           adminConfig.CustomCategories.map((c) => [c.query + c.type, c])
         );
-  
+
         customCategories.forEach((category) => {
           customCategoriesMap.set(category.query + category.type, {
             name: category.name,
@@ -266,7 +271,7 @@ async function initConfig() {
             disabled: false,
           });
         });
-  
+
         // 检查现有 CustomCategories 是否在 fileConfig.custom_category 中，如果不在则标记为 custom
         const customCategoriesKeys = new Set(
           customCategories.map((c) => c.query + c.type)
@@ -276,10 +281,10 @@ async function initConfig() {
             category.from = 'custom';
           }
         });
-  
+
         // 将 Map 转换回数组
         adminConfig.CustomCategories = Array.from(customCategoriesMap.values());
-  
+
         const existedUsers = new Set(
           (adminConfig.UserConfig.Users || []).map((u) => u.username)
         );
@@ -334,9 +339,9 @@ async function initConfig() {
               process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE || 'direct',
             DoubanImageProxy: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '',
             DisableYellowFilter:
-          process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
-        TVBoxEnabled: false,
-        TVBoxPassword: '',
+              process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
+            TVBoxEnabled: false,
+            TVBoxPassword: '',
           },
           UserConfig: {
             AllowRegister: process.env.NEXT_PUBLIC_ENABLE_REGISTER === 'true',
@@ -346,12 +351,12 @@ async function initConfig() {
           CustomCategories: [],
         };
       }
-  
+
       // 写回数据库（更新/创建）
       if (storage && typeof (storage as any).setAdminConfig === 'function') {
         await (storage as any).setAdminConfig(adminConfig);
       }
-  
+
       // 更新缓存
       cachedConfig = adminConfig;
     } catch (err) {
@@ -394,7 +399,8 @@ async function initConfig() {
         SiteInterfaceCacheTime: fileConfig.cache_time || 7200,
         DoubanProxyType: process.env.NEXT_PUBLIC_DOUBAN_PROXY_TYPE || 'direct',
         DoubanProxy: process.env.NEXT_PUBLIC_DOUBAN_PROXY || '',
-        DoubanImageProxyType: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE || 'direct',
+        DoubanImageProxyType:
+          process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE || 'direct',
         DoubanImageProxy: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '',
         DisableYellowFilter:
           process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
@@ -477,7 +483,9 @@ export async function getConfig(): Promise<AdminConfig> {
 
     // 数据库优先，环境变量仅在缺省时回退
     adminConfig.SiteConfig.SiteName =
-      adminConfig.SiteConfig.SiteName || process.env.NEXT_PUBLIC_SITE_NAME || 'MoonTV';
+      adminConfig.SiteConfig.SiteName ||
+      process.env.NEXT_PUBLIC_SITE_NAME ||
+      'MoonTV';
     adminConfig.SiteConfig.Announcement =
       adminConfig.SiteConfig.Announcement ||
       process.env.ANNOUNCEMENT ||
@@ -487,13 +495,21 @@ export async function getConfig(): Promise<AdminConfig> {
         ? adminConfig.UserConfig.AllowRegister
         : process.env.NEXT_PUBLIC_ENABLE_REGISTER === 'true';
     adminConfig.SiteConfig.DoubanProxyType =
-      adminConfig.SiteConfig.DoubanProxyType || process.env.NEXT_PUBLIC_DOUBAN_PROXY_TYPE || 'direct';
+      adminConfig.SiteConfig.DoubanProxyType ||
+      process.env.NEXT_PUBLIC_DOUBAN_PROXY_TYPE ||
+      'direct';
     adminConfig.SiteConfig.DoubanProxy =
-      adminConfig.SiteConfig.DoubanProxy || process.env.NEXT_PUBLIC_DOUBAN_PROXY || '';
+      adminConfig.SiteConfig.DoubanProxy ||
+      process.env.NEXT_PUBLIC_DOUBAN_PROXY ||
+      '';
     adminConfig.SiteConfig.DoubanImageProxyType =
-      adminConfig.SiteConfig.DoubanImageProxyType || process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE || 'direct';
+      adminConfig.SiteConfig.DoubanImageProxyType ||
+      process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE ||
+      'direct';
     adminConfig.SiteConfig.DoubanImageProxy =
-      adminConfig.SiteConfig.DoubanImageProxy || process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '';
+      adminConfig.SiteConfig.DoubanImageProxy ||
+      process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY ||
+      '';
     adminConfig.SiteConfig.DisableYellowFilter =
       typeof adminConfig.SiteConfig.DisableYellowFilter === 'boolean'
         ? adminConfig.SiteConfig.DisableYellowFilter
@@ -598,7 +614,9 @@ export async function getConfig(): Promise<AdminConfig> {
     });
 
     // 检查现有分类是否在 fileConfig.custom_category 中，如果不在则标记为 custom
-    const customCategoryKeys = new Set(customCategories.map((c) => c.query + c.type));
+    const customCategoryKeys = new Set(
+      customCategories.map((c) => c.query + c.type)
+    );
     customCategoriesMap.forEach((category) => {
       if (!customCategoryKeys.has(category.query + category.type)) {
         category.from = 'custom';
@@ -636,8 +654,6 @@ export async function getConfig(): Promise<AdminConfig> {
   return cachedConfig;
 }
 
-
-
 export async function resetConfig() {
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
   const storage = getStorage();
@@ -669,17 +685,22 @@ export async function resetConfig() {
         throw new Error('Invalid config structure');
       }
     } catch (error) {
-      console.error('Failed to load dynamic config, falling back to runtime config:', error);
+      console.error(
+        'Failed to load dynamic config, falling back to runtime config:',
+        error
+      );
       // 确保runtimeConfig是有效的对象结构
-      fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
-        ? runtimeConfig as unknown as ConfigFileStruct
-        : {} as ConfigFileStruct;
+      fileConfig =
+        runtimeConfig && typeof runtimeConfig === 'object'
+          ? (runtimeConfig as unknown as ConfigFileStruct)
+          : ({} as ConfigFileStruct);
     }
   } else {
     // 默认使用编译时生成的配置，确保类型安全
-    fileConfig = (runtimeConfig && typeof runtimeConfig === 'object')
-      ? runtimeConfig as unknown as ConfigFileStruct
-      : {} as ConfigFileStruct;
+    fileConfig =
+      runtimeConfig && typeof runtimeConfig === 'object'
+        ? (runtimeConfig as unknown as ConfigFileStruct)
+        : ({} as ConfigFileStruct);
   }
 
   const apiSiteEntries = Object.entries(fileConfig.api_site);
@@ -708,7 +729,8 @@ export async function resetConfig() {
       SiteInterfaceCacheTime: fileConfig.cache_time || 7200,
       DoubanProxyType: process.env.NEXT_PUBLIC_DOUBAN_PROXY_TYPE || 'direct',
       DoubanProxy: process.env.NEXT_PUBLIC_DOUBAN_PROXY || '',
-      DoubanImageProxyType: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE || 'direct',
+      DoubanImageProxyType:
+        process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE || 'direct',
       DoubanImageProxy: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '',
       DisableYellowFilter:
         process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',

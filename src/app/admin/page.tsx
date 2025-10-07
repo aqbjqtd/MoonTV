@@ -319,17 +319,21 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
             允许新用户注册
           </label>
           <button
-            onClick={() => toggleAllowRegister(!userSettings.enableRegistration)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${userSettings.enableRegistration
-              ? 'bg-green-600'
-              : 'bg-gray-200 dark:bg-gray-700'
-              }`}
+            onClick={() =>
+              toggleAllowRegister(!userSettings.enableRegistration)
+            }
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+              userSettings.enableRegistration
+                ? 'bg-green-600'
+                : 'bg-gray-200 dark:bg-gray-700'
+            }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${userSettings.enableRegistration
-                ? 'translate-x-6'
-                : 'translate-x-1'
-                }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                userSettings.enableRegistration
+                  ? 'translate-x-6'
+                  : 'translate-x-1'
+              }`}
             />
           </button>
         </div>
@@ -509,26 +513,28 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <span
-                            className={`px-2 py-1 text-xs rounded-full ${user.role === 'owner'
-                              ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300'
-                              : user.role === 'admin'
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              user.role === 'owner'
+                                ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300'
+                                : user.role === 'admin'
                                 ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                              }`}
+                            }`}
                           >
                             {user.role === 'owner'
                               ? '站长'
                               : user.role === 'admin'
-                                ? '管理员'
-                                : '普通用户'}
+                              ? '管理员'
+                              : '普通用户'}
                           </span>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <span
-                            className={`px-2 py-1 text-xs rounded-full ${!user.banned
-                              ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
-                              : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
-                              }`}
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              !user.banned
+                                ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                                : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
+                            }`}
                           >
                             {!user.banned ? '正常' : '已封禁'}
                           </span>
@@ -628,9 +634,11 @@ const VideoSourceConfig = ({
     disabled: false,
     from: 'config',
   });
-  
+
   // 批量操作相关状态
-  const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
+  const [selectedSources, setSelectedSources] = useState<Set<string>>(
+    new Set()
+  );
 
   // dnd-kit 传感器
   const sensors = useSensors(
@@ -744,7 +752,7 @@ const VideoSourceConfig = ({
     if (selectedSources.size === sources.length) {
       setSelectedSources(new Set());
     } else {
-      setSelectedSources(new Set(sources.map(s => s.key)));
+      setSelectedSources(new Set(sources.map((s) => s.key)));
     }
   };
 
@@ -760,7 +768,7 @@ const VideoSourceConfig = ({
 
   const handleBatchDisable = async () => {
     if (selectedSources.size === 0) return;
-    
+
     const { isConfirmed } = await Swal.fire({
       title: '确认批量禁用',
       text: `确定要禁用选中的 ${selectedSources.size} 个视频源吗？`,
@@ -774,9 +782,9 @@ const VideoSourceConfig = ({
     if (!isConfirmed) return;
 
     try {
-      await callSourceApi({ 
-        action: 'batchDisable', 
-        keys: Array.from(selectedSources) 
+      await callSourceApi({
+        action: 'batchDisable',
+        keys: Array.from(selectedSources),
       });
     } catch (err) {
       console.error('批量禁用失败', err);
@@ -785,7 +793,7 @@ const VideoSourceConfig = ({
 
   const handleBatchEnable = async () => {
     if (selectedSources.size === 0) return;
-    
+
     const { isConfirmed } = await Swal.fire({
       title: '确认批量启用',
       text: `确定要启用选中的 ${selectedSources.size} 个视频源吗？`,
@@ -799,9 +807,9 @@ const VideoSourceConfig = ({
     if (!isConfirmed) return;
 
     try {
-      await callSourceApi({ 
-        action: 'batchEnable', 
-        keys: Array.from(selectedSources) 
+      await callSourceApi({
+        action: 'batchEnable',
+        keys: Array.from(selectedSources),
       });
       // 批量启用后保持选中状态，不清空
     } catch (err) {
@@ -811,18 +819,18 @@ const VideoSourceConfig = ({
 
   const handleBatchDelete = async () => {
     if (selectedSources.size === 0) return;
-    
+
     // 检查是否有不可删除的源
-    const deletableSources = sources.filter(s => 
-      selectedSources.has(s.key) && s.from !== 'config'
+    const deletableSources = sources.filter(
+      (s) => selectedSources.has(s.key) && s.from !== 'config'
     );
     const nonDeletableCount = selectedSources.size - deletableSources.length;
-    
+
     let confirmText = `确定要删除选中的 ${deletableSources.length} 个自定义视频源吗？`;
     if (nonDeletableCount > 0) {
       confirmText += `\n注意：有 ${nonDeletableCount} 个系统默认源无法删除，将被跳过。`;
     }
-    
+
     const { isConfirmed } = await Swal.fire({
       title: '确认批量删除',
       text: confirmText,
@@ -836,9 +844,9 @@ const VideoSourceConfig = ({
     if (!isConfirmed) return;
 
     try {
-      await callSourceApi({ 
-        action: 'batchDelete', 
-        keys: deletableSources.map(s => s.key) 
+      await callSourceApi({
+        action: 'batchDelete',
+        keys: deletableSources.map((s) => s.key),
       });
       setSelectedSources(new Set());
     } catch (err) {
@@ -871,7 +879,7 @@ const VideoSourceConfig = ({
         >
           <GripVertical size={16} />
         </td>
-        
+
         {/* 复选框列 */}
         <td className='px-2 py-4'>
           <input
@@ -901,10 +909,11 @@ const VideoSourceConfig = ({
         </td>
         <td className='px-6 py-4 whitespace-nowrap max-w-[1rem]'>
           <span
-            className={`px-2 py-1 text-xs rounded-full ${!source.disabled
-              ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
-              : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
-              }`}
+            className={`px-2 py-1 text-xs rounded-full ${
+              !source.disabled
+                ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
+            }`}
           >
             {!source.disabled ? '启用中' : '已禁用'}
           </span>
@@ -912,10 +921,11 @@ const VideoSourceConfig = ({
         <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
           <button
             onClick={() => handleToggleEnable(source.key)}
-            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${!source.disabled
-              ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60'
-              : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60'
-              } transition-colors`}
+            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${
+              !source.disabled
+                ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60'
+                : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60'
+            } transition-colors`}
           >
             {!source.disabled ? '禁用' : '启用'}
           </button>
@@ -963,7 +973,10 @@ const VideoSourceConfig = ({
               <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
                 <input
                   type='checkbox'
-                  checked={selectedSources.size === sources.length && sources.length > 0}
+                  checked={
+                    selectedSources.size === sources.length &&
+                    sources.length > 0
+                  }
                   onChange={toggleSelectAll}
                   className='w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600'
                 />
@@ -1270,7 +1283,7 @@ const CategoryConfig = ({
         className='hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors select-none'
       >
         <td
-          className="px-2 py-4 cursor-grab text-gray-400"
+          className='px-2 py-4 cursor-grab text-gray-400'
           style={{ touchAction: 'none' }}
           {...{ ...attributes, ...listeners }}
         >
@@ -1281,10 +1294,11 @@ const CategoryConfig = ({
         </td>
         <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
           <span
-            className={`px-2 py-1 text-xs rounded-full ${category.type === 'movie'
-              ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
-              : 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
-              }`}
+            className={`px-2 py-1 text-xs rounded-full ${
+              category.type === 'movie'
+                ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
+                : 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
+            }`}
           >
             {category.type === 'movie' ? '电影' : '电视剧'}
           </span>
@@ -1297,10 +1311,11 @@ const CategoryConfig = ({
         </td>
         <td className='px-6 py-4 whitespace-nowrap max-w-[1rem]'>
           <span
-            className={`px-2 py-1 text-xs rounded-full ${!category.disabled
-              ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
-              : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
-              }`}
+            className={`px-2 py-1 text-xs rounded-full ${
+              !category.disabled
+                ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'
+            }`}
           >
             {!category.disabled ? '启用中' : '已禁用'}
           </span>
@@ -1308,10 +1323,11 @@ const CategoryConfig = ({
         <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
           <button
             onClick={() => handleToggleEnable(category.query, category.type)}
-            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${!category.disabled
-              ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60'
-              : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60'
-              } transition-colors`}
+            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${
+              !category.disabled
+                ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60'
+                : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60'
+            } transition-colors`}
           >
             {!category.disabled ? '禁用' : '启用'}
           </button>
@@ -1348,15 +1364,15 @@ const CategoryConfig = ({
             </span>
           )}
         </h4>
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className='px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors'
-            >
-              {showAddForm ? '取消' : '添加分类'}
-            </button>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className='px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors'
+        >
+          {showAddForm ? '取消' : '添加分类'}
+        </button>
       </div>
 
-          {showAddForm && (
+      {showAddForm && (
         <div className='p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 space-y-4'>
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
             <input
@@ -1466,7 +1482,13 @@ const CategoryConfig = ({
 };
 
 // 新增配置文件组件
-const ConfigFileComponent = ({ config, refreshConfig }: { config: AdminConfig | null; refreshConfig: () => Promise<void> }) => {
+const ConfigFileComponent = ({
+  config,
+  refreshConfig,
+}: {
+  config: AdminConfig | null;
+  refreshConfig: () => Promise<void>;
+}) => {
   const [configContent, setConfigContent] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -1475,8 +1497,6 @@ const ConfigFileComponent = ({ config, refreshConfig }: { config: AdminConfig | 
       setConfigContent(config.ConfigFile);
     }
   }, [config]);
-
-
 
   // 保存配置文件
   const handleSave = async () => {
@@ -1502,8 +1522,6 @@ const ConfigFileComponent = ({ config, refreshConfig }: { config: AdminConfig | 
     }
   };
 
-
-
   if (!config) {
     return (
       <div className='text-center text-gray-500 dark:text-gray-400'>
@@ -1524,7 +1542,8 @@ const ConfigFileComponent = ({ config, refreshConfig }: { config: AdminConfig | 
             placeholder='请输入配置文件内容（JSON 格式）...'
             className='w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500'
             style={{
-              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
+              fontFamily:
+                'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
             }}
             spellCheck={false}
             data-gramm={false}
@@ -1538,10 +1557,11 @@ const ConfigFileComponent = ({ config, refreshConfig }: { config: AdminConfig | 
           <button
             onClick={handleSave}
             disabled={saving}
-            className={`px-4 py-2 rounded-lg transition-colors ${saving
-              ? 'bg-gray-400 cursor-not-allowed text-white'
-              : 'bg-green-600 hover:bg-green-700 text-white'
-              }`}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              saving
+                ? 'bg-gray-400 cursor-not-allowed text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
           >
             {saving ? '保存中…' : '保存配置文件'}
           </button>
@@ -1568,10 +1588,11 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
   });
   // 保存状态
   const [saving, setSaving] = useState(false);
-  
+
   // TVBox 密码生成
   const generateRandomPassword = () => {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    const alphabet =
+      'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
     return Array.from({ length: 16 })
       .map(() => alphabet[Math.floor(Math.random() * alphabet.length)])
       .join('');
@@ -1738,8 +1759,9 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
       {/* 站点名称 */}
       <div>
         <label
-          className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isLocalStorage ? 'opacity-50' : ''
-            }`}
+          className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${
+            isLocalStorage ? 'opacity-50' : ''
+          }`}
         >
           站点名称
           {isLocalStorage && (
@@ -1756,16 +1778,18 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
             setSiteSettings((prev) => ({ ...prev, SiteName: e.target.value }))
           }
           disabled={isLocalStorage}
-          className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent ${isLocalStorage ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+          className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+            isLocalStorage ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         />
       </div>
 
       {/* 站点公告 */}
       <div>
         <label
-          className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isLocalStorage ? 'opacity-50' : ''
-            }`}
+          className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${
+            isLocalStorage ? 'opacity-50' : ''
+          }`}
         >
           站点公告
           {isLocalStorage && (
@@ -1785,8 +1809,9 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
           }
           disabled={isLocalStorage}
           rows={3}
-          className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent ${isLocalStorage ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+          className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+            isLocalStorage ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         />
       </div>
 
@@ -1794,8 +1819,9 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
       <div className='space-y-3'>
         <div>
           <label
-            className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isLocalStorage ? 'opacity-50' : ''
-              }`}
+            className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${
+              isLocalStorage ? 'opacity-50' : ''
+            }`}
           >
             豆瓣数据代理
             {isLocalStorage && (
@@ -1810,8 +1836,9 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
               type='button'
               onClick={() => setIsDoubanDropdownOpen(!isDoubanDropdownOpen)}
               disabled={isLocalStorage}
-              className={`w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left ${isLocalStorage ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+              className={`w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left ${
+                isLocalStorage ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {
                 doubanDataSourceOptions.find(
@@ -1823,8 +1850,9 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
             {/* 下拉箭头 */}
             <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
               <ChevronDown
-                className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isDoubanDropdownOpen ? 'rotate-180' : ''
-                  }`}
+                className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
+                  isDoubanDropdownOpen ? 'rotate-180' : ''
+                }`}
               />
             </div>
 
@@ -1839,10 +1867,11 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                       handleDoubanDataSourceChange(option.value);
                       setIsDoubanDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-2.5 text-left text-sm transition-colors duration-150 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 ${siteSettings.DoubanProxyType === option.value
-                      ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                      : 'text-gray-900 dark:text-gray-100'
-                      }`}
+                    className={`w-full px-3 py-2.5 text-left text-sm transition-colors duration-150 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      siteSettings.DoubanProxyType === option.value
+                        ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                        : 'text-gray-900 dark:text-gray-100'
+                    }`}
                   >
                     <span className='truncate'>{option.label}</span>
                     {siteSettings.DoubanProxyType === option.value && (
@@ -1883,8 +1912,9 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
         {siteSettings.DoubanProxyType === 'custom' && (
           <div>
             <label
-              className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isLocalStorage ? 'opacity-50' : ''
-                }`}
+              className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${
+                isLocalStorage ? 'opacity-50' : ''
+              }`}
             >
               豆瓣代理地址
             </label>
@@ -1900,8 +1930,9 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                 }))
               }
               disabled={isLocalStorage}
-              className={`w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 ${isLocalStorage ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+              className={`w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 ${
+                isLocalStorage ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             />
             <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
               自定义代理服务器地址
@@ -1913,9 +1944,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
       {/* 豆瓣图片代理设置 */}
       <div className='space-y-3'>
         <div>
-          <label
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
+          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
             豆瓣图片代理
             {false && (
               <span className='ml-2 text-xs text-gray-500 dark:text-gray-400'>
@@ -1932,7 +1961,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                   !isDoubanImageProxyDropdownOpen
                 )
               }
-              className="w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left"
+              className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
             >
               {
                 doubanImageProxyTypeOptions.find(
@@ -1944,8 +1973,9 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
             {/* 下拉箭头 */}
             <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
               <ChevronDown
-                className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isDoubanImageProxyDropdownOpen ? 'rotate-180' : ''
-                  }`}
+                className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
+                  isDoubanImageProxyDropdownOpen ? 'rotate-180' : ''
+                }`}
               />
             </div>
 
@@ -1960,10 +1990,11 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                       handleDoubanImageProxyChange(option.value);
                       setIsDoubanImageProxyDropdownOpen(false);
                     }}
-                    className={`w-full px-3 py-2.5 text-left text-sm transition-colors duration-150 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 ${siteSettings.DoubanImageProxyType === option.value
-                      ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                      : 'text-gray-900 dark:text-gray-100'
-                      }`}
+                    className={`w-full px-3 py-2.5 text-left text-sm transition-colors duration-150 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      siteSettings.DoubanImageProxyType === option.value
+                        ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                        : 'text-gray-900 dark:text-gray-100'
+                    }`}
                   >
                     <span className='truncate'>{option.label}</span>
                     {siteSettings.DoubanImageProxyType === option.value && (
@@ -2003,9 +2034,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
         {/* 豆瓣代理地址设置 - 仅在选择自定义代理时显示 */}
         {siteSettings.DoubanImageProxyType === 'custom' && (
           <div>
-            <label
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
+            <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
               豆瓣图片代理地址
             </label>
             <input
@@ -2018,7 +2047,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                   DoubanImageProxy: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm hover:border-gray-400 dark:hover:border-gray-500"
+              className='w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm hover:border-gray-400 dark:hover:border-gray-500'
             />
             <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
               自定义图片代理服务器地址
@@ -2068,9 +2097,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
       {/* 禁用黄色过滤器 */}
       <div>
         <div className='flex items-center justify-between'>
-          <label
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
+          <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
             禁用黄色过滤器
             {false && (
               <span className='ml-2 text-xs text-gray-500 dark:text-gray-400'>
@@ -2086,16 +2113,18 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                 DisableYellowFilter: !prev.DisableYellowFilter,
               }))
             }
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${siteSettings.DisableYellowFilter
-              ? 'bg-green-600'
-              : 'bg-gray-200 dark:bg-gray-700'
-              }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
+              siteSettings.DisableYellowFilter
+                ? 'bg-green-600'
+                : 'bg-gray-200 dark:bg-gray-700'
+            }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${siteSettings.DisableYellowFilter
-                ? 'translate-x-6'
-                : 'translate-x-1'
-                }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                siteSettings.DisableYellowFilter
+                  ? 'translate-x-6'
+                  : 'translate-x-1'
+              }`}
             />
           </button>
         </div>
@@ -2109,12 +2138,14 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
         <h3 className='text-base font-semibold text-gray-900 dark:text-gray-100'>
           TVBox 接口配置
         </h3>
-        
+
         {/* TVBox 开关 */}
         <div>
           <div className='flex items-center justify-between'>
             <label
-              className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${isLocalStorage ? 'opacity-50' : ''}`}
+              className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${
+                isLocalStorage ? 'opacity-50' : ''
+              }`}
             >
               启用 TVBox 接口
               {isLocalStorage && (
@@ -2165,7 +2196,11 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                 type='text'
                 value={
                   typeof window !== 'undefined'
-                    ? `${window.location.origin}/api/tvbox/config?pwd=${encodeURIComponent(siteSettings.TVBoxPassword || '')}`
+                    ? `${
+                        window.location.origin
+                      }/api/tvbox/config?pwd=${encodeURIComponent(
+                        siteSettings.TVBoxPassword || ''
+                      )}`
                     : ''
                 }
                 readOnly
@@ -2176,7 +2211,11 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                 onClick={() => {
                   if (typeof window !== 'undefined') {
                     navigator.clipboard.writeText(
-                      `${window.location.origin}/api/tvbox/config?pwd=${encodeURIComponent(siteSettings.TVBoxPassword || '')}`
+                      `${
+                        window.location.origin
+                      }/api/tvbox/config?pwd=${encodeURIComponent(
+                        siteSettings.TVBoxPassword || ''
+                      )}`
                     );
                   }
                 }}
@@ -2250,10 +2289,11 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
         <button
           onClick={handleSave}
           disabled={saving}
-          className={`px-4 py-2 ${saving
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-green-600 hover:bg-green-700'
-            } text-white rounded-lg transition-colors`}
+          className={`px-4 py-2 ${
+            saving
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700'
+          } text-white rounded-lg transition-colors`}
         >
           {saving ? '保存中…' : '保存'}
         </button>
@@ -2387,10 +2427,10 @@ function AdminPageClient() {
                   confirmButtonColor: '#3b82f6',
                 });
               }}
-              className="w-8 h-8 p-1.5 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200/50 dark:text-gray-300 dark:hover:bg-gray-700/50 transition-colors"
-              aria-label="缓存提示"
+              className='w-8 h-8 p-1.5 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200/50 dark:text-gray-300 dark:hover:bg-gray-700/50 transition-colors'
+              aria-label='缓存提示'
             >
-              <Bell className="w-full h-full" />
+              <Bell className='w-full h-full' />
             </button>
             {config && role === 'owner' && (
               <button

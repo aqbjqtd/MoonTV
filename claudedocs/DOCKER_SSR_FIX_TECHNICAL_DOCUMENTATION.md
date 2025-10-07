@@ -7,23 +7,26 @@
 
 ## 📋 执行摘要
 
-本次修复成功解决了MoonTV项目的两个关键技术问题：
-1. **Docker镜像构建失败** - husky prepare脚本导致的依赖错误
+本次修复成功解决了 MoonTV 项目的两个关键技术问题：
+
+1. **Docker 镜像构建失败** - husky prepare 脚本导致的依赖错误
 2. **服务器端渲染(SSR)错误** - digest 2652919541: EvalError
 
 **最终成果**：
-- ✅ Docker镜像体积从 1.11GB 优化到 318MB（减少71%）
-- ✅ SSR错误完全消除
+
+- ✅ Docker 镜像体积从 1.11GB 优化到 318MB（减少 71%）
+- ✅ SSR 错误完全消除
 - ✅ 所有功能正常运行
-- ✅ Chrome开发工具验证通过
+- ✅ Chrome 开发工具验证通过
 
 ---
 
 ## 🔍 问题诊断与分析
 
-### 1. Docker构建错误分析
+### 1. Docker 构建错误分析
 
 #### 原始错误现象
+
 ```bash
 # 构建失败日志
 sh: husky: not found
@@ -31,38 +34,45 @@ ELIFECYCLE Command failed with exit code 1
 ```
 
 #### 根本原因分析
-通过深度研究agent和系统架构专家分析，确认了以下问题链：
+
+通过深度研究 agent 和系统架构专家分析，确认了以下问题链：
 
 1. **依赖安装策略问题**：
-   - Dockerfile deps阶段使用 `pnpm install --prod` 只安装生产依赖
+
+   - Dockerfile deps 阶段使用 `pnpm install --prod` 只安装生产依赖
    - `husky` 是开发依赖，在 `--prod` 模式下未安装
 
 2. **自动脚本触发机制**：
+
    - `package.json` 中的 `prepare` 脚本自动执行 `husky install`
-   - 脚本执行时找不到husky包，导致构建失败
+   - 脚本执行时找不到 husky 包，导致构建失败
 
 3. **构建配置文件缺失**：
    - `.dockerignore` 错误忽略了构建必需的配置文件
-   - TypeScript、Tailwind等构建配置被排除在构建上下文外
+   - TypeScript、Tailwind 等构建配置被排除在构建上下文外
 
-### 2. SSR错误深度分析
+### 2. SSR 错误深度分析
 
 #### 错误特征
+
 ```javascript
 // 浏览器控制台错误
 digest 2652919541: EvalError
 ```
 
 #### 技术根因
+
 通过根因分析专家的诊断，确认问题出现在：
 
 1. **运行时配置加载机制**：
+
    - 配置加载使用 `eval()` 函数动态执行
-   - Edge Runtime环境对 `eval()` 有严格限制
+   - Edge Runtime 环境对 `eval()` 有严格限制
 
 2. **环境兼容性问题**：
-   - 开发环境与Docker环境的运行时差异
-   - Node.js与Edge Runtime的API兼容性
+
+   - 开发环境与 Docker 环境的运行时差异
+   - Node.js 与 Edge Runtime 的 API 兼容性
 
 3. **动态导入策略不当**：
    - 缺乏有效的错误处理和回退机制
@@ -72,11 +82,12 @@ digest 2652919541: EvalError
 
 ## 🛠️ 修复方案与实施
 
-### 1. Docker构建修复方案
+### 1. Docker 构建修复方案
 
-#### 1.1 主要修复：跳过prepare脚本
+#### 1.1 主要修复：跳过 prepare 脚本
 
-**文件**: `Dockerfile` 第19行
+**文件**: `Dockerfile` 第 19 行
+
 ```dockerfile
 # 修复前
 RUN pnpm install --frozen-lockfile --prod && \
@@ -86,13 +97,15 @@ RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
 ```
 
 **技术原理**：
-- `--ignore-scripts` 参数跳过所有npm/pnpm生命周期脚本
-- 避免husky等开发工具的依赖问题
+
+- `--ignore-scripts` 参数跳过所有 npm/pnpm 生命周期脚本
+- 避免 husky 等开发工具的依赖问题
 - 保持生产环境的纯净性
 
 #### 1.2 构建配置文件修复
 
 **文件**: `.dockerignore`
+
 ```dockerignore
 # 修复前 - 错误忽略
 tsconfig.json
@@ -106,13 +119,15 @@ postcss.config.*
 ```
 
 **技术原理**：
-- TypeScript编译器需要 `tsconfig.json`
-- Tailwind CSS需要其配置文件进行样式处理
-- PostCSS配置对于CSS处理流程必需
+
+- TypeScript 编译器需要 `tsconfig.json`
+- Tailwind CSS 需要其配置文件进行样式处理
+- PostCSS 配置对于 CSS 处理流程必需
 
 #### 1.3 构建流程优化
 
 **文件**: `Dockerfile` 构建阶段
+
 ```dockerfile
 # 优化的构建顺序
 RUN pnpm gen:manifest && pnpm gen:runtime
@@ -120,15 +135,17 @@ RUN find ./src/app/api -name "route.ts" -type f -print0 | xargs -0 sed -i 's/exp
 ```
 
 **技术原理**：
+
 - 先生成必要的运行时配置
 - 统一运行时环境，避免兼容性问题
 - 添加错误处理确保构建稳定性
 
-### 2. SSR错误修复方案
+### 2. SSR 错误修复方案
 
 #### 2.1 配置加载机制重构
 
 **文件**: `src/lib/config.ts` (相关配置加载代码)
+
 ```javascript
 // 修复前：使用eval()
 const config = eval('(' + configStr + ')');
@@ -151,26 +168,30 @@ try {
 ```
 
 **技术原理**：
-- 消除 `eval()` 使用，避免Edge Runtime限制
+
+- 消除 `eval()` 使用，避免 Edge Runtime 限制
 - 实现多层错误处理和回退机制
 - 确保配置加载的稳定性
 
 #### 2.2 运行时环境统一
 
-**文件**: 多个API route文件
+**文件**: 多个 API route 文件
+
 ```javascript
 // 统一运行时配置
-export const runtime = 'nodejs';  // 从 'edge' 改为 'nodejs'
+export const runtime = 'nodejs'; // 从 'edge' 改为 'nodejs'
 ```
 
 **技术原理**：
-- 避免Edge Runtime的限制
+
+- 避免 Edge Runtime 的限制
 - 提供更一致的执行环境
-- 支持完整的Node.js API
+- 支持完整的 Node.js API
 
 #### 2.3 错误处理增强
 
 **文件**: 配置加载相关文件
+
 ```javascript
 // 添加错误边界处理
 try {
@@ -183,6 +204,7 @@ try {
 ```
 
 **技术原理**：
+
 - 防止单点错误导致整个应用崩溃
 - 提供优雅的错误降级机制
 - 便于调试和问题定位
@@ -191,9 +213,10 @@ try {
 
 ## 📊 修复验证与测试
 
-### 1. Docker构建验证
+### 1. Docker 构建验证
 
 #### 阶段构建测试
+
 ```bash
 # deps阶段构建测试
 docker build -t moontv-deps --target deps .
@@ -209,6 +232,7 @@ docker build -t moontv-final .
 ```
 
 #### 镜像优化效果
+
 ```bash
 # 优化前镜像大小
 docker images moontv-original
@@ -224,6 +248,7 @@ docker images moontv-final
 ### 2. 功能验证测试
 
 #### 2.1 应用启动测试
+
 ```bash
 # Docker容器启动测试
 docker run -d -p 3000:3000 moontv-final
@@ -236,6 +261,7 @@ curl -f http://localhost:3000/api/health || exit 1
 ```
 
 #### 2.2 核心功能测试
+
 ```bash
 # 首页加载测试
 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
@@ -251,15 +277,18 @@ curl -s "http://localhost:3000/api/search?q=test" | jq -e '.length >= 0'
 ```
 
 #### 2.3 浏览器兼容性测试
-使用Chrome开发工具验证：
-- ✅ 页面加载无JavaScript错误
+
+使用 Chrome 开发工具验证：
+
+- ✅ 页面加载无 JavaScript 错误
 - ✅ 所有资源正确加载
-- ✅ SSR渲染正常
+- ✅ SSR 渲染正常
 - ✅ 客户端水合成功
 
 ### 3. 性能基准测试
 
 #### 3.1 构建性能对比
+
 ```yaml
 构建性能指标:
   优化前:
@@ -281,6 +310,7 @@ curl -s "http://localhost:3000/api/search?q=test" | jq -e '.length >= 0'
 ```
 
 #### 3.2 运行时性能测试
+
 ```yaml
 运行时性能:
   冷启动时间:
@@ -305,6 +335,7 @@ curl -s "http://localhost:3000/api/search?q=test" | jq -e '.length >= 0'
 ### 1. 多阶段构建优化
 
 #### 1.1 构建阶段重构
+
 ```dockerfile
 # 阶段1: 依赖安装
 FROM node:18-alpine AS deps
@@ -332,6 +363,7 @@ CMD ["node", "server.js"]
 ```
 
 #### 1.2 缓存策略优化
+
 ```dockerfile
 # 优化缓存层顺序
 COPY package.json pnpm-lock.yaml ./  # 依赖缓存层
@@ -346,6 +378,7 @@ COPY . ./                           # 源代码最后复制
 ### 2. 安全性增强
 
 #### 2.1 基础镜像选择
+
 ```dockerfile
 # 使用distroless镜像
 FROM gcr.io/distroless/nodejs18-debian12 AS runner
@@ -357,6 +390,7 @@ FROM gcr.io/distroless/nodejs18-debian12 AS runner
 ```
 
 #### 2.2 运行时安全配置
+
 ```dockerfile
 # 安全运行配置
 USER nobody                        # 非特权用户
@@ -369,9 +403,10 @@ HEALTHCHECK --interval=30s --timeout=3s \
 
 ## 🔧 最佳实践与预防措施
 
-### 1. Docker构建最佳实践
+### 1. Docker 构建最佳实践
 
 #### 1.1 依赖管理策略
+
 ```yaml
 依赖分离原则:
   生产依赖: 使用 --prod 标志
@@ -385,6 +420,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
 ```
 
 #### 1.2 构建上下文优化
+
 ```yaml
 构建上下文管理:
   必需文件:
@@ -402,6 +438,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
 ```
 
 #### 1.3 多阶段构建策略
+
 ```yaml
 构建阶段设计:
   deps阶段:
@@ -420,9 +457,10 @@ HEALTHCHECK --interval=30s --timeout=3s \
     输出: 最小化运行时
 ```
 
-### 2. SSR错误预防措施
+### 2. SSR 错误预防措施
 
 #### 2.1 运行时环境管理
+
 ```yaml
 运行时一致性:
   开发环境:
@@ -437,6 +475,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
 ```
 
 #### 2.2 配置管理最佳实践
+
 ```yaml
 配置加载策略:
   安全加载:
@@ -453,6 +492,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
 ### 3. 质量保证措施
 
 #### 3.1 构建验证检查清单
+
 ```yaml
 构建验证清单:
   必需文件检查:
@@ -476,6 +516,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
 ```
 
 #### 3.2 功能测试验证
+
 ```yaml
 功能测试清单:
   基础功能:
@@ -503,9 +544,10 @@ HEALTHCHECK --interval=30s --timeout=3s \
 
 ### 1. 常见问题诊断
 
-#### 1.1 Docker构建失败
+#### 1.1 Docker 构建失败
 
 **问题**: `sh: husky: not found`
+
 ```bash
 # 诊断步骤
 1. 检查Dockerfile中是否有 --ignore-scripts
@@ -522,6 +564,7 @@ sed -i 's/pnpm install --frozen-lockfile --prod/pnpm install --frozen-lockfile -
 ```
 
 **问题**: `Module not found: Can't resolve 'tailwindcss'`
+
 ```bash
 # 诊断步骤
 1. 检查.dockerignore是否错误排除了配置文件
@@ -547,9 +590,10 @@ coverage
 EOF
 ```
 
-#### 1.2 SSR相关错误
+#### 1.2 SSR 相关错误
 
 **问题**: `digest xxxxxxxx: EvalError`
+
 ```bash
 # 诊断步骤
 1. 检查代码中是否使用了eval()
@@ -572,6 +616,7 @@ find src/app/api -name "*.ts" -exec sed -i 's/export const runtime = .edge./expo
 ### 2. 性能问题诊断
 
 #### 2.1 构建性能优化
+
 ```bash
 # 构建性能分析
 time docker build -t moontv-test .
@@ -585,6 +630,7 @@ docker scout moontv-test
 ```
 
 #### 2.2 运行时性能监控
+
 ```bash
 # 容器资源使用监控
 docker stats moontv-container
@@ -599,6 +645,7 @@ docker logs moontv-container --tail 100
 ### 3. 紧急修复流程
 
 #### 3.1 快速回滚方案
+
 ```bash
 # 1. 备份当前配置
 cp Dockerfile Dockerfile.backup
@@ -616,6 +663,7 @@ curl -f http://localhost:3000
 ```
 
 #### 3.2 紧急修复命令
+
 ```bash
 # 紧急修复husky问题
 sed -i 's/--prod/--prod --ignore-scripts/g' Dockerfile
@@ -635,6 +683,7 @@ find src/app/api -name "*.ts" -exec sed -i 's/export const runtime = .edge./expo
 ### 1. 持续监控策略
 
 #### 1.1 构建监控
+
 ```yaml
 构建指标监控:
   每日检查:
@@ -649,6 +698,7 @@ find src/app/api -name "*.ts" -exec sed -i 's/export const runtime = .edge./expo
 ```
 
 #### 1.2 运行时监控
+
 ```yaml
 应用性能监控:
   关键指标:
@@ -666,6 +716,7 @@ find src/app/api -name "*.ts" -exec sed -i 's/export const runtime = .edge./expo
 ### 2. 维护计划
 
 #### 2.1 定期维护任务
+
 ```yaml
 月度维护:
   - 依赖安全更新
@@ -685,28 +736,32 @@ find src/app/api -name "*.ts" -exec sed -i 's/export const runtime = .edge./expo
 ## 📚 参考资源
 
 ### 1. 技术文档
-- [Next.js Docker部署官方指南](https://nextjs.org/docs/deployment)
-- [Docker多阶段构建最佳实践](https://docs.docker.com/develop/develop-images/multistage-build/)
-- [Distroless镜像安全指南](https://github.com/GoogleContainerTools/distroless)
+
+- [Next.js Docker 部署官方指南](https://nextjs.org/docs/deployment)
+- [Docker 多阶段构建最佳实践](https://docs.docker.com/develop/develop-images/multistage-build/)
+- [Distroless 镜像安全指南](https://github.com/GoogleContainerTools/distroless)
 
 ### 2. 相关工具
+
 - [Docker Buildx](https://docs.docker.com/buildx/working-with-buildx/) - 高级构建功能
 - [Docker Scout](https://docs.docker.com/scout/) - 容器安全分析
 - [Next.js Analyze](https://nextjs.org/docs/analyzing-bundles) - 包分析工具
 
 ### 3. 故障排除资源
-- [Docker构建调试指南](https://docs.docker.com/build/concepts/debugging/)
-- [Next.js部署故障排除](https://nextjs.org/docs/deployment/troubleshooting)
-- [Node.js运行时错误诊断](https://nodejs.org/guides/debugging/getting-started/)
+
+- [Docker 构建调试指南](https://docs.docker.com/build/concepts/debugging/)
+- [Next.js 部署故障排除](https://nextjs.org/docs/deployment/troubleshooting)
+- [Node.js 运行时错误诊断](https://nodejs.org/guides/debugging/getting-started/)
 
 ---
 
 ## 🔄 版本更新日志
 
 ### v1.0.0 (2025-10-06)
-- ✅ 修复Docker构建husky依赖问题
-- ✅ 解决SSR EvalError错误
-- ✅ 优化Docker镜像大小(71%减少)
+
+- ✅ 修复 Docker 构建 husky 依赖问题
+- ✅ 解决 SSR EvalError 错误
+- ✅ 优化 Docker 镜像大小(71%减少)
 - ✅ 改进构建性能(40%提升)
 - ✅ 建立完整监控体系
 - ✅ 创建故障排除指南
@@ -715,7 +770,7 @@ find src/app/api -name "*.ts" -exec sed -i 's/export const runtime = .edge./expo
 
 **文档维护**: 本文档将根据项目演进和技术更新持续维护。建议定期检查并更新相关信息。
 
-**联系方式**: 如有技术问题或建议，请通过项目Issue系统反馈。
+**联系方式**: 如有技术问题或建议，请通过项目 Issue 系统反馈。
 
 **最后更新**: 2025-10-06
 **文档版本**: v1.0.0

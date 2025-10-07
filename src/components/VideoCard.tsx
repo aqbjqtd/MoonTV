@@ -3,7 +3,7 @@
 import { Heart, PlayCircleIcon, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import React, { useCallback,useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 import {
   deleteFavorite,
@@ -124,11 +124,15 @@ export default function VideoCard({
 
       // 延迟订阅收藏更新
       const storageKey = generateStorageKey(actualSource, actualId);
-      subscribeToDataUpdates('favoritesUpdated', (newFavorites: Record<string, any>) => {
-        const isNowFavorited = !!newFavorites[storageKey];
-        setFavorited(isNowFavorited);
-      });
+      subscribeToDataUpdates(
+        'favoritesUpdated',
+        (newFavorites: Record<string, any>) => {
+          const isNowFavorited = !!newFavorites[storageKey];
+          setFavorited(isNowFavorited);
+        }
+      );
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('检查收藏状态失败', err);
     }
   }, [from, actualSource, actualId]);
@@ -155,6 +159,7 @@ export default function VideoCard({
           setFavorited(true);
         }
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('切换收藏状态失败', err);
       }
     },
@@ -162,6 +167,7 @@ export default function VideoCard({
       from,
       actualSource,
       actualId,
+      actualQuery,
       actualTitle,
       source_name,
       actualYear,
@@ -266,9 +272,9 @@ export default function VideoCard({
   // 渲染
   return (
     <div
-      className="group relative w-full rounded-lg bg-transparent cursor-pointer transition-all duration-300 ease-in-out hover:scale-[1.05] hover:z-[500]"
+      className='group relative w-full rounded-lg bg-transparent cursor-pointer transition-all duration-300 ease-in-out hover:scale-[1.05] hover:z-[500]'
       onMouseEnter={() => {
-          // 收藏夹里的卡片直接默认已收藏，不检查数据库
+        // 收藏夹里的卡片直接默认已收藏，不检查数据库
         if (from === 'favorite' && !favorited) {
           setFavorited(true);
           setFavoriteChecked(true);
@@ -303,20 +309,20 @@ export default function VideoCard({
 
         <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black-20 to-transparent opacity-0 transition-opacity duration-300 ease-in-out group-hover:opacity-100' />
 
-      {/* 播放按钮 */}
-      {config.showPlayButton && (
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-              <PlayCircleIcon
-                size={50}
-                strokeWidth={0.8}
-                className="text-white fill-transparent hover:fill-green-500 hover:scale-[1.1] transition"
-                onClick={(e) => {
-                  e.stopPropagation(); // 阻止冒泡
-                  handleClick();       // 只在点击按钮时触发播放
-                }}
-              />
-            </div>
-          )}
+        {/* 播放按钮 */}
+        {config.showPlayButton && (
+          <div className='absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition'>
+            <PlayCircleIcon
+              size={50}
+              strokeWidth={0.8}
+              className='text-white fill-transparent hover:fill-green-500 hover:scale-[1.1] transition'
+              onClick={(e) => {
+                e.stopPropagation(); // 阻止冒泡
+                handleClick(); // 只在点击按钮时触发播放
+              }}
+            />
+          </div>
+        )}
 
         {(config.showHeart || config.showCheckCircle) && (
           <div className='absolute bottom-3 right-3 flex gap-3 opacity-0 translate-y-2 transition-all duration-300 ease-in-out group-hover:opacity-100 group-hover:translate-y-0'>
@@ -343,39 +349,42 @@ export default function VideoCard({
 
         {/* ⭐ 评分显示（左上角小圆圈，可跳转豆瓣或 Bangumi） */}
         {config.showRating && rate && actualDoubanId && (
-          <div
-            className="absolute top-2 left-2 bg-pink-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full shadow-md cursor-pointer hover:bg-pink-600 transition"
-          >
+          <div className='absolute top-2 left-2 bg-pink-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full shadow-md cursor-pointer hover:bg-pink-600 transition'>
             {rate}
           </div>
         )}
 
-
         {/* 📅 年份显示（左上角） */}
-        {from === 'search' && actualYear && actualYear.toLowerCase() !== 'unknown' && (
-        <div
-          className="absolute top-2 left-2 bg-black/60 text-white text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full shadow-md"
-        >
-          {actualYear}
-        </div>
-        )}
+        {from === 'search' &&
+          actualYear &&
+          actualYear.toLowerCase() !== 'unknown' && (
+            <div className='absolute top-2 left-2 bg-black/60 text-white text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full shadow-md'>
+              {actualYear}
+            </div>
+          )}
 
         {/* 🔗 豆瓣/Bangumi跳转链接（左下角） */}
         {config.showDoubanLink && actualDoubanId && (
           <div
             onClick={(e) => {
               e.stopPropagation(); // 阻止触发卡片点击
-              
+
               if (isBangumi) {
                 // 动漫 → Bangumi
-                window.open(`https://bangumi.tv/subject/${actualDoubanId}`, "_blank");
+                window.open(
+                  `https://bangumi.tv/subject/${actualDoubanId}`,
+                  '_blank'
+                );
               } else {
                 // 默认 → 豆瓣
-                window.open(`https://movie.douban.com/subject/${actualDoubanId}`, "_blank");
+                window.open(
+                  `https://movie.douban.com/subject/${actualDoubanId}`,
+                  '_blank'
+                );
               }
             }}
-            className="absolute bottom-2 left-2 bg-green-500 text-white text-xs font-bold w-8 h-8 rounded-full flex items-center justify-center shadow-md hover:bg-green-600 hover:scale-[1.1] transition-all duration-300 ease-out opacity-0 group-hover:opacity-100 cursor-pointer"
-            title={isBangumi ? "跳转到 Bangumi" : "跳转到豆瓣"}
+            className='absolute bottom-2 left-2 bg-green-500 text-white text-xs font-bold w-8 h-8 rounded-full flex items-center justify-center shadow-md hover:bg-green-600 hover:scale-[1.1] transition-all duration-300 ease-out opacity-0 group-hover:opacity-100 cursor-pointer'
+            title={isBangumi ? '跳转到 Bangumi' : '跳转到豆瓣'}
           >
             <svg
               width='16'
@@ -396,52 +405,57 @@ export default function VideoCard({
         {/* 集数 */}
         {actualEpisodes && actualEpisodes > 1 && (
           <div className='absolute top-2 right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-md transition-all duration-300 ease-out group-hover:scale-110'>
-            {currentEpisode ? `${currentEpisode}/${actualEpisodes}` : actualEpisodes}
+            {currentEpisode
+              ? `${currentEpisode}/${actualEpisodes}`
+              : actualEpisodes}
           </div>
         )}
 
-{/* 播放源徽章 */}
-{isAggregate && items && items.length > 0 && (
-  <div className="absolute bottom-2 right-2 flex flex-col items-end">
-    <div className="relative group/sources">
-      {/* 小圆圈按钮：默认显示 */}
-      <div
-        className="bg-gray-700 text-white text-xs sm:text-xs w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shadow-md hover:bg-gray-600 hover:scale-[1.1] transition-all duration-300 ease-out cursor-pointer"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowSources((prev) => !prev); // 点击切换列表显示
-        }}
-      >
-        {items.length}
-      </div>
+        {/* 播放源徽章 */}
+        {isAggregate && items && items.length > 0 && (
+          <div className='absolute bottom-2 right-2 flex flex-col items-end'>
+            <div className='relative group/sources'>
+              {/* 小圆圈按钮：默认显示 */}
+              <div
+                className='bg-gray-700 text-white text-xs sm:text-xs w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shadow-md hover:bg-gray-600 hover:scale-[1.1] transition-all duration-300 ease-out cursor-pointer'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSources((prev) => !prev); // 点击切换列表显示
+                }}
+              >
+                {items.length}
+              </div>
 
-{/* 播放源列表弹窗 */}
-{showSources && (
-  <div className="absolute bottom-full mb-2 right-0 sm:right-0 z-50">
-    <div className="bg-gray-800/90 backdrop-blur-sm text-white text-xs sm:text-xs rounded-lg shadow-xl border border-white/10 p-1 sm:p-1.5 min-w-[70px] sm:min-w-[90px] max-w-[120px] sm:max-w-[160px] max-h-20 sm:max-h-40 overflow-auto">
-      <div className="space-y-0.5 sm:space-y-1">
-        {items.map((item, idx) => (
-          <div key={idx} className="flex items-center gap-1 sm:gap-1.5">
-            <div className="w-0.5 h-0.5 sm:w-1 sm:h-1 bg-blue-400 rounded-full flex-shrink-0"></div>
-            <span className="truncate text-[10px] sm:text-xs leading-tight" title={item.source_name}>
-              {item.source_name}
-            </span>
+              {/* 播放源列表弹窗 */}
+              {showSources && (
+                <div className='absolute bottom-full mb-2 right-0 sm:right-0 z-50'>
+                  <div className='bg-gray-800/90 backdrop-blur-sm text-white text-xs sm:text-xs rounded-lg shadow-xl border border-white/10 p-1 sm:p-1.5 min-w-[70px] sm:min-w-[90px] max-w-[120px] sm:max-w-[160px] max-h-20 sm:max-h-40 overflow-auto'>
+                    <div className='space-y-0.5 sm:space-y-1'>
+                      {items.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className='flex items-center gap-1 sm:gap-1.5'
+                        >
+                          <div className='w-0.5 h-0.5 sm:w-1 sm:h-1 bg-blue-400 rounded-full flex-shrink-0'></div>
+                          <span
+                            className='truncate text-[10px] sm:text-xs leading-tight'
+                            title={item.source_name}
+                          >
+                            {item.source_name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 小箭头 */}
+                    <div className='absolute top-full right-2 sm:right-3 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] sm:border-l-[6px] sm:border-r-[6px] sm:border-t-[6px] border-transparent border-t-gray-800/90'></div>
+                  </div>
+                </div>
+              )}
+              {/* 播放源列表弹窗 */}
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* 小箭头 */}
-      <div className="absolute top-full right-2 sm:right-3 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] sm:border-l-[6px] sm:border-r-[6px] sm:border-t-[6px] border-transparent border-t-gray-800/90"></div>
-    </div>
-  </div>
-)}
-{/* 播放源列表弹窗 */}
-
-    </div>
-  </div>
-)}
-
-
+        )}
       </div>
 
       {config.showProgress && progress !== undefined && (

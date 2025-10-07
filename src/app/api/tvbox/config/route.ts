@@ -14,7 +14,8 @@ export const runtime = 'nodejs';
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    let inputPassword = url.searchParams.get('pwd') || url.searchParams.get('password') || '';
+    let inputPassword =
+      url.searchParams.get('pwd') || url.searchParams.get('password') || '';
 
     const adminConfig = await getConfig();
     const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
@@ -22,14 +23,16 @@ export async function GET(request: Request) {
     if (storageType === 'localstorage' && !inputPassword) {
       inputPassword = process.env.PASSWORD || '';
     }
-    const enabled = storageType === 'localstorage'
-      ? (process.env.TVBOX_ENABLED == null
+    const enabled =
+      storageType === 'localstorage'
+        ? process.env.TVBOX_ENABLED == null
           ? true
-          : String(process.env.TVBOX_ENABLED).toLowerCase() === 'true')
-      : adminConfig.SiteConfig.TVBoxEnabled === true;
-    const password = storageType === 'localstorage'
-      ? (process.env.PASSWORD || '')
-      : (adminConfig.SiteConfig.TVBoxPassword || '');
+          : String(process.env.TVBOX_ENABLED).toLowerCase() === 'true'
+        : adminConfig.SiteConfig.TVBoxEnabled === true;
+    const password =
+      storageType === 'localstorage'
+        ? process.env.PASSWORD || ''
+        : adminConfig.SiteConfig.TVBoxPassword || '';
 
     if (!enabled) {
       return NextResponse.json({ error: 'TVBox 接口未开启' }, { status: 403 });
@@ -80,10 +83,11 @@ export async function GET(request: Request) {
       },
     });
   } catch (e) {
-    return NextResponse.json({ sites: [], parses: [], lives: [], ads: [] }, {
-      status: 500,
-    });
+    return NextResponse.json(
+      { sites: [], parses: [], lives: [], ads: [] },
+      {
+        status: 500,
+      }
+    );
   }
 }
-
-

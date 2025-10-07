@@ -1,16 +1,18 @@
 # MoonTV 综合技术架构指南 (v3.2.0-fixed)
+
 **最后更新**: 2025-10-06  
 **维护专家**: 系统架构师 + 技术文档专家  
-**适用版本**: v3.2.0-fixed及以上  
+**适用版本**: v3.2.0-fixed 及以上  
 **文档类型**: 综合架构指南
 
 ## 📋 概述
 
-本文档整合了MoonTV项目的完整技术架构体系，包括系统设计、核心模块解析、知识管理体系和文档管理最佳实践。基于v3.2.0-fixed版本的架构演进，提供全面的技术架构指南和知识管理框架。
+本文档整合了 MoonTV 项目的完整技术架构体系，包括系统设计、核心模块解析、知识管理体系和文档管理最佳实践。基于 v3.2.0-fixed 版本的架构演进，提供全面的技术架构指南和知识管理框架。
 
 ## 🏗️ 系统架构总览
 
 ### 架构设计原则
+
 ```yaml
 核心设计原则:
   1. 模块化设计: 松耦合、高内聚的组件化架构
@@ -26,6 +28,7 @@
 ```
 
 ### 技术栈概览
+
 ```yaml
 前端技术栈:
   框架: Next.js 14 (App Router)
@@ -52,6 +55,7 @@
 ## 🎯 系统架构层级设计
 
 ### L1: 前端展示层
+
 ```
 React 18 + Next.js 14 App Router
 ├── 页面层 (src/app/*/page.tsx)
@@ -73,7 +77,8 @@ React 18 + Next.js 14 App Router
     └── Framer Motion (动画)
 ```
 
-### L2: API服务层
+### L2: API 服务层
+
 ```
 Next.js API Routes (统一使用Node.js Runtime)
 ├── 用户认证 (/api/login, /api/register, /api/logout)
@@ -101,6 +106,7 @@ Next.js API Routes (统一使用Node.js Runtime)
 ```
 
 ### L3: 业务逻辑层
+
 ```
 Core Libraries (src/lib/)
 ├── 认证模块 (auth.ts)
@@ -137,6 +143,7 @@ Core Libraries (src/lib/)
 ```
 
 ### L4: 数据持久层
+
 ```
 Storage Implementations
 ├── LocalStorage (浏览器端)
@@ -160,6 +167,7 @@ Storage Implementations
 ## 🔄 数据流架构设计
 
 ### 搜索数据流架构
+
 ```mermaid
 graph TB
     A[用户输入关键词] --> B[前端验证和预处理]
@@ -172,16 +180,17 @@ graph TB
     H --> I[缓存搜索结果]
     I --> J[返回格式化JSON]
     J --> K[前端渲染VideoCard组件]
-    
+
     subgraph "缓存策略"
         L[浏览器缓存] --> M[Redis缓存]
         M --> N[CDN缓存]
     end
-    
+
     I --> L
 ```
 
 ### 流式搜索架构
+
 ```mermaid
 graph TB
     A[WebSocket连接 /api/search/ws] --> B[searchFromApiStream]
@@ -189,17 +198,18 @@ graph TB
     C --> D[每个站点返回立即推送]
     D --> E[前端实时更新结果列表]
     E --> F[所有站点完成后关闭连接]
-    
+
     subgraph "流式处理"
         G[结果队列] --> H[去重处理]
         H --> I[排序更新]
         I --> J[UI增量渲染]
     end
-    
+
     D --> G
 ```
 
 ### 播放流程架构
+
 ```mermaid
 graph TB
     A[用户选择视频+集数] --> B[前端 /play/page.tsx]
@@ -217,7 +227,8 @@ graph TB
 
 ### 用户认证流程架构
 
-#### localstorage模式认证
+#### localstorage 模式认证
+
 ```mermaid
 graph TB
     A[用户输入密码] --> B[API /api/login/route.ts]
@@ -225,7 +236,7 @@ graph TB
     C --> D[生成Cookie auth-token]
     D --> E[中间件验证密码]
     E --> F[受保护路由访问]
-    
+
     subgraph "Cookie结构"
         G[auth-token: { password: "..." }]
         H[httpOnly: true]
@@ -233,11 +244,12 @@ graph TB
         J[sameSite: 'lax']
         K[maxAge: 7天]
     end
-    
+
     D --> G
 ```
 
 #### 数据库模式认证
+
 ```mermaid
 graph TB
     A[用户输入账号密码] --> B[API /api/login/route.ts]
@@ -246,18 +258,19 @@ graph TB
     D --> E[生成Cookie auth-token]
     E --> F[中间件验证签名]
     F --> G[受保护路由访问控制]
-    
+
     subgraph "签名生成"
         H[crypto.subtle.sign]
         I[算法: HMAC-SHA256]
         J[密钥: PASSWORD环境变量]
         K[数据: username]
     end
-    
+
     D --> H
 ```
 
 ### 配置加载流程架构
+
 ```mermaid
 graph TB
     A[应用启动] --> B{存储类型判断}
@@ -271,13 +284,13 @@ graph TB
     I --> J[缓存到 cachedConfig]
     E --> J
     J --> K[注入到 window.RUNTIME_CONFIG]
-    
+
     subgraph "配置合并标记"
         L[from='config' 基线配置]
         M[from='custom' 用户自定义]
         N[from='runtime' 环境变量]
     end
-    
+
     F --> L
     F --> M
     F --> N
@@ -286,10 +299,11 @@ graph TB
 ## 🔐 安全架构体系
 
 ### 认证机制架构
+
 ```yaml
 localstorage模式:
   Cookie结构:
-    auth-token: { password: "..." }
+    auth-token: { password: '...' }
     httpOnly: true
     secure: true (生产)
     sameSite: 'lax'
@@ -298,7 +312,7 @@ localstorage模式:
 
 数据库模式:
   Cookie结构:
-    auth-token: { username: "...", signature: "..." }
+    auth-token: { username: '...', signature: '...' }
     httpOnly: true
     secure: true (生产)
     sameSite: 'lax'
@@ -316,6 +330,7 @@ localstorage模式:
 ```
 
 ### 权限层级架构
+
 ```yaml
 角色系统:
   owner (USERNAME环境变量指定):
@@ -323,14 +338,14 @@ localstorage模式:
     - 设置其他管理员
     - 删除用户
     - AdminConfig中role='owner'
-  
+
   admin (由站长指定):
     - 配置管理
     - 资源站管理（批量操作）
     - 分类管理
     - 查看用户列表
     - AdminConfig中role='admin'
-  
+
   user (普通用户):
     - 搜索视频
     - 播放视频
@@ -340,6 +355,7 @@ localstorage模式:
 ```
 
 ### 中间件保护架构
+
 ```typescript
 // 受保护路由匹配器
 matcher: [
@@ -364,9 +380,10 @@ matcher: [
 - 页面路由 → 重定向到 /login?redirect=...
 ```
 
-## 🎨 UI架构设计系统
+## 🎨 UI 架构设计系统
 
 ### 响应式架构策略
+
 ```yaml
 断点系统 (Tailwind默认):
   sm: 640px - 小屏手机
@@ -380,7 +397,7 @@ matcher: [
     - MobileHeader (顶部)
     - 内容区域
     - MobileBottomNav (底部导航)
-  
+
   >= lg: 桌面布局:
     - TopNav (顶部导航)
     - 侧边栏 (可选)
@@ -388,6 +405,7 @@ matcher: [
 ```
 
 ### 主题系统架构
+
 ```typescript
 // CSS变量驱动架构
 const themeVariables = {
@@ -414,6 +432,7 @@ const themeVariables = {
 ```
 
 ### 动画系统架构
+
 ```yaml
 Framer Motion:
   - 页面切换动画
@@ -435,19 +454,18 @@ Loading优化 (v3.2.0):
 ## 📦 构建与部署架构
 
 ### 构建流程架构
+
 ```yaml
-开发模式 (pnpm dev):
-  1. gen:manifest - 生成PWA manifest.json
+开发模式 (pnpm dev): 1. gen:manifest - 生成PWA manifest.json
   2. gen:runtime - 生成src/lib/runtime.ts
   3. next dev -H 0.0.0.0 - 启动开发服务器
 
-生产构建 (pnpm build):
-  1. gen:manifest - 生成PWA manifest.json
+生产构建 (pnpm build): 1. gen:manifest - 生成PWA manifest.json
   2. gen:runtime - 生成src/lib/runtime.ts
   3. next build - Next.js构建
-     - standalone输出
-     - Edge Runtime优化
-     - PWA资源生成
+  - standalone输出
+  - Edge Runtime优化
+  - PWA资源生成
   4. 输出.next/目录
 
 运行时配置生成:
@@ -457,7 +475,8 @@ Loading优化 (v3.2.0):
   - export default { api_site, custom_category }
 ```
 
-### Docker部署架构
+### Docker 部署架构
+
 ```yaml
 Dockerfile架构:
   基础镜像: node:18-alpine
@@ -480,7 +499,8 @@ Dockerfile架构:
   - 无需重新构建镜像
 ```
 
-### Serverless部署架构
+### Serverless 部署架构
+
 ```yaml
 Vercel/Netlify:
   - 自动检测Next.js项目
@@ -501,16 +521,15 @@ Cloudflare Pages:
 ## 🔌 第三方集成架构
 
 ### 豆瓣数据集成架构
+
 ```yaml
-代理模式配置:
-  direct - 服务端直连豆瓣
+代理模式配置: direct - 服务端直连豆瓣
   cors-proxy-zwei - 浏览器通过CORS代理
   cmliussss-cdn-tencent - 腾讯云CDN
   cmliussss-cdn-ali - 阿里云CDN
   custom - 自定义代理URL
 
-图片代理模式:
-  direct - 浏览器直连豆瓣图片域名
+图片代理模式: direct - 浏览器直连豆瓣图片域名
   server - 服务端代理 (/api/image-proxy)
   img3 - 豆瓣官方CDN（阿里云）
   cmliussss-cdn-* - CMLiussss CDN
@@ -523,15 +542,16 @@ Cloudflare Pages:
   - 客户端动态读取
 ```
 
-### TVBox对接架构
+### TVBox 对接架构
+
 ```yaml
 接口路径: /api/tvbox/config?pwd=密码
   1. 密码验证
   2. 读取配置 (AdminConfig.TvboxConfig)
   3. 生成TVBox格式配置JSON
-     - 资源站点列表
-     - 直播源配置
-     - 播放器设置
+  - 资源站点列表
+  - 直播源配置
+  - 播放器设置
   4. 返回配置
 
 安全措施架构:
@@ -547,10 +567,10 @@ Cloudflare Pages:
   - 接口地址自动生成
 ```
 
-### OrionTV/Selene集成架构
+### OrionTV/Selene 集成架构
+
 ```yaml
-后端API兼容:
-  搜索接口 (/api/search)
+后端API兼容: 搜索接口 (/api/search)
   详情接口 (/api/detail)
   收藏接口 (/api/favorites)
   播放记录 (/api/playrecords)
@@ -565,6 +585,7 @@ Cloudflare Pages:
 ## 📊 知识管理体系架构
 
 ### 知识体系分类结构
+
 ```
 MoonTV知识体系 (v3.2.0-fixed)
 ├── 📊 项目概览层
@@ -605,44 +626,46 @@ MoonTV知识体系 (v3.2.0-fixed)
 ```
 
 ### 文档架构体系
+
 ```yaml
 文档分类结构:
   1. 项目概览文档:
-     - README.md - 项目介绍和快速开始
-     - CONTRIBUTING.md - 贡献指南
-     - CHANGELOG.md - 版本变更记录
-     - LICENSE - 开源协议
+    - README.md - 项目介绍和快速开始
+    - CONTRIBUTING.md - 贡献指南
+    - CHANGELOG.md - 版本变更记录
+    - LICENSE - 开源协议
 
   2. 技术架构文档:
-     - ARCHITECTURE.md - 系统架构设计
-     - API_REFERENCE.md - API接口文档
-     - DATABASE_SCHEMA.md - 数据库设计
-     - SECURITY_GUIDE.md - 安全架构指南
+    - ARCHITECTURE.md - 系统架构设计
+    - API_REFERENCE.md - API接口文档
+    - DATABASE_SCHEMA.md - 数据库设计
+    - SECURITY_GUIDE.md - 安全架构指南
 
   3. 开发指南文档:
-     - DEVELOPMENT_SETUP.md - 开发环境配置
-     - CODING_STANDARDS.md - 编码规范
-     - TESTING_GUIDE.md - 测试指南
-     - DEBUG_GUIDE.md - 调试指南
+    - DEVELOPMENT_SETUP.md - 开发环境配置
+    - CODING_STANDARDS.md - 编码规范
+    - TESTING_GUIDE.md - 测试指南
+    - DEBUG_GUIDE.md - 调试指南
 
   4. 部署运维文档:
-     - DEPLOYMENT_GUIDE.md - 部署指南
-     - DOCKER_GUIDE.md - Docker部署详解
-     - MONITORING.md - 监控配置
-     - TROUBLESHOOTING.md - 故障排除
+    - DEPLOYMENT_GUIDE.md - 部署指南
+    - DOCKER_GUIDE.md - Docker部署详解
+    - MONITORING.md - 监控配置
+    - TROUBLESHOOTING.md - 故障排除
 
   5. 用户指南文档:
-     - USER_MANUAL.md - 用户使用手册
-     - ADMIN_GUIDE.md - 管理员指南
-     - FAQ.md - 常见问题解答
+    - USER_MANUAL.md - 用户使用手册
+    - ADMIN_GUIDE.md - 管理员指南
+    - FAQ.md - 常见问题解答
 
   6. 项目管理文档:
-     - PROJECT_ROADMAP.md - 项目路线图
-     - RELEASE_NOTES/ - 发布说明目录
-     - MEETING_MINUTES/ - 会议记录目录
+    - PROJECT_ROADMAP.md - 项目路线图
+    - RELEASE_NOTES/ - 发布说明目录
+    - MEETING_MINUTES/ - 会议记录目录
 ```
 
 ### 知识管理最佳实践
+
 ```yaml
 文档生命周期管理:
   创建: 需求分析 → 大纲设计 → 内容撰写
@@ -666,6 +689,7 @@ MoonTV知识体系 (v3.2.0-fixed)
 ## 📈 性能优化架构
 
 ### 前端性能优化架构
+
 ```yaml
 代码优化策略:
   - 代码分割: 路由级和组件级懒加载
@@ -693,6 +717,7 @@ v3.2.0性能改进:
 ```
 
 ### 后端性能调优架构
+
 ```yaml
 API优化策略:
   - 缓存策略: Redis多层缓存
@@ -714,6 +739,7 @@ API优化策略:
 ```
 
 ### 监控分析系统架构
+
 ```yaml
 实时监控架构:
   性能指标: FCP、LCP、FID、CLS
@@ -737,6 +763,7 @@ API优化策略:
 ## 🧩 扩展性设计架构
 
 ### 插件化架构要点
+
 ```yaml
 资源站点插件化:
   - 配置驱动 (config.json)
@@ -766,7 +793,8 @@ API优化策略:
   - 管理界面自动适配
 ```
 
-### v3.2.0架构改进
+### v3.2.0 架构改进
+
 ```yaml
 批量操作架构:
   - 资源站点批量启用/禁用
@@ -790,6 +818,7 @@ API优化策略:
 ## 🔄 持续改进机制
 
 ### 版本管理策略
+
 ```yaml
 语义化版本:
   主版本: 重大功能变更、架构调整
@@ -810,6 +839,7 @@ API优化策略:
 ```
 
 ### 知识更新机制
+
 ```yaml
 触发条件:
   - 版本发布: 代码版本发布时更新文档
@@ -834,6 +864,7 @@ API优化策略:
 ## 🎯 成功指标与目标
 
 ### 技术指标
+
 ```yaml
 性能指标:
   页面加载时间: <1.5s (当前: ~1s)
@@ -855,6 +886,7 @@ API优化策略:
 ```
 
 ### 业务指标
+
 ```yaml
 用户体验:
   页面跳出率: <20%
@@ -872,6 +904,7 @@ API优化策略:
 ## 📞 专家团队与协作机制
 
 ### 核心专家团队
+
 ```yaml
 系统架构专家:
   职责: 整体架构设计、技术决策、知识体系协调
@@ -900,6 +933,7 @@ DevOps架构专家:
 ```
 
 ### 协作机制
+
 ```yaml
 定期会议:
   - 架构评审: 重大架构变更评审会议
@@ -922,7 +956,8 @@ DevOps架构专家:
 
 ## 🚀 未来发展规划
 
-### 短期目标 (3个月)
+### 短期目标 (3 个月)
+
 ```yaml
 性能优化:
   - 前端性能提升至行业领先水平
@@ -943,7 +978,8 @@ DevOps架构专家:
   - 文档体系完整性提升
 ```
 
-### 中期目标 (6个月)
+### 中期目标 (6 个月)
+
 ```yaml
 架构演进:
   - 微服务架构演进实施
@@ -964,7 +1000,8 @@ DevOps架构专家:
   - 开发者工具完善
 ```
 
-### 长期目标 (12个月)
+### 长期目标 (12 个月)
+
 ```yaml
 技术领先:
   - AI技术集成应用
@@ -988,13 +1025,15 @@ DevOps架构专家:
 ## 📋 使用指南与最佳实践
 
 ### 架构文档使用指南
+
 1. **新团队成员**: 从系统架构概览开始，逐步学习各个技术模块
-2. **开发人员**: 重点参考数据流设计、API架构、安全架构
+2. **开发人员**: 重点参考数据流设计、API 架构、安全架构
 3. **运维人员**: 重点参考部署架构、监控体系、故障排除
 4. **产品经理**: 重点参考功能架构、用户流程、业务指标
 5. **技术负责人**: 全面掌握，重点关注架构决策和技术演进
 
 ### 知识体系使用指南
+
 1. **架构决策**: 参考系统架构设计和技术栈选择
 2. **开发指导**: 使用开发指南和最佳实践文档
 3. **部署运维**: 遵循部署指南和监控配置
@@ -1002,6 +1041,7 @@ DevOps架构专家:
 5. **持续改进**: 参考性能优化和持续改进机制
 
 ### 最佳实践总结
+
 ```yaml
 架构设计最佳实践:
   - 模块化设计，松耦合架构
@@ -1031,4 +1071,4 @@ DevOps架构专家:
 **更新频率**: 重大架构变更时更新  
 **版本**: v3.2.0-fixed  
 **最后更新**: 2025-10-06  
-**下次审查**: 2025-11-06或重大架构变更时
+**下次审查**: 2025-11-06 或重大架构变更时

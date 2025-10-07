@@ -1,21 +1,23 @@
-# MoonTV项目Git错误诊断与解决方案指南
+# MoonTV 项目 Git 错误诊断与解决方案指南
 
 ## 📋 项目环境分析
 
 **项目特点**:
+
 - Next.js 14 应用，使用 pnpm 包管理器
 - WSL2 环境开发 (Linux 6.6.87.2-microsoft-standard-WSL2)
 - SSH 远程仓库配置 (git@github.com:aqbjqtd/MoonTV.git)
-- 包含构建产物、依赖文件等需要Git忽略的内容
+- 包含构建产物、依赖文件等需要 Git 忽略的内容
 - 使用 husky + lint-staged 进行代码质量控制
 
 ---
 
-## 🔴 常见Git错误类型及解决方案
+## 🔴 常见 Git 错误类型及解决方案
 
 ### 1. 提交相关错误 (Commit Issues)
 
-#### 错误1: pre-commit hook 失败
+#### 错误 1: pre-commit hook 失败
+
 ```bash
 # 错误示例
 husky: pre-commit hook failed
@@ -23,9 +25,10 @@ husky: pre-commit hook failed
 ❌ Type check failed...
 ```
 
-**原因分析**: MoonTV项目配置了husky和lint-staged，代码质量检查失败
+**原因分析**: MoonTV 项目配置了 husky 和 lint-staged，代码质量检查失败
 
 **解决方案**:
+
 ```bash
 # 1. 查看具体错误信息
 git status
@@ -45,12 +48,14 @@ git commit --no-verify -m "commit message"
 ```
 
 **预防措施**:
+
 ```bash
 # 提交前自动检查
 pnpm lint && pnpm typecheck && git add .
 ```
 
-#### 错误2: 提交信息格式错误
+#### 错误 2: 提交信息格式错误
+
 ```bash
 # 错误示例
 ❌ commitlint found 1 problems, 0 warnings
@@ -58,9 +63,10 @@ pnpm lint && pnpm typecheck && git add .
 ✖   subject may not be capitalized
 ```
 
-**原因分析**: MoonTV项目配置了commitlint，要求提交信息遵循conventional commits
+**原因分析**: MoonTV 项目配置了 commitlint，要求提交信息遵循 conventional commits
 
 **解决方案**:
+
 ```bash
 # 正确的提交格式
 git commit -m "feat: add user authentication feature"
@@ -73,13 +79,15 @@ git commit -m "test: add unit tests for video service"
 
 ### 2. 分支操作错误 (Branching Problems)
 
-#### 错误1: 分支名称冲突
+#### 错误 1: 分支名称冲突
+
 ```bash
 # 错误示例
 fatal: A branch named 'feature/video-player' already exists.
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 查看所有分支
 git branch -a
@@ -94,13 +102,15 @@ git checkout -b feature/video-player-v2
 git checkout -B feature/video-player
 ```
 
-#### 错误2: 分支丢失
+#### 错误 2: 分支丢失
+
 ```bash
 # 错误示例
 fatal: invalid reference: feature/lost-branch
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 查看reflog找回分支
 git reflog
@@ -115,7 +125,8 @@ git checkout -b feature/lost-branch origin/feature/lost-branch
 
 ### 3. 合并冲突 (Merge Conflicts)
 
-#### 错误1: 自动合并失败
+#### 错误 1: 自动合并失败
+
 ```bash
 # 错误示例
 Auto-merging src/components/VideoPlayer.tsx
@@ -124,6 +135,7 @@ Automatic merge failed; fix conflicts and then commit the result.
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 查看冲突文件
 git status
@@ -141,7 +153,8 @@ git commit
 git merge --abort
 ```
 
-**MoonTV项目特定冲突解决**:
+**MoonTV 项目特定冲突解决**:
+
 ```typescript
 // src/components/VideoPlayer.tsx 冲突示例
 // <<<<<<< HEAD
@@ -161,13 +174,14 @@ const playerRef = useRef<ArtPlayerType>(null);
 const [playerState, setPlayerState] = useState({
   isPlaying: false,
   currentTime: 0,
-  duration: 0
+  duration: 0,
 });
 ```
 
 ### 4. 远程仓库问题 (Remote Repository Issues)
 
-#### 错误1: SSH连接失败
+#### 错误 1: SSH 连接失败
+
 ```bash
 # 错误示例
 git@github.com: Permission denied (publickey).
@@ -175,6 +189,7 @@ fatal: Could not read from remote repository.
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 检查SSH配置
 ssh -T git@github.com
@@ -193,7 +208,8 @@ cat ~/.ssh/id_ed25519.pub
 ssh -T git@github.com
 ```
 
-#### 错误2: 远程分支不同步
+#### 错误 2: 远程分支不同步
+
 ```bash
 # 错误示例
 ! [rejected]        main -> main (non-fast-forward)
@@ -201,6 +217,7 @@ error: failed to push some refs to 'git@github.com:aqbjqtd/MoonTV.git'
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 拉取远程更新
 git fetch origin
@@ -220,7 +237,8 @@ git push origin main
 
 ### 5. 推送失败 (Push Failures)
 
-#### 错误1: 大文件推送失败
+#### 错误 1: 大文件推送失败
+
 ```bash
 # 错误示例
 error: RPC failed; curl 56 OpenSSL SSL_read: SSL_ERROR_SYSCALL, errno 10054
@@ -228,6 +246,7 @@ fatal: the remote end hung up unexpectedly
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 检查文件大小
 git ls-files | xargs ls -la | sort -k5 -n | tail -10
@@ -248,11 +267,12 @@ git push origin main --no-verify
 
 ---
 
-## 🪟 Windows环境特定问题
+## 🪟 Windows 环境特定问题
 
-### 1. WSL环境下的Git配置
+### 1. WSL 环境下的 Git 配置
 
-#### 问题1: 行尾符不一致
+#### 问题 1: 行尾符不一致
+
 ```bash
 # 错误示例
 warning: CRLF will be replaced by LF in src/app/page.tsx.
@@ -260,6 +280,7 @@ The file will have its original line endings in your working directory.
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 配置Git行尾符处理
 git config --global core.autocrlf input  # WSL环境
@@ -274,13 +295,15 @@ git add --renormalize .
 git commit -m "Normalize line endings"
 ```
 
-#### 问题2: 权限问题
+#### 问题 2: 权限问题
+
 ```bash
 # 错误示例
 error: unable to create file src/components/VideoPlayer.tsx: Permission denied
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 检查文件权限
 ls -la src/components/VideoPlayer.tsx
@@ -301,13 +324,15 @@ sudo nano /etc/wsl.conf
 
 ### 2. 路径分隔符问题
 
-#### 问题1: 路径格式不兼容
+#### 问题 1: 路径格式不兼容
+
 ```bash
 # 错误示例
 fatal: pathspec 'src\\components\\VideoPlayer.tsx' did not match any files
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 使用Unix风格路径
 git add src/components/VideoPlayer.tsx  # 正确
@@ -322,13 +347,15 @@ git add src/components/*.tsx
 
 ### 3. 字符编码问题
 
-#### 问题1: 文件编码不一致
+#### 问题 1: 文件编码不一致
+
 ```bash
 # 错误示例
 error: 'src/app/page.tsx' contains invalid UTF-8 byte sequences
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 检查文件编码
 file -bi src/app/page.tsx
@@ -345,17 +372,19 @@ git config --global i18n.logoutputencoding utf-8
 
 ---
 
-## 🚀 Next.js项目特定考虑
+## 🚀 Next.js 项目特定考虑
 
 ### 1. 大文件处理
 
-#### 问题1: node_modules 提交问题
+#### 问题 1: node_modules 提交问题
+
 ```bash
 # 错误示例
 error: File 'node_modules/react/index.js' is 45.2 MB; this exceeds GitHub's file size limit of 100.0 MB
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 检查.gitignore是否包含node_modules
 cat .gitignore | grep node_modules
@@ -373,13 +402,15 @@ echo ".pnp" >> .gitignore
 git push origin main --force-with-lease
 ```
 
-#### 问题2: 构建产物问题
+#### 问题 2: 构建产物问题
+
 ```bash
 # 错误示例
 error: File '.next/static/chunks/pages/_app-123456.js' is too large
 ```
 
 **解决方案**:
+
 ```bash
 # 1. 清理构建产物
 rm -rf .next/
@@ -398,9 +429,10 @@ git rm -r --cached build/
 git commit -m "Remove build artifacts from git tracking"
 ```
 
-### 2. Git忽略配置优化
+### 2. Git 忽略配置优化
 
-**MoonTV项目推荐.gitignore配置**:
+**MoonTV 项目推荐.gitignore 配置**:
+
 ```gitignore
 # 依赖
 /node_modules
@@ -454,9 +486,10 @@ next-env.d.ts
 .wrangler/
 ```
 
-### 3. 自动部署相关的Git工作流
+### 3. 自动部署相关的 Git 工作流
 
-#### Vercel部署配置
+#### Vercel 部署配置
+
 ```bash
 # 1. 设置部署分支
 git checkout -b deploy
@@ -473,7 +506,8 @@ git push origin main  # 自动部署到生产环境
 git push origin deploy # 部署到预览环境
 ```
 
-#### Cloudflare Pages配置
+#### Cloudflare Pages 配置
+
 ```bash
 # 1. 构建命令配置
 # 构建命令: pnpm pages:build
@@ -493,6 +527,7 @@ git push origin deploy # 部署到预览环境
 ### 1. 最佳实践建议
 
 #### 提交前检查清单
+
 ```bash
 #!/bin/bash
 # pre-commit-check.sh
@@ -538,7 +573,8 @@ fi
 echo "✅ 所有检查通过"
 ```
 
-#### Git配置优化
+#### Git 配置优化
+
 ```bash
 #!/bin/bash
 # git-setup.sh
@@ -573,7 +609,8 @@ echo "✅ Git配置完成"
 
 ### 2. 自动化工具配置
 
-#### Husky配置 (.husky/pre-commit)
+#### Husky 配置 (.husky/pre-commit)
+
 ```bash
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -585,22 +622,19 @@ npx lint-staged
 pnpm typecheck
 ```
 
-#### lint-staged配置 (package.json)
+#### lint-staged 配置 (package.json)
+
 ```json
 {
   "lint-staged": {
-    "**/*.{js,jsx,ts,tsx}": [
-      "eslint --max-warnings=0",
-      "prettier -w"
-    ],
-    "**/*.{json,css,scss,md,webmanifest}": [
-      "prettier -w"
-    ]
+    "**/*.{js,jsx,ts,tsx}": ["eslint --max-warnings=0", "prettier -w"],
+    "**/*.{json,css,scss,md,webmanifest}": ["prettier -w"]
   }
 }
 ```
 
-#### commitlint配置 (commitlint.config.js)
+#### commitlint 配置 (commitlint.config.js)
+
 ```javascript
 module.exports = {
   extends: ['@commitlint/config-conventional'],
@@ -609,17 +643,17 @@ module.exports = {
       2,
       'always',
       [
-        'feat',     // 新功能
-        'fix',      // 修复
-        'docs',     // 文档
-        'style',    // 格式
+        'feat', // 新功能
+        'fix', // 修复
+        'docs', // 文档
+        'style', // 格式
         'refactor', // 重构
-        'test',     // 测试
-        'chore',    // 构建过程或辅助工具的变动
-        'perf',     // 性能优化
-        'ci',       // CI配置
-        'build',    // 构建系统
-        'revert',   // 回滚
+        'test', // 测试
+        'chore', // 构建过程或辅助工具的变动
+        'perf', // 性能优化
+        'ci', // CI配置
+        'build', // 构建系统
+        'revert', // 回滚
       ],
     ],
     'subject-max-length': [2, 'always', 50],
@@ -631,6 +665,7 @@ module.exports = {
 ### 3. 错误恢复策略
 
 #### 紧急回滚脚本 (emergency-rollback.sh)
+
 ```bash
 #!/bin/bash
 
@@ -654,6 +689,7 @@ fi
 ```
 
 #### 状态重置脚本 (git-reset.sh)
+
 ```bash
 #!/bin/bash
 
@@ -676,7 +712,8 @@ echo "✅ Git状态已重置"
 
 ### 4. 监控和诊断方法
 
-#### Git健康检查脚本 (git-health-check.sh)
+#### Git 健康检查脚本 (git-health-check.sh)
+
 ```bash
 #!/bin/bash
 
@@ -715,6 +752,7 @@ fi
 ```
 
 #### 日志记录配置
+
 ```bash
 # 启用详细日志
 export GIT_TRACE=1
@@ -731,34 +769,34 @@ GIT_CURL_VERBOSE=1 GIT_TRACE=1 git push origin main
 
 ### 常见错误代码对照表
 
-| 错误代码 | 错误类型 | 快速解决方案 |
-|---------|---------|-------------|
-| `Permission denied` | SSH权限问题 | 检查SSH密钥配置 |
-| `non-fast-forward` | 推送被拒绝 | 先pull，再push |
-| `merge conflict` | 合并冲突 | 手动解决冲突 |
-| `RPC failed` | 网络或大文件 | 增加缓冲区或使用LFS |
-| `hook failed` | 预提交钩子失败 | 运行lint:fix |
-| `file too large` | 文件过大 | 使用Git LFS |
-| `pathspec invalid` | 路径错误 | 检查文件路径格式 |
+| 错误代码            | 错误类型       | 快速解决方案         |
+| ------------------- | -------------- | -------------------- |
+| `Permission denied` | SSH 权限问题   | 检查 SSH 密钥配置    |
+| `non-fast-forward`  | 推送被拒绝     | 先 pull，再 push     |
+| `merge conflict`    | 合并冲突       | 手动解决冲突         |
+| `RPC failed`        | 网络或大文件   | 增加缓冲区或使用 LFS |
+| `hook failed`       | 预提交钩子失败 | 运行 lint:fix        |
+| `file too large`    | 文件过大       | 使用 Git LFS         |
+| `pathspec invalid`  | 路径错误       | 检查文件路径格式     |
 
 ### 紧急联系方案
 
 1. **代码丢失**: `git reflog` → `git reset --hard`
 2. **推送失败**: 检查网络 → 增加缓冲区 → 分批推送
 3. **合并冲突**: `git merge --abort` → 重新合并
-4. **权限问题**: 重新生成SSH密钥 → 添加到GitHub
-5. **大文件问题**: 使用Git LFS → 从历史中移除
+4. **权限问题**: 重新生成 SSH 密钥 → 添加到 GitHub
+5. **大文件问题**: 使用 Git LFS → 从历史中移除
 
 ---
 
-## 🎯 MoonTV项目特别建议
+## 🎯 MoonTV 项目特别建议
 
 1. **定期清理**: 每周清理构建产物和临时文件
 2. **分支策略**: 使用`feature/`、`fix/`、`hotfix/`前缀命名分支
-3. **提交规范**: 严格遵循conventional commits规范
+3. **提交规范**: 严格遵循 conventional commits 规范
 4. **代码审查**: 重要功能必须经过代码审查
-5. **自动化**: 充分利用husky、lint-staged等工具
+5. **自动化**: 充分利用 husky、lint-staged 等工具
 6. **备份策略**: 定期备份到多个远程仓库
-7. **监控**: 设置Git操作的日志记录和监控
+7. **监控**: 设置 Git 操作的日志记录和监控
 
-通过遵循本指南，可以最大程度地减少Git操作中的错误，提高开发效率和代码质量。
+通过遵循本指南，可以最大程度地减少 Git 操作中的错误，提高开发效率和代码质量。

@@ -8,6 +8,7 @@
 MoonTV 是基于 Next.js 14 App Router 的跨平台视频聚合播放器。聚合 20+ 视频 API 源（Apple CMS V10 格式），支持多种存储后端，可部署到 Docker、Vercel、Netlify、Cloudflare Pages。
 
 **核心特性**：
+
 - 🔌 **插件化存储**：localstorage/redis/upstash/d1 可切换
 - 🔄 **双模配置**：静态 config.json + 动态数据库配置
 - 🔒 **双模认证**：密码模式 + 用户名/密码/HMAC 模式
@@ -47,12 +48,14 @@ pnpm pages:build      # Build for Cloudflare Pages deployment
 The application uses a **pluggable storage system** via the `IStorage` interface. Storage type is determined by `NEXT_PUBLIC_STORAGE_TYPE` environment variable:
 
 **Storage Implementations:**
+
 - `localstorage` (default): Browser-based, no server persistence
 - `redis`: Native Redis (Docker only) - `src/lib/redis.db.ts`
 - `upstash`: HTTP-based Redis (Serverless) - `src/lib/upstash.db.ts`
 - `d1`: Cloudflare D1 SQLite - `src/lib/d1.db.ts`
 
 **Key Files:**
+
 - `src/lib/types.ts` - IStorage interface definition
 - `src/lib/db.ts` - Storage factory and DbManager wrapper
 - `src/lib/db.client.ts` - Client-side storage abstraction
@@ -64,10 +67,12 @@ The application uses a **pluggable storage system** via the `IStorage` interface
 Dual-mode configuration based on storage type:
 
 **localstorage mode:**
+
 - Static config from `config.json` (editable, read at startup)
 - Environment variables for site settings
 
 **Database modes (redis/upstash/d1):**
+
 - Dynamic config stored in database (`AdminConfig` type)
 - Managed via `/admin` interface
 - Config merges `config.json` sources with DB customizations
@@ -80,16 +85,19 @@ Dual-mode configuration based on storage type:
 **Two auth modes** based on storage type:
 
 **localstorage mode:**
+
 - Password-only auth (no username)
 - Password stored in cookie, validated in middleware
 - Controlled by `PASSWORD` environment variable
 
 **Database modes:**
+
 - Username/password with HMAC signature
 - Signature validated in middleware (`src/middleware.ts`)
 - Role-based access: `owner` (USERNAME env var) → `admin` → `user`
 
 **Protected routes** (configured in `src/middleware.ts` config.matcher):
+
 - `/admin/*` and `/api/admin/*` require admin/owner role
 - `/api/favorites`, `/api/playrecords`, `/api/searchhistory` require login
 
@@ -98,17 +106,20 @@ Dual-mode configuration based on storage type:
 Multi-source parallel search with streaming support:
 
 **Standard Search (`/api/search`):**
+
 - Parallel requests to all enabled API sources
 - Results aggregated and deduplicated by title
 - Caching via storage layer
 
 **Streaming Search (`/api/search/ws`):**
+
 - WebSocket-based progressive results
 - Uses `searchFromApiStream` from `src/lib/downstream.ts`
 - Each source streams results as they arrive
 - Client receives real-time updates
 
 **Core search flow:**
+
 1. `src/lib/config.ts` - `getAvailableApiSites()` returns enabled sources
 2. `src/lib/downstream.ts` - `searchFromApiStream()` handles parallel fetching
 3. Results mapped to `SearchResult` interface via `mapItemToResult()`
@@ -127,6 +138,7 @@ Multi-source parallel search with streaming support:
 ### Edge Runtime
 
 All API routes use `export const runtime = 'edge'` for:
+
 - Fast cold starts (<100ms)
 - Global distribution
 - Cloudflare Workers / Vercel Edge compatibility
@@ -162,6 +174,7 @@ All API routes use `export const runtime = 'edge'` for:
 **localstorage mode:** Edit `config.json` directly
 
 **Database modes:** Use admin interface at `/admin` or:
+
 1. Access `AdminConfig.SourceConfig` array
 2. Add object: `{ key, name, api, detail?, from: 'custom', disabled: false }`
 3. Save via `DbManager.saveAdminConfig()`
@@ -169,23 +182,28 @@ All API routes use `export const runtime = 'edge'` for:
 ## Environment Variables
 
 **Required:**
+
 - `PASSWORD` - Auth password (all modes)
 
 **Storage Selection:**
+
 - `NEXT_PUBLIC_STORAGE_TYPE` - `localstorage` | `redis` | `upstash` | `d1`
 
 **Storage-specific:**
+
 - `REDIS_URL` - For redis mode
 - `UPSTASH_URL`, `UPSTASH_TOKEN` - For upstash mode
 - Cloudflare D1 binding via `process.env.DB` (Pages only)
 
 **Site Config (optional, DB modes override):**
+
 - `NEXT_PUBLIC_SITE_NAME` - Site display name
 - `USERNAME` - Owner account (non-localstorage)
 - `NEXT_PUBLIC_ENABLE_REGISTER` - Allow public registration
 - `NEXT_PUBLIC_SEARCH_MAX_PAGE` - Max pages per source search
 
 **Deployment-specific:**
+
 - `DOCKER_ENV=true` - Enables dynamic config.json loading
 - `NODE_ENV=production` - Production mode
 
@@ -198,16 +216,19 @@ All API routes use `export const runtime = 'edge'` for:
 ## Deployment-Specific Behaviors
 
 **Docker:**
+
 - Reads `config.json` dynamically at runtime (`DOCKER_ENV=true`)
 - Supports all storage backends
 - Standalone output mode
 
 **Vercel/Netlify:**
+
 - Static `config.json` compiled into bundle
 - Best with `upstash` storage
 - Edge runtime
 
 **Cloudflare Pages:**
+
 - Build with `pnpm pages:build`
 - Output to `.vercel/output/static`
 - Requires `nodejs_compat` flag

@@ -110,11 +110,17 @@ export async function GET(request: Request) {
       errorType = 'not_found';
       userMessage = '未找到相关数据，请检查分类参数';
       statusCode = 404;
-    } else if (errorMessage.includes('AbortError') || errorMessage.includes('timeout')) {
+    } else if (
+      errorMessage.includes('AbortError') ||
+      errorMessage.includes('timeout')
+    ) {
       errorType = 'timeout';
       userMessage = '网络连接超时，正在重试其他连接方式';
       statusCode = 408;
-    } else if (errorMessage.includes('fetch failed') || errorMessage.includes('NetworkError')) {
+    } else if (
+      errorMessage.includes('fetch failed') ||
+      errorMessage.includes('NetworkError')
+    ) {
       errorType = 'network_error';
       userMessage = '网络连接异常，正在尝试备用连接';
       statusCode = 503;
@@ -129,13 +135,24 @@ export async function GET(request: Request) {
     }
 
     // 记录详细错误日志
-    console.error(`[豆瓣API错误] 类型: ${errorType}, 消息: ${errorMessage}, 参数: kind=${kind}, category=${category}, type=${type}`);
+    console.error(
+      `[豆瓣API错误] 类型: ${errorType}, 消息: ${errorMessage}, 参数: kind=${kind}, category=${category}, type=${type}`
+    );
 
-    return NextResponse.json({
-      error: userMessage,
-      error_type: errorType,
-      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-      retry_suggested: ['timeout', 'network_error', 'proxy_error', 'all_failed'].includes(errorType)
-    }, { status: statusCode });
+    return NextResponse.json(
+      {
+        error: userMessage,
+        error_type: errorType,
+        details:
+          process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        retry_suggested: [
+          'timeout',
+          'network_error',
+          'proxy_error',
+          'all_failed',
+        ].includes(errorType),
+      },
+      { status: statusCode }
+    );
   }
 }

@@ -35,36 +35,42 @@ export async function GET() {
       storage: 'available',
     };
 
-    return NextResponse.json({
-      ...systemChecks,
-      dependencies,
-      services,
-      checks: {
-        database: 'passed',
-        apis: 'passed',
-        memory: systemChecks.memory.used < 512 ? 'passed' : 'warning',
+    return NextResponse.json(
+      {
+        ...systemChecks,
+        dependencies,
+        services,
+        checks: {
+          database: 'passed',
+          apis: 'passed',
+          memory: systemChecks.memory.used < 512 ? 'passed' : 'warning',
+        },
       },
-    }, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
-    });
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('[Health Check] Error:', error);
-    return NextResponse.json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: (error as Error).message,
-    }, {
-      status: 503,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+    return NextResponse.json(
+      {
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: (error as Error).message,
       },
-    });
+      {
+        status: 503,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   }
 }

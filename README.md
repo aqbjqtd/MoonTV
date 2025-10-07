@@ -168,6 +168,8 @@
 
 ### Docker 部署
 
+MoonTV 使用标准三阶段构建方式，详情请参考 [Docker 构建标准](./DOCKER_BUILD_STANDARD.md)
+
 #### 直接运行（最简单，localstorage）
 
 ```bash
@@ -178,6 +180,23 @@ docker pull ghcr.io/stardm0/moontv:latest
 # 运行容器
 # -d: 后台运行  -p: 映射端口 3000 -> 3000
 docker run -d --name moontv -p 3000:3000 --env PASSWORD=your_password ghcr.io/stardm0/moontv:latest
+```
+
+#### 本地构建
+
+```bash
+# 克隆项目
+git clone https://github.com/your-username/MoonTV.git
+cd MoonTV
+
+# 标准构建
+docker build -t moontv:test .
+
+# 运行容器
+docker run -d --name moontv -p 3000:3000 --env PASSWORD=your_password moontv:test
+
+# 或者使用自动化构建脚本
+./scripts/build-three-stage.sh
 ```
 
 #### Docker Compose

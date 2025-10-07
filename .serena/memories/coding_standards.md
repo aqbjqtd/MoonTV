@@ -2,9 +2,10 @@
 
 ## 📝 代码规范
 
-### TypeScript规范
+### TypeScript 规范
 
 #### 类型定义
+
 ```typescript
 // ✅ 推荐：使用interface定义对象结构
 export interface SearchResult {
@@ -30,18 +31,19 @@ interface IStorage<T = unknown> {
 ```
 
 #### 命名约定
+
 ```typescript
 // 接口：I前缀
-interface IStorage { }
+interface IStorage {}
 
 // 类型：PascalCase
 type StorageType = 'redis' | 'upstash';
 
 // 组件：PascalCase
-export function VideoCard() { }
+export function VideoCard() {}
 
 // 函数：camelCase
-export async function fetchVideoDetail() { }
+export async function fetchVideoDetail() {}
 
 // 常量：UPPER_SNAKE_CASE
 const MAX_SEARCH_RESULTS = 100;
@@ -50,9 +52,10 @@ const MAX_SEARCH_RESULTS = 100;
 const _internalCache = new Map();
 ```
 
-### React组件规范
+### React 组件规范
 
 #### 组件结构
+
 ```typescript
 // ✅ 推荐的组件结构
 'use client'; // 客户端组件标记（如需要）
@@ -71,27 +74,24 @@ interface VideoCardProps {
 export function VideoCard({ title, poster, onClick }: VideoCardProps) {
   // 1. Hooks
   const [isHovered, setIsHovered] = useState(false);
-  
+
   // 2. 事件处理函数
   const handleClick = () => {
     onClick?.();
   };
-  
+
   // 3. 副作用
   useEffect(() => {
     // ...
   }, []);
-  
+
   // 4. 渲染
-  return (
-    <div onClick={handleClick}>
-      {/* JSX */}
-    </div>
-  );
+  return <div onClick={handleClick}>{/* JSX */}</div>;
 }
 ```
 
-#### Server/Client组件选择
+#### Server/Client 组件选择
+
 ```typescript
 // ✅ Server Component（默认）
 // - 数据获取
@@ -106,16 +106,17 @@ export async function HomePage() {
 // - 交互状态
 // - 浏览器API
 // - 事件监听
-'use client';
+('use client');
 export function ThemeToggle() {
   const [theme, setTheme] = useState('dark');
   return <button onClick={() => setTheme('light')}>Toggle</button>;
 }
 ```
 
-### CSS与样式规范
+### CSS 与样式规范
 
-#### Tailwind CSS最佳实践
+#### Tailwind CSS 最佳实践
+
 ```typescript
 // ✅ 推荐：使用clsx和tailwind-merge
 import { clsx } from 'clsx';
@@ -144,6 +145,7 @@ function cn(...inputs: ClassValue[]) {
 ```
 
 #### 自定义样式
+
 ```css
 /* ✅ 推荐：使用CSS变量 */
 :root {
@@ -165,9 +167,10 @@ function cn(...inputs: ClassValue[]) {
 
 ## 🏗 架构模式
 
-### API路由设计
+### API 路由设计
 
-#### RESTful风格
+#### RESTful 风格
+
 ```typescript
 // ✅ 推荐的API路由结构
 src/app/api/
@@ -181,7 +184,8 @@ src/app/api/
 /api/favorites/[id]         # DELETE: 删除收藏
 ```
 
-#### Edge Runtime使用
+#### Edge Runtime 使用
+
 ```typescript
 // ✅ 推荐：API路由使用Edge Runtime
 export const runtime = 'edge';
@@ -198,17 +202,25 @@ export async function GET(request: Request) {
 ### 数据抽象层
 
 #### 存储接口实现
+
 ```typescript
 // ✅ 推荐：实现IStorage接口
 export class RedisStorage implements IStorage {
   private client: Redis;
-  
-  async getPlayRecord(userName: string, key: string): Promise<PlayRecord | null> {
+
+  async getPlayRecord(
+    userName: string,
+    key: string
+  ): Promise<PlayRecord | null> {
     const data = await this.client.get(`playrecord:${userName}:${key}`);
     return data ? JSON.parse(data) : null;
   }
-  
-  async setPlayRecord(userName: string, key: string, record: PlayRecord): Promise<void> {
+
+  async setPlayRecord(
+    userName: string,
+    key: string,
+    record: PlayRecord
+  ): Promise<void> {
     await this.client.set(
       `playrecord:${userName}:${key}`,
       JSON.stringify(record)
@@ -220,10 +232,14 @@ export class RedisStorage implements IStorage {
 export function getStorage(): IStorage {
   const type = process.env.NEXT_PUBLIC_STORAGE_TYPE;
   switch (type) {
-    case 'redis': return new RedisStorage();
-    case 'upstash': return new UpstashStorage();
-    case 'd1': return new D1Storage();
-    default: throw new Error('Invalid storage type');
+    case 'redis':
+      return new RedisStorage();
+    case 'upstash':
+      return new UpstashStorage();
+    case 'd1':
+      return new D1Storage();
+    default:
+      throw new Error('Invalid storage type');
   }
 }
 ```
@@ -234,18 +250,19 @@ export function getStorage(): IStorage {
 
 ### 认证与授权
 
-#### JWT最佳实践
+#### JWT 最佳实践
+
 ```typescript
 // ✅ 推荐：使用httpOnly Cookie
 export async function createSession(userName: string, role: string) {
   const token = await sign({ userName, role }, JWT_SECRET, {
     expiresIn: '7d',
   });
-  
+
   cookies().set('auth-token', token, {
-    httpOnly: true,    // 防止XSS
-    secure: true,      // 仅HTTPS
-    sameSite: 'lax',   // CSRF保护
+    httpOnly: true, // 防止XSS
+    secure: true, // 仅HTTPS
+    sameSite: 'lax', // CSRF保护
     maxAge: 7 * 24 * 60 * 60, // 7天
   });
 }
@@ -256,33 +273,35 @@ export async function middleware(request: NextRequest) {
   if (!token) {
     return NextResponse.redirect('/login');
   }
-  
+
   const payload = await verify(token.value, JWT_SECRET);
   // 验证通过，继续请求
 }
 ```
 
 #### 权限检查
+
 ```typescript
 // ✅ 推荐：细粒度权限控制
 export async function checkPermission(request: Request, requiredRole: string) {
   const user = await getCurrentUser(request);
-  
+
   if (!user) {
     throw new UnauthorizedError();
   }
-  
+
   if (user.role !== requiredRole && user.role !== 'admin') {
     throw new ForbiddenError();
   }
-  
+
   return user;
 }
 ```
 
 ### 输入验证
 
-#### Zod验证
+#### Zod 验证
+
 ```typescript
 // ✅ 推荐：使用Zod验证请求数据
 import { z } from 'zod';
@@ -294,13 +313,13 @@ const LoginSchema = z.object({
 
 export async function POST(request: Request) {
   const body = await request.json();
-  
+
   // 验证输入
   const result = LoginSchema.safeParse(body);
   if (!result.success) {
     return Response.json({ error: result.error }, { status: 400 });
   }
-  
+
   const { userName, password } = result.data;
   // 处理登录...
 }
@@ -313,6 +332,7 @@ export async function POST(request: Request) {
 ### 前端优化
 
 #### 图片优化
+
 ```typescript
 // ✅ 推荐：使用next/image
 import Image from 'next/image';
@@ -322,10 +342,10 @@ import Image from 'next/image';
   alt={title}
   width={300}
   height={400}
-  loading="lazy"        // 懒加载
-  placeholder="blur"    // 模糊占位符
+  loading='lazy' // 懒加载
+  placeholder='blur' // 模糊占位符
   blurDataURL={blurUrl} // 低质量占位图
-/>
+/>;
 
 // ✅ 推荐：自定义图片加载器（如需要）
 export default function ImageLoader({ src, width, quality }) {
@@ -334,6 +354,7 @@ export default function ImageLoader({ src, width, quality }) {
 ```
 
 #### 代码分割
+
 ```typescript
 // ✅ 推荐：动态导入非关键组件
 import dynamic from 'next/dynamic';
@@ -350,24 +371,24 @@ const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
 ### 后端优化
 
 #### 并行请求
+
 ```typescript
 // ✅ 推荐：并行调用独立API
 async function searchAllSources(keyword: string) {
   const sources = Object.values(apiSites);
-  
+
   // 并行请求所有资源站
   const results = await Promise.allSettled(
-    sources.map(source => fetchFromSource(source, keyword))
+    sources.map((source) => fetchFromSource(source, keyword))
   );
-  
+
   // 过滤成功的结果
-  return results
-    .filter(r => r.status === 'fulfilled')
-    .map(r => r.value);
+  return results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
 }
 ```
 
 #### 缓存策略
+
 ```typescript
 // ✅ 推荐：多层缓存
 import { cache } from 'react';
@@ -381,7 +402,7 @@ export const getConfig = cache(async () => {
 export async function getCachedData(key: string) {
   const cached = await redis.get(key);
   if (cached) return JSON.parse(cached);
-  
+
   const fresh = await fetchFreshData();
   await redis.set(key, JSON.stringify(fresh), { ex: 3600 });
   return fresh;
@@ -393,6 +414,7 @@ export async function getCachedData(key: string) {
 ## 🧪 测试规范
 
 ### 单元测试
+
 ```typescript
 // ✅ 推荐的测试结构
 import { render, screen } from '@testing-library/react';
@@ -400,23 +422,24 @@ import { VideoCard } from './VideoCard';
 
 describe('VideoCard', () => {
   it('应该正确渲染标题和海报', () => {
-    render(<VideoCard title="Test" poster="/test.jpg" />);
-    
+    render(<VideoCard title='Test' poster='/test.jpg' />);
+
     expect(screen.getByText('Test')).toBeInTheDocument();
     expect(screen.getByRole('img')).toHaveAttribute('src', '/test.jpg');
   });
-  
+
   it('点击时应该调用onClick回调', () => {
     const handleClick = jest.fn();
-    render(<VideoCard title="Test" onClick={handleClick} />);
-    
+    render(<VideoCard title='Test' onClick={handleClick} />);
+
     screen.getByText('Test').click();
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 });
 ```
 
-### API测试
+### API 测试
+
 ```typescript
 // ✅ 推荐：Mock外部依赖
 jest.mock('@/lib/db', () => ({
@@ -429,7 +452,7 @@ describe('GET /api/favorites', () => {
   it('应该返回用户收藏列表', async () => {
     const response = await GET(mockRequest);
     const data = await response.json();
-    
+
     expect(response.status).toBe(200);
     expect(data).toHaveLength(1);
   });
@@ -441,6 +464,7 @@ describe('GET /api/favorites', () => {
 ## 📦 部署规范
 
 ### 环境变量管理
+
 ```bash
 # ✅ 推荐：分层环境变量
 
@@ -464,7 +488,8 @@ UPSTASH_TOKEN=...
 NEXT_PUBLIC_DOUBAN_PROXY_TYPE=direct
 ```
 
-### Docker最佳实践
+### Docker 最佳实践
+
 ```dockerfile
 # ✅ 推荐：多阶段构建
 FROM node:18-alpine AS builder
@@ -486,7 +511,8 @@ CMD ["node", "server.js"]
 
 ## 🔧 开发工具配置
 
-### ESLint配置要点
+### ESLint 配置要点
+
 ```javascript
 // .eslintrc.js 关键规则
 module.exports = {
@@ -504,7 +530,8 @@ module.exports = {
 };
 ```
 
-### Prettier配置
+### Prettier 配置
+
 ```javascript
 // .prettierrc.js
 module.exports = {
@@ -516,7 +543,8 @@ module.exports = {
 };
 ```
 
-### Git工作流
+### Git 工作流
+
 ```bash
 # ✅ 推荐的开发流程
 
@@ -543,36 +571,40 @@ git branch -d feature/new-feature
 ## 📋 代码审查清单
 
 ### 提交前检查
+
 - [ ] 代码格式化（`pnpm format`）
-- [ ] ESLint无错误（`pnpm lint`）
-- [ ] TypeScript类型检查（`pnpm typecheck`）
+- [ ] ESLint 无错误（`pnpm lint`）
+- [ ] TypeScript 类型检查（`pnpm typecheck`）
 - [ ] 测试通过（`pnpm test`）
 - [ ] 构建成功（`pnpm build`）
 
 ### 代码质量检查
-- [ ] 无any类型使用
-- [ ] 无console.log残留
+
+- [ ] 无 any 类型使用
+- [ ] 无 console.log 残留
 - [ ] 正确的错误处理
 - [ ] 敏感数据使用环境变量
 - [ ] 组件拆分合理
-- [ ] 避免过深嵌套（<4层）
+- [ ] 避免过深嵌套（<4 层）
 
 ### 性能检查
-- [ ] 避免不必要的re-render
+
+- [ ] 避免不必要的 re-render
 - [ ] 大数据使用分页/虚拟滚动
-- [ ] 图片使用next/image
+- [ ] 图片使用 next/image
 - [ ] 路由预加载合理
 - [ ] 避免客户端大量计算
 
 ### 安全检查
+
 - [ ] 输入验证（Zod）
-- [ ] SQL注入防护
-- [ ] XSS防护（正确转义）
-- [ ] CSRF防护（SameSite Cookie）
+- [ ] SQL 注入防护
+- [ ] XSS 防护（正确转义）
+- [ ] CSRF 防护（SameSite Cookie）
 - [ ] 权限验证完整
 
 ---
 
 **规范版本**: v1.0  
 **最后更新**: 2025-10-06  
-**维护者**: MoonTV开发团队
+**维护者**: MoonTV 开发团队
