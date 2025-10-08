@@ -10,7 +10,7 @@ services:
   moontv:
     build:
       context: .
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile
       target: runner
     container_name: moontv-app
     restart: unless-stopped
