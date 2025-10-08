@@ -33,7 +33,7 @@
 
 ### Phase 4: 文档更新 ✅
 
-- [x] CLAUDE.md 自动更新到 v4.0.1
+- [x] CLAUDE.md 自动更新到 dev
 - [x] Docker 优化指南创建
 - [x] 快速开始指南创建
 - [x] 性能提升指标记录
