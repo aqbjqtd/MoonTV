@@ -1,11 +1,19 @@
-name: Docker Build and Push
+name: Docker Build and Push (Optimized)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  CACHE_REGISTRY: cache.ghcr.io
+  NODE_VERSION: 20
+  PNPM_VERSION: 8.15.0
 
 jobs:
   build-and-push:
@@ -14,12 +22,26 @@ jobs:
       contents: read
       packages: write
 
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            suffix: amd64
+          - platform: linux/arm64
+            suffix: arm64
+
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:buildx-stable-1
+            network=host
 
       - name: 登录到 GitHub Container Registry
         uses: docker/login-action@v3
@@ -28,31 +50,181 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 提取 Docker 元数据
+      - name: 登录到缓存仓库
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CACHE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 获取构建信息
+        id: build-info
+        run: |
+          # 应用版本
+          if [ -f "VERSION.txt" ]; then
+            APP_VERSION=$(cat VERSION.txt | tr -d '\n\r')
+          else
+            APP_VERSION="3.2.0"
+          fi
+
+          # 项目版本
+          PROJECT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v4.0.0")
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BUILD_NUMBER=${{ github.run_number }}
+
+          echo "app-version=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "project-version=$PROJECT_VERSION" >> $GITHUB_OUTPUT
+          echo "commit-sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "build-date=$BUILD_DATE" >> $GITHUB_OUTPUT
+          echo "build-number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "is-clean=$(git diff-index --quiet HEAD -- && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+      - name: 生成构建标签
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
+            # 主版本标签
+            type=semver,pattern={{version}},value=${{ steps.build-info.outputs.project-version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.build-info.outputs.project-version }}
 
-      - name: 构建并推送 Docker 镜像
+            # 应用版本标签
+            type=raw,value=app-${{ steps.build-info.outputs.app-version }}
+
+            # Git 标签
+            type=raw,value=sha-${{ steps.build-info.outputs.commit-sha }}
+            type=raw,value=branch-${{ steps.build-info.outputs.branch-name }}
+
+            # 构建信息标签
+            type=raw,value=build-${{ steps.build-info.outputs.build-number }}
+            type=raw,value=${{ steps.build-info.outputs.build-date }}
+
+            # 环境标签
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=stable,enable={{is_default_branch}}
+            type=raw,value=dirty,enable=${{ steps.build-info.outputs.is-clean == 'false' }}
+            type=raw,value=dev-${{ steps.build-info.outputs.build-number }},enable=${{ steps.build-info.outputs.is-clean == 'false' }}
+
+      - name: 设置缓存键
+        id: cache-key
+        run: |
+          # 基于依赖文件生成缓存键
+          DEPS_HASH=$(cat package.json pnpm-lock.yaml | sha256sum | cut -d' ' -f1)
+          CACHE_KEY="${{ matrix.platform }}-${DEPS_HASH}"
+          echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
+
+      - name: 构建并推送 Docker 镜像 (优化版)
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
+          file: ./Dockerfile.optimized
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
-      - name: 输出镜像信息
+          # BuildKit 内联缓存配置
+          build-args: |
+            NODE_VERSION=${{ env.NODE_VERSION }}
+            PNPM_VERSION=${{ env.PNPM_VERSION }}
+            APP_VERSION=${{ steps.build-info.outputs.project-version }}
+            BUILD_DATE=${{ steps.build-info.outputs.build-date }}
+            VCS_REF=${{ steps.build-info.outputs.commit-sha }}
+            BUILDKIT_INLINE_CACHE=1
+
+          # 多层缓存策略
+          cache-from: |
+            type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.cache-key.outputs.cache-key }}
+            type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:cache-${{ matrix.suffix }}
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.cache-key.outputs.cache-key }},mode=max
+            type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:cache-${{ matrix.suffix }},mode=max
+            type=gha,mode=max
+
+          # 优化构建配置
+          provenance: false
+          sbom: false
+
+      - name: 导出构建元数据
+        if: github.event_name != 'pull_request'
         run: |
           echo "### 🐳 Docker镜像构建成功！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**构建信息：**" >> $GITHUB_STEP_SUMMARY
+          echo "- 平台: ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 应用版本: ${{ steps.build-info.outputs.app-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 项目版本: ${{ steps.build-info.outputs.project-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 提交 SHA: ${{ steps.build-info.outputs.commit-sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 分支: ${{ steps.build-info.outputs.branch-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 构建编号: ${{ steps.build-info.outputs.build-number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 缓存键: ${{ steps.cache-key.outputs.cache-key }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**镜像标签：**" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: 运行安全扫描
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.build-info.outputs.project-version }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 上传安全扫描结果
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # 清理旧标签作业
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 清理旧标签
+        run: |
+          # 使用 GitHub API 清理旧标签，保留最近 20 个
+          TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          REPO="${{ github.repository }}"
+
+          echo "清理 ${REPO} 的旧标签..."
+
+          # 获取标签列表
+          curl -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/user/packages/container/${REPO#*/}/versions?per_page=100" | \
+            jq -r '.[] | select(.metadata.container.tags[]? | startswith("sha-") or startswith("build-") or startswith("dev-")) | .id' | \
+            tail -n +21 | \
+            while read -r version_id; do
+              if [ -n "$version_id" ]; then
+                echo "删除版本: $version_id"
+                curl -X DELETE \
+                  -H "Authorization: token $TOKEN" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  "https://api.github.com/user/packages/container/${REPO#*/}/versions/$version_id" || true
+              fi
+            done

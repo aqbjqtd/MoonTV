@@ -1,0 +1,285 @@
+name: Docker Cache Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '缓存管理操作'
+        required: true
+        default: 'cleanup'
+        type: choice
+        options:
+          - cleanup
+          - warmup
+          - analyze
+      cache_type:
+        description: '缓存类型'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - registry
+          - github
+      keep_days:
+        description: '保留天数'
+        required: false
+        default: '7'
+        type: string
+  schedule:
+    # 每周日凌晨 2:00 自动清理缓存
+    - cron: '0 2 * * 0'
+
+env:
+  REGISTRY: ghcr.io
+  CACHE_REGISTRY: cache.ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  cache-analysis:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'analyze' || github.event.inputs.action == ''
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 分析缓存使用情况
+        run: |
+          echo "### 📊 Docker 缓存分析报告" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 分析 GitHub Actions 缓存
+          echo "**GitHub Actions 缓存:**" >> $GITHUB_STEP_SUMMARY
+          GHA_CACHE_SIZE=$(gh api --method GET \
+            -H "Accept: application/vnd.github.v3+json" \
+            /repos/${{ github.repository }}/actions/cache/usage \
+            -q ".total_cache_size_in_bytes" 2>/dev/null || echo "0")
+
+          if [ "$GHA_CACHE_SIZE" != "0" ]; then
+            GHA_CACHE_MB=$((GHA_CACHE_SIZE / 1024 / 1024))
+            echo "- 总大小: ${GHA_CACHE_MB} MB" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 无法获取缓存大小" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 分析注册表缓存
+          echo "**注册表缓存:**" >> $GITHUB_STEP_SUMMARY
+
+          # 获取缓存镜像列表
+          CACHE_IMAGES=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/user/packages/container/${{ github.repository }}/versions?per_page=100" | \
+            jq -r '.[] | select(.metadata.container.tags[]? | startswith("cache-")) | "\(.metadata.container.tags | join(",")) \(.updated_at)"' 2>/dev/null || true)
+
+          if [ -n "$CACHE_IMAGES" ]; then
+            CACHE_COUNT=$(echo "$CACHE_IMAGES" | wc -l)
+            echo "- 缓存镜像数量: $CACHE_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**缓存镜像列表:**" >> $GITHUB_STEP_SUMMARY
+            echo "| 标签 | 更新时间 |" >> $GITHUB_STEP_SUMMARY
+            echo "|------|----------|" >> $GITHUB_STEP_SUMMARY
+
+            echo "$CACHE_IMAGES" | while IFS=' ' read -r tags date; do
+              # 格式化日期
+              FORMATTED_DATE=$(date -d "$date" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "$date")
+              echo "| $tags | $FORMATTED_DATE |" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "- 未找到缓存镜像" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 分析构建性能
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**构建性能统计:**" >> $GITHUB_STEP_SUMMARY
+
+          # 获取最近的构建记录
+          WORKFLOW_RUNS=$(gh run list --repo ${{ github.repository }} \
+            --workflow="Docker Build and Push" \
+            --limit 10 \
+            --json "createdAt,status,conclusion,databaseId" \
+            --jq '.[] | select(.status == "completed") | "\(.databaseId) \(.createdAt) \(.conclusion)"' 2>/dev/null || true)
+
+          if [ -n "$WORKFLOW_RUNS" ]; then
+            SUCCESS_COUNT=$(echo "$WORKFLOW_RUNS" | grep " success" | wc -l)
+            TOTAL_COUNT=$(echo "$WORKFLOW_RUNS" | wc -l)
+            SUCCESS_RATE=$((SUCCESS_COUNT * 100 / TOTAL_COUNT))
+
+            echo "- 最近构建成功率: ${SUCCESS_RATE}% ($SUCCESS_COUNT/$TOTAL_COUNT)" >> $GITHUB_STEP_SUMMARY
+
+            # 计算平均构建时间（需要获取运行时日志）
+            echo "- 详细构建时间分析需要检查具体运行日志" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 无最近的构建记录" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  cache-cleanup:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'cleanup' || github.event_name == 'schedule'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 登录到 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 设置保留天数
+        run: |
+          KEEP_DAYS=${{ github.event.inputs.keep_days || '7' }}
+          CUTOFF_DATE=$(date -d "$KEEP_DAYS days ago" -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "CUTOFF_DATE=$CUTOFF_DATE" >> $GITHUB_ENV
+          echo "DELETE_BEFORE=$CUTOFF_DATE" >> $GITHUB_ENV
+
+      - name: 清理 GitHub Actions 缓存
+        if: github.event.inputs.cache_type == 'all' || github.event.inputs.cache_type == 'github'
+        run: |
+          echo "清理 GitHub Actions 缓存..."
+
+          # 获取所有缓存键
+          CACHE_KEYS=$(gh api --method GET \
+            -H "Accept: application/vnd.github.v3+json" \
+            /repos/${{ github.repository }}/actions/caches \
+            -q '.actions_caches[].id' 2>/dev/null || true)
+
+          if [ -n "$CACHE_KEYS" ]; then
+            DELETED_COUNT=0
+            for cache_id in $CACHE_KEYS; do
+              # 获取缓存信息
+              CACHE_INFO=$(gh api --method GET \
+                -H "Accept: application/vnd.github.v3+json" \
+                /repos/${{ github.repository }}/actions/caches/$cache_id 2>/dev/null || true)
+
+              CREATED_AT=$(echo "$CACHE_INFO" | jq -r '.created_at' 2>/dev/null || echo "")
+
+              if [ -n "$CREATED_AT" ] && [ "$CREATED_AT" \< "$CUTOFF_DATE" ]; then
+                echo "删除缓存: $cache_id (创建于: $CREATED_AT)"
+                gh api --method DELETE \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  /repos/${{ github.repository }}/actions/caches/$cache_id || true
+                DELETED_COUNT=$((DELETED_COUNT + 1))
+              fi
+            done
+
+            echo "删除了 $DELETED_COUNT 个 GitHub Actions 缓存"
+          else
+            echo "未找到 GitHub Actions 缓存"
+          fi
+
+      - name: 清理注册表缓存
+        if: github.event.inputs.cache_type == 'all' || github.event.inputs.cache_type == 'registry'
+        run: |
+          echo "清理注册表缓存..."
+
+          # 获取所有版本
+          ALL_VERSIONS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/user/packages/container/${{ github.repository }}/versions?per_page=100" | \
+            jq -r '.[] | "\(.id) \(.updated_at) \(.metadata.container.tags // [])"')
+
+          DELETED_COUNT=0
+          if [ -n "$ALL_VERSIONS" ]; then
+            echo "$ALL_VERSIONS" | while IFS=' ' read -r version_id date tags; do
+              # 检查是否为缓存镜像或过期镜像
+              IS_CACHE=false
+              IS_OLD=false
+
+              # 检查是否为缓存标签
+              if echo "$tags" | grep -q "cache\|sha-\|build-\|dev-"; then
+                IS_CACHE=true
+              fi
+
+              # 检查是否过期
+              if [ "$date" \< "$DELETE_BEFORE" ]; then
+                IS_OLD=true
+              fi
+
+              # 删除缓存镜像或过期镜像（但保留主要版本标签）
+              if [ "$IS_CACHE" = true ] || [ "$IS_OLD" = true ]; then
+                # 检查是否包含重要标签
+                if echo "$tags" | grep -q -E "latest|stable|v[0-9]+\.[0-9]+\.[0-9]+$"; then
+                  echo "保留重要标签: $tags"
+                else
+                  echo "删除版本: $version_id (标签: $tags, 更新: $date)"
+                  curl -X DELETE \
+                    -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                    -H "Accept: application/vnd.github.v3+json" \
+                    "https://api.github.com/user/packages/container/${{ github.repository }}/versions/$version_id" || true
+                  DELETED_COUNT=$((DELETED_COUNT + 1))
+                fi
+              fi
+            done
+          fi
+
+          echo "清理完成，删除了 $DELETED_COUNT 个版本"
+
+      - name: 输出清理结果
+        run: |
+          echo "### 🧹 缓存清理完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**清理配置:**" >> $GITHUB_STEP_SUMMARY
+          echo "- 保留天数: ${{ env.KEEP_DAYS }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 清理类型: ${{ github.event.inputs.cache_type || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 清理截止: ${{ env.DELETE_BEFORE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**建议:**" >> $GITHUB_STEP_SUMMARY
+          echo "- 定期运行缓存清理以节省存储空间" >> $GITHUB_STEP_SUMMARY
+          echo "- 保留重要版本标签（latest, stable, 版本号）" >> $GITHUB_STEP_SUMMARY
+          echo "- 监控缓存使用情况以优化构建性能" >> $GITHUB_STEP_SUMMARY
+
+  cache-warmup:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'warmup'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录到缓存仓库
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CACHE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 预热构建缓存
+        run: |
+          echo "预热构建缓存..."
+
+          # 构建依赖层缓存
+          docker buildx build \
+            --target deps \
+            --file ./Dockerfile.optimized \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            --cache-from type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:cache-deps \
+            --cache-to type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:cache-deps,mode=max \
+            --push \
+            .
+
+          echo "缓存预热完成！"

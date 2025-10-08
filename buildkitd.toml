@@ -1,0 +1,58 @@
+# MoonTV BuildKit 配置文件
+# 企业级构建缓存和性能优化配置
+
+[worker.oci]
+  # 启用 GC 和设置保留策略
+  gc = true
+  gckeepstorage = 8000
+  gckeepbusy = 3600
+
+[worker.containerd]
+  # 容器运行时配置
+  namespace = "buildkit"
+
+[grpc]
+  # gRPC 调试配置
+  debugAddress = "0.0.0.0:6060"
+
+# 缓存管理配置
+[cache]
+  # 最大缓存大小 (8GB)
+  maxSizeMiB = 8192
+
+  # 缓存保留策略
+  exportCacheFixedSize = 8192
+
+  # 缓存压缩
+  compress = true
+
+# 安全配置
+[security]
+  # 启用安全功能
+  insecure = false
+
+  # 允许特权操作（仅构建时）
+  allowInsecureEntitlement = ["network.host", "security.insecure"]
+
+# 性能优化配置
+[executor]
+  # 并行任务数
+  cpus = 4
+
+  # 内存限制
+  memory = "4GiB"
+
+  # 磁盘限制
+  disk = "20GiB"
+
+# 网络配置
+[network]
+  # 允许主机网络访问
+  hostGatewayHost = "host-gateway"
+
+# 注册表镜像配置（用于中国加速）
+[registry."docker.io"]
+  mirrors = ["https://docker.mirrors.ustc.edu.cn", "https://hub-mirror.c.163.com"]
+
+[registry."gcr.io"]
+  mirrors = ["https://gcr.mirrors.ustc.edu.cn"]
