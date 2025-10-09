@@ -1,0 +1,395 @@
+# =================================================================
+# MoonTV Kubernetes 配置映射
+# 版本: v4.0.0 - 企业级配置管理
+# =================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: moontv-config
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/version: "4.0.0"
+    app.kubernetes.io/component: config
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "MoonTV application configuration"
+    config-version: "v4.0.0"
+data:
+  # 应用配置文件
+  config.json: |
+    {
+      "site": {
+        "name": "MoonTV",
+        "description": "跨平台视频聚合播放器",
+        "keywords": ["视频", "播放器", "聚合"],
+        "author": "MoonTV Team"
+      },
+      "api": {
+        "sites": [
+          {
+            "key": "api1",
+            "name": "视频源1",
+            "api": "https://api1.example.com",
+            "search": "/search",
+            "detail": "/detail",
+            "play": "/play"
+          }
+        ],
+        "timeout": 10000,
+        "retries": 3
+      },
+      "storage": {
+        "type": "redis",
+        "prefix": "moontv:",
+        "ttl": 3600
+      },
+      "features": {
+        "search": true,
+        "favorites": true,
+        "history": true,
+        "categories": true
+      }
+    }
+
+  # Nginx配置
+  nginx.conf: |
+    upstream moontv-app {
+        server moontv-service:3000;
+        keepalive 32;
+    }
+
+    server {
+        listen 80;
+        server_name _;
+
+        # 安全头
+        add_header X-Frame-Options DENY;
+        add_header X-Content-Type-Options nosniff;
+        add_header X-XSS-Protection "1; mode=block";
+        add_header Referrer-Policy strict-origin-when-cross-origin;
+
+        # 静态资源缓存
+        location /static/ {
+            proxy_pass http://moontv-app;
+            proxy_cache_valid 200 1y;
+            add_header Cache-Control "public, immutable";
+        }
+
+        # API代理
+        location /api/ {
+            proxy_pass http://moontv-app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # 超时配置
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }
+
+        # 健康检查
+        location /health {
+            proxy_pass http://moontv-app/api/health;
+            access_log off;
+        }
+
+        # 默认代理
+        location / {
+            proxy_pass http://moontv-app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+
+  # Redis配置
+  redis.conf: |
+    # 基础配置
+    bind 0.0.0.0
+    port 6379
+    protected-mode yes
+
+    # 内存配置
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+
+    # 持久化配置
+    save 900 1
+    save 300 10
+    save 60 10000
+
+    # 日志配置
+    loglevel notice
+    logfile ""
+
+    # 性能配置
+    tcp-keepalive 300
+    timeout 0
+
+    # 安全配置
+    requirepass-file /etc/redis/password
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    rename-command CONFIG "CONFIG_b835c3f9a4d2e7c1"
+
+    # 网络配置
+    tcp-backlog 511
+    tcp-user-timeout 0
+
+  # 应用启动脚本
+  start.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "🚀 Starting MoonTV Application..."
+    echo "Environment: ${NODE_ENV:-production}"
+    echo "Version: ${APP_VERSION:-v4.0.0}"
+    echo "Storage Type: ${NEXT_PUBLIC_STORAGE_TYPE:-redis}"
+
+    # 等待Redis连接
+    if [ "$NEXT_PUBLIC_STORAGE_TYPE" = "redis" ]; then
+        echo "⏳ Waiting for Redis..."
+        timeout 60 bash -c 'until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping; do sleep 1; done'
+        echo "✅ Redis is ready"
+    fi
+
+    # 健康检查等待
+    echo "🔍 Starting health check..."
+
+    # 启动应用
+    exec node start.js
+
+---
+# Redis配置ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/managed-by: manual
+data:
+  redis.conf: |
+    # Redis配置 - 引用上面的redis.conf内容
+    # 为了K8s优化，这里单独定义Redis配置
+
+    # 基础配置
+    bind 0.0.0.0
+    port 6379
+    protected-mode yes
+
+    # Kubernetes优化配置
+    tcp-keepalive 300
+    timeout 0
+    tcp-backlog 511
+
+    # 内存配置
+    maxmemory 512mb
+    maxmemory-policy allkeys-lru
+
+    # 持久化配置（生产环境）
+    save 900 1
+    save 300 10
+    save 60 10000
+
+    # RDB配置
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+
+    # AOF配置
+    appendonly yes
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # 日志配置
+    loglevel notice
+    syslog-enabled yes
+    syslog-ident redis
+
+    # 性能优化
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    list-max-ziplist-size -2
+    list-compress-depth 0
+    set-max-intset-entries 512
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    hll-sparse-max-bytes 3000
+
+    # 安全配置
+    # requirepass 将通过Secret注入
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    rename-command CONFIG ""
+    rename-command SHUTDOWN SHUTDOWN_b835c3f9a4d2e7c1
+
+    # 客户端配置
+    maxclients 10000
+
+    # 内存优化
+    lazyfree-lazy-eviction no
+    lazyfree-lazy-expire no
+    lazyfree-lazy-server-del no
+    repl-lazy-flush no
+
+---
+# Nginx配置ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: nginx
+    app.kubernetes.io/managed-by: manual
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+
+    events {
+        worker_connections 1024;
+        use epoll;
+        multi_accept on;
+    }
+
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+
+        # 日志格式
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log /var/log/nginx/access.log main;
+
+        # 性能优化
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+
+        # Gzip压缩
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/json
+            application/javascript
+            application/xml+rss
+            application/atom+xml
+            image/svg+xml;
+
+        # 上游服务器配置
+        upstream moontv-app {
+            server moontv-service:3000 max_fails=3 fail_timeout=30s;
+            keepalive 32;
+        }
+
+        # 限流配置
+        limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+        limit_req_zone $binary_remote_addr zone=search:10m rate=5r/s;
+
+        server {
+            listen 80;
+            server_name _;
+
+            # 安全头
+            add_header X-Frame-Options DENY always;
+            add_header X-Content-Type-Options nosniff always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+            add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;" always;
+
+            # 隐藏版本信息
+            server_tokens off;
+
+            # API限流
+            location /api/ {
+                limit_req zone=api burst=20 nodelay;
+
+                proxy_pass http://moontv-app;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+
+                # 超时配置
+                proxy_connect_timeout 60s;
+                proxy_send_timeout 60s;
+                proxy_read_timeout 60s;
+
+                # 缓冲配置
+                proxy_buffering on;
+                proxy_buffer_size 4k;
+                proxy_buffers 8 4k;
+            }
+
+            # 搜索API特殊限流
+            location /api/search {
+                limit_req zone=search burst=10 nodelay;
+
+                proxy_pass http://moontv-app;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            # 静态资源
+            location /static/ {
+                proxy_pass http://moontv-app;
+                expires 1y;
+                add_header Cache-Control "public, immutable";
+                add_header X-Cache-Status "STATIC";
+            }
+
+            # 健康检查
+            location /health {
+                proxy_pass http://moontv-app/api/health;
+                access_log off;
+                expires 5s;
+            }
+
+            # 默认代理
+            location / {
+                proxy_pass http://moontv-app;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+
+                # WebSocket支持
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+            }
+
+            # 错误页面
+            error_page 500 502 503 504 /50x.html;
+            location = /50x.html {
+                root /usr/share/nginx/html;
+            }
+        }
+    }

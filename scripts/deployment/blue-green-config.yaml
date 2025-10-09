@@ -1,0 +1,461 @@
+# =================================================================
+# MoonTV 蓝绿部署配置文件 v4.0.0
+# 功能: 蓝绿部署的详细配置和策略定义
+# =================================================================
+
+# 全局配置
+global:
+  # 部署配置
+  deployment:
+    # 健康检查配置
+    health_check:
+      enabled: true
+      timeout: 300  # 秒
+      interval: 10  # 秒
+      retries: 5
+      paths:
+        readiness: "/api/ready"
+        liveness: "/api/health"
+        startup: "/api/health"
+
+    # 流量切换配置
+    traffic:
+      switch_delay: 30  # 秒
+      verify_timeout: 60  # 秒
+      rollback_timeout: 30  # 秒
+      strategy: "instant"  # instant, gradual
+
+    # 备份配置
+    backup:
+      enabled: true
+      retention_days: 7
+      storage_path: "/tmp/moontv-backups"
+      include_data: true
+      include_configs: true
+
+    # 回滚配置
+    rollback:
+      auto_rollback: true
+      failure_threshold: 3
+      rollback_timeout: 600  # 秒
+      cleanup_on_success: true
+
+# 环境特定配置
+environments:
+  # 开发环境
+  development:
+    namespace: "moontv-dev"
+    replicas: 1
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "250m"
+
+    health_check:
+      timeout: 120
+      interval: 5
+
+    backup:
+      enabled: false
+
+    traffic:
+      switch_delay: 10
+
+    notifications:
+      slack:
+        enabled: false
+      email:
+        enabled: false
+
+  # 测试环境
+  staging:
+    namespace: "moontv-staging"
+    replicas: 2
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+    health_check:
+      timeout: 180
+      interval: 8
+
+    backup:
+      enabled: true
+      retention_days: 3
+
+    traffic:
+      switch_delay: 20
+
+    notifications:
+      slack:
+        enabled: true
+        webhook: "${SLACK_WEBHOOK_URL_STAGING}"
+      email:
+        enabled: false
+
+  # 生产环境
+  production:
+    namespace: "moontv-prod"
+    replicas: 3
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+
+    health_check:
+      timeout: 300
+      interval: 10
+      retries: 5
+
+    backup:
+      enabled: true
+      retention_days: 14
+      include_data: true
+      include_configs: true
+
+    traffic:
+      switch_delay: 60
+      strategy: "gradual"
+
+    notifications:
+      slack:
+        enabled: true
+        webhook: "${SLACK_WEBHOOK_URL_PROD}"
+      email:
+        enabled: true
+        recipients:
+          - "devops@moontv.com"
+          - "admin@moontv.com"
+
+# 部署策略配置
+strategies:
+  # 即时切换策略
+  instant:
+    description: "立即切换所有流量到新版本"
+    traffic_split:
+      old_version: 0
+      new_version: 100
+    switch_duration: 0
+    verification_delay: 30
+
+  # 渐进式切换策略
+  gradual:
+    description: "渐进式切换流量到新版本"
+    phases:
+      - percentage: 10
+        duration: 60
+        verify: true
+      - percentage: 50
+        duration: 120
+        verify: true
+      - percentage: 100
+        duration: 300
+        verify: true
+
+  # 金丝雀策略
+  canary:
+    description: "金丝雀发布策略"
+    phases:
+      - percentage: 5
+        duration: 300
+        verify: true
+      - percentage: 20
+        duration: 600
+        verify: true
+      - percentage: 50
+        duration: 900
+        verify: true
+      - percentage: 100
+        duration: 1800
+        verify: true
+
+# 健康检查详细配置
+health_checks:
+  # HTTP健康检查
+  http:
+    readiness:
+      path: "/api/ready"
+      port: 3000
+      scheme: "HTTP"
+      success_threshold: 1
+      failure_threshold: 3
+      initial_delay_seconds: 5
+      period_seconds: 10
+      timeout_seconds: 5
+
+    liveness:
+      path: "/api/health"
+      port: 3000
+      scheme: "HTTP"
+      success_threshold: 1
+      failure_threshold: 3
+      initial_delay_seconds: 30
+      period_seconds: 30
+      timeout_seconds: 10
+
+    startup:
+      path: "/api/health"
+      port: 3000
+      scheme: "HTTP"
+      success_threshold: 1
+      failure_threshold: 6
+      initial_delay_seconds: 10
+      period_seconds: 5
+      timeout_seconds: 5
+
+  # 自定义健康检查脚本
+  custom:
+    enabled: true
+    script: |
+      #!/bin/bash
+      # 自定义健康检查逻辑
+      echo "Running custom health checks..."
+
+      # 检查数据库连接
+      # check_database_connection
+
+      # 检查外部API连接
+      # check_external_apis
+
+      # 检查缓存连接
+      # check_cache_connection
+
+      exit 0
+
+# 监控和告警配置
+monitoring:
+  # Prometheus监控
+  prometheus:
+    enabled: true
+    port: 9090
+    metrics_path: "/api/metrics"
+    scrape_interval: "30s"
+    evaluation_interval: "30s"
+
+  # 告警规则
+  alerts:
+    # 部署失败告警
+    deployment_failure:
+      enabled: true
+      severity: "critical"
+      duration: "0m"
+      labels:
+        severity: "critical"
+        service: "moontv"
+      annotations:
+        summary: "MoonTV deployment failed"
+        description: "Deployment {{ $labels.version }} failed in {{ $labels.environment }}"
+
+    # 健康检查失败告警
+    health_check_failure:
+      enabled: true
+      severity: "warning"
+      duration: "5m"
+      labels:
+        severity: "warning"
+        service: "moontv"
+      annotations:
+        summary: "MoonTV health check failed"
+        description: "Health check failed for {{ $labels.instance }}"
+
+    # 流量切换失败告警
+    traffic_switch_failure:
+      enabled: true
+      severity: "critical"
+      duration: "0m"
+      labels:
+        severity: "critical"
+        service: "moontv"
+      annotations:
+        summary: "MoonTV traffic switch failed"
+        description: "Failed to switch traffic to new deployment"
+
+# 通知配置
+notifications:
+  # Slack通知
+  slack:
+    enabled: true
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#deployments"
+    username: "MoonTV Bot"
+    icon_emoji: ":rocket:"
+
+    # 消息模板
+    templates:
+      success: |
+        🎉 **Deployment Successful**
+        Environment: {{ .Environment }}
+        Version: {{ .Version }}
+        Duration: {{ .Duration }}
+        Deployed by: {{ .User }}
+
+      failure: |
+        🚨 **Deployment Failed**
+        Environment: {{ .Environment }}
+        Version: {{ .Version }}
+        Error: {{ .Error }}
+        Duration: {{ .Duration }}
+        Deployed by: {{ .User }}
+
+      rollback: |
+        🔄 **Rollback Initiated**
+        Environment: {{ .Environment }}
+        From Version: {{ .FromVersion }}
+        To Version: {{ .ToVersion }}
+        Reason: {{ .Reason }}
+
+  # 邮件通知
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "${EMAIL_USERNAME}"
+    password: "${EMAIL_PASSWORD}"
+    from: "noreply@moontv.com"
+
+    # 邮件模板
+    templates:
+      success: |
+        Subject: MoonTV Deployment Success
+
+        Deployment completed successfully in {{ .Environment }} environment.
+
+        Version: {{ .Version }}
+        Duration: {{ .Duration }}
+        Deployed by: {{ .User }}
+
+        Best regards,
+        MoonTV Team
+
+# 安全配置
+security:
+  # 镜像安全扫描
+  image_scanning:
+    enabled: true
+    scanner: "trivy"
+    severity_threshold: "medium"
+    fail_on_vulnerabilities: true
+
+  # RBAC配置
+  rbac:
+    service_account: "moontv-deployer"
+    role: "moontv-deployer-role"
+    namespace_binding: true
+
+  # 网络策略
+  network_policy:
+    enabled: true
+    ingress_allow:
+      - from: ["ingress-nginx"]
+      - from: ["monitoring"]
+    egress_allow:
+      - to: ["0.0.0.0/0"]
+        ports: [80, 443, 53]
+
+# 日志配置
+logging:
+  # 应用日志
+  application:
+    level: "info"
+    format: "json"
+    retention_days: 7
+
+  # 部署日志
+  deployment:
+    level: "debug"
+    format: "text"
+    file: "/var/log/moontv-deploy.log"
+    retention_days: 30
+
+# 性能配置
+performance:
+  # 资源限制
+  resource_limits:
+    max_cpu_per_pod: "2"
+    max_memory_per_pod: "4Gi"
+    max_pods_per_node: 10
+
+  # 缩放配置
+  autoscaling:
+    enabled: true
+    min_replicas: 1
+    max_replicas: 10
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    scale_up_period: "60s"
+    scale_down_period: "300s"
+
+# 集成配置
+integrations:
+  # CI/CD集成
+  cicd:
+    github_actions:
+      enabled: true
+      webhook_secret: "${GITHUB_WEBHOOK_SECRET}"
+
+    jenkins:
+      enabled: false
+      url: "${JENKINS_URL}"
+      credentials: "${JENKINS_CREDENTIALS}"
+
+  # 测试集成
+  testing:
+    unit_tests:
+      enabled: true
+      command: "npm test"
+      timeout: 300
+
+    integration_tests:
+      enabled: true
+      command: "npm run test:integration"
+      timeout: 600
+
+    e2e_tests:
+      enabled: false
+      command: "npm run test:e2e"
+      timeout: 1800
+
+  # 监控集成
+  monitoring:
+    prometheus:
+      enabled: true
+      service_monitor: true
+
+    grafana:
+      enabled: true
+      dashboard_import: true
+
+    alertmanager:
+      enabled: true
+      routing_config: true
+
+# 调试配置
+debug:
+  # 调试模式
+  debug_mode: false
+  verbose_logging: false
+
+  # 保留部署
+  keep_failed_deployments: true
+  keep_old_versions: 2
+
+  # 诊断工具
+  diagnostic_tools:
+    enabled: true
+    tools: ["kubectl", "docker", "curl", "jq"]
+
+  # 测试环境特殊配置
+  test_environment:
+    skip_health_checks: false
+    faster_deployments: true
+    reduced_replicas: true

@@ -1,0 +1,457 @@
+# =================================================================
+# MoonTV Kubernetes Ingress配置
+# 版本: v4.0.0 - 企业级入口管理
+# =================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: moontv-ingress
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "MoonTV application ingress"
+
+    # Ingress控制器配置
+    kubernetes.io/ingress.class: "nginx"
+
+    # SSL配置
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # 安全头配置
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;" always;
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # 限流配置
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+
+    # 连接配置
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+
+    # WebSocket支持
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-set-headers: "moontv-headers-configmap"
+
+    # 缓存配置
+    nginx.ingress.kubernetes.io/proxy-cache-method: "GET,HEAD"
+    nginx.ingress.kubernetes.io/cache-duration: "1h"
+
+    # 错误页面
+    nginx.ingress.kubernetes.io/custom-http-errors: "404,503"
+
+    # 压缩配置
+    nginx.ingress.kubernetes.io/enable-modsecurity: "false"
+    nginx.ingress.kubernetes.io/enable-opentracing: "false"
+
+    # 会话亲和性
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "moontv-affinity"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
+    nginx.ingress.kubernetes.io/session-cookie-conditional: "false"
+    nginx.ingress.kubernetes.io/session-cookie-path: "/"
+
+    # 重写规则
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+
+    # 认证配置（可选）
+    # nginx.ingress.kubernetes.io/auth-type: basic
+    # nginx.ingress.kubernetes.io/auth-secret: moontv-basic-auth
+    # nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+
+spec:
+  # TLS配置
+  tls:
+    - hosts:
+        - moontv.example.com
+        - api.moontv.example.com
+        - admin.moontv.example.com
+      secretName: moontv-tls-secret
+
+  # 路由规则
+  rules:
+    # 主域名路由
+    - host: moontv.example.com
+      http:
+        paths:
+          - path: /static(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: moontv-nginx-service
+                port:
+                  number: 80
+
+          - path: /api/health
+            pathType: Exact
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+          - path: /api/ready
+            pathType: Exact
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+          - path: /api/metrics
+            pathType: Exact
+            backend:
+              service:
+                name: moontv-metrics-service
+                port:
+                  number: 3000
+
+          - path: /api(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: moontv-nginx-service
+                port:
+                  number: 80
+
+    # API子域名路由
+    - host: api.moontv.example.com
+      http:
+        paths:
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+    # 管理后台路由
+    - host: admin.moontv.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+---
+# API网关Ingress（更细粒度控制）
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: moontv-api-ingress
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: api-ingress
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "MoonTV API gateway ingress"
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    # API特定配置
+    nginx.ingress.kubernetes.io/rate-limit: "200"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/limit-burst: "50"
+    nginx.ingress.kubernetes.io/limit-connections: "100"
+
+    # CORS配置
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, Accept, Origin, User-Agent, DNT, Cache-Control, X-Mx-ReqToken, Keep-Alive, X-Requested-With, If-Modified-Since"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+
+    # 超时配置
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+
+    # 大文件上传
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+
+    # 错误处理
+    nginx.ingress.kubernetes.io/custom-http-errors: "400,401,403,404,429,500,502,503,504"
+
+spec:
+  tls:
+    - hosts:
+        - gateway.moontv.example.com
+      secretName: moontv-api-tls-secret
+
+  rules:
+    - host: gateway.moontv.example.com
+      http:
+        paths:
+          # 健康检查
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+          # API路由
+          - path: /v1(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+---
+# 内部服务Ingress（集群内部访问）
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: moontv-internal-ingress
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: internal-ingress
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "MoonTV internal services ingress"
+    kubernetes.io/ingress.class: "nginx-internal"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+    # 内部服务安全配置
+    nginx.ingress.kubernetes.io/auth-tls-secret: "ca-secret"
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
+
+    # 性能优化
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri"
+    nginx.ingress.kubernetes.io/load-balance: "least_conn"
+
+spec:
+  rules:
+    # Redis监控
+    - host: redis-monitoring.moontv.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: redis-metrics-service
+                port:
+                  number: 9121
+
+    # 应用监控
+    - host: app-monitoring.moontv.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: moontv-metrics-service
+                port:
+                  number: 3000
+
+---
+# WebSocket支持Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: moontv-websocket-ingress
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: websocket-ingress
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "MoonTV WebSocket ingress"
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+    # WebSocket特定配置
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_cache_bypass $http_upgrade;
+
+    # 超长连接时间
+    nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502 http_503 http_504"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "0"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "3"
+
+spec:
+  tls:
+    - hosts:
+        - ws.moontv.example.com
+      secretName: moontv-ws-tls-secret
+
+  rules:
+    - host: ws.moontv.example.com
+      http:
+        paths:
+          - path: /api/search/ws
+            pathType: Exact
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+          - path: /ws(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: moontv-service
+                port:
+                  number: 80
+
+---
+# ConfigMap用于Ingress配置
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: moontv-headers-configmap
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: ingress-config
+    app.kubernetes.io/managed-by: manual
+data:
+  X-Forwarded-Proto: "https"
+  X-Forwarded-Host: "$host"
+  X-Forwarded-Port: "$server_port"
+  X-Forwarded-For: "$proxy_add_x_forwarded_for"
+  X-Real-IP: "$remote_addr"
+  X-Request-ID: "$request_id"
+  X-Original-URI: "$request_uri"
+
+---
+# 网络策略（Network Policy）
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: moontv-network-policy
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Network policy for MoonTV services"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: moontv
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # 入站规则
+  ingress:
+    # 允许来自Ingress控制器的流量
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+
+    # 允许来自同一命名空间的流量
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 6379
+
+    # 允许来自监控命名空间的流量
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: moontv-monitoring
+      ports:
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 9121
+        - protocol: TCP
+          port: 9113
+
+  # 出站规则
+  egress:
+    # 允许DNS查询
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # 允许访问外部API
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+
+    # 允许访问Redis
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: moontv
+              app.kubernetes.io/component: app
+      to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: moontv
+              app.kubernetes.io/component: redis
+      ports:
+        - protocol: TCP
+          port: 6379

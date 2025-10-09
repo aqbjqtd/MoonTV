@@ -1,10 +1,11 @@
-# MoonTV 开发环境配置指南 v4.1
+# MoonTV 开发环境配置指南 v5.0
 
 **文档类型**: 开发环境配置  
-**项目版本**: MoonTV v4.1.0-dev  
-**文档版本**: v4.1  
-**创建时间**: 2025-10-09  
-**维护状态**: 持续优化中
+**项目版本**: MoonTV v5.0.0-dev  
+**文档版本**: v5.0  
+**创建时间**: 2025 年 10 月 09 日  
+**更新时间**: 2025 年 10 月 09 日  
+**维护状态**: ✅ 生产就绪
 
 ## 🛠️ 环境要求
 
@@ -163,7 +164,7 @@ NEXT_PUBLIC_ERROR_REPORTING=false
 
 ## 📦 依赖管理
 
-### 核心依赖
+### 核心依赖 (v5.0)
 
 ```json
 {
@@ -185,16 +186,7 @@ NEXT_PUBLIC_ERROR_REPORTING=false
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
     "prettier": "^3.3.3",
-    "prettier-plugin-tailwindcss": "^0.6.5"
-  }
-}
-```
-
-### 可选依赖 (按需安装)
-
-```json
-{
-  "devDependencies": {
+    "prettier-plugin-tailwindcss": "^0.6.5",
     "@testing-library/react": "^16.0.0",
     "@testing-library/jest-dom": "^6.4.8",
     "jest": "^29.7.0",
@@ -460,61 +452,6 @@ export default defineConfig({
 }
 ```
 
-### 自定义脚本
-
-#### 生成 PWA Manifest
-
-```javascript
-// scripts/generate-manifest.js
-const fs = require('fs');
-const path = require('path');
-
-const manifest = {
-  name: process.env.NEXT_PUBLIC_SITE_NAME || 'MoonTV',
-  short_name: 'MoonTV',
-  description: 'Next.js 视频聚合播放器',
-  start_url: '/',
-  display: 'standalone',
-  background_color: '#ffffff',
-  theme_color: '#000000',
-  icons: [
-    {
-      src: '/icon-192x192.png',
-      sizes: '192x192',
-      type: 'image/png',
-    },
-    {
-      src: '/icon-512x512.png',
-      sizes: '512x512',
-      type: 'image/png',
-    },
-  ],
-};
-
-fs.writeFileSync(
-  path.join(__dirname, '../public/manifest.json'),
-  JSON.stringify(manifest, null, 2)
-);
-```
-
-#### 生成运行时配置
-
-```javascript
-// scripts/generate-runtime.js
-const fs = require('fs');
-const path = require('path');
-
-// 读取配置文件
-const config = require('../config.json');
-
-// 生成运行时配置
-const runtimeConfig = `
-export const RUNTIME_CONFIG = ${JSON.stringify(config, null, 2)}
-`;
-
-fs.writeFileSync(path.join(__dirname, '../src/lib/runtime.ts'), runtimeConfig);
-```
-
 ## 🔍 调试配置
 
 ### VS Code 调试配置
@@ -546,59 +483,6 @@ fs.writeFileSync(path.join(__dirname, '../src/lib/runtime.ts'), runtimeConfig);
       }
     }
   ]
-}
-```
-
-### Chrome DevTools 配置
-
-```javascript
-// next.config.js
-const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.devtool = 'eval-source-map';
-    }
-    return config;
-  },
-};
-
-module.exports = nextConfig;
-```
-
-## 📊 性能监控
-
-### 开发性能监控
-
-```javascript
-// src/lib/performance.ts
-export const performance = {
-  // 页面加载性能
-  measurePageLoad: () => {
-    if (typeof window !== 'undefined' && window.performance) {
-      const navigation = window.performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
-      return {
-        domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
-        loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
-        firstPaint: window.performance.getEntriesByType('paint')[0]?.startTime,
-        firstContentfulPaint: window.performance.getEntriesByType('paint')[1]?.startTime,
-      }
-    }
-    return null
-  },
-
-  // 组件渲染性能
-  measureComponentRender: (componentName: string) => {
-    const startTime = performance.now()
-    return () => {
-      const endTime = performance.now()
-      console.log(`${componentName} render time: ${endTime - startTime}ms`)
-    }
-  },
 }
 ```
 
@@ -649,9 +533,47 @@ docker system prune -a
 docker-compose -f docker-compose.dev.yml build --no-cache
 ```
 
+## 🔄 v5.0 更新内容
+
+### 新增功能
+
+- **记忆系统**: 集成 v5.0 企业级知识管理
+- **Docker 优化**: 四阶段构建和 BuildKit 优化
+- **测试支持**: 完整的单元测试和 E2E 测试配置
+- **开发工具**: 优化的 VS Code 配置和调试设置
+
+### 改进内容
+
+- **依赖更新**: 所有依赖升级至最新稳定版本
+- **配置优化**: 环境变量配置更加清晰和完善
+- **脚本增强**: 新增 Docker 相关构建和运行脚本
+- **文档完善**: 添加详细的故障排查指南
+
+### 性能优化
+
+- **构建速度**: 优化依赖安装和构建流程
+- **开发体验**: 改进热重载和错误提示
+- **调试支持**: 完善的调试配置和工具链
+
+## 📚 相关资源
+
+### 技术文档
+
+- **Next.js 官方文档**: https://nextjs.org/docs
+- **TypeScript 手册**: https://www.typescriptlang.org/docs/
+- **Tailwind CSS**: https://tailwindcss.com/docs
+- **Docker 文档**: https://docs.docker.com/
+
+### 项目相关
+
+- **项目核心信息**: `moontv_core_project_info_v5_0.md`
+- **Docker 构建指南**: `moontv_docker_enterprise_build_guide_v5_0.md`
+- **编码规范**: `moontv_coding_standards_v5_0.md`
+- **记忆系统**: `moonTV_memory_master_index_v5_0.md`
+
 ---
 
 **文档维护**: 开发环境配置随项目更新同步  
-**最后更新**: 2025-10-09  
-**适用版本**: MoonTV v4.1.0-dev  
-**文档状态**: 生产就绪
+**最后更新**: 2025 年 10 月 09 日  
+**适用版本**: MoonTV v5.0.0-dev  
+**文档状态**: ✅ 生产就绪

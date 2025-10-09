@@ -1,0 +1,649 @@
+# =================================================================
+# MoonTV Docker Swarm 集群编排配置
+# 版本: v4.0.0 - 企业级生产部署
+# 特性: 服务发现、负载均衡、健康检查、密钥管理
+# =================================================================
+
+version: '3.8'
+
+# 网络配置
+networks:
+  # 前端网络 - 面向用户的服务
+  frontend:
+    driver: overlay
+    attachable: true
+    labels:
+      - "com.moontv.network.type=frontend"
+      - "com.moontv.network.scope=external"
+
+  # 后端网络 - 内部服务通信
+  backend:
+    driver: overlay
+    internal: true
+    attachable: true
+    labels:
+      - "com.moontv.network.type=backend"
+      - "com.moontv.network.scope=internal"
+
+  # 监控网络 - 监控和日志服务
+  monitoring:
+    driver: overlay
+    attachable: true
+    labels:
+      - "com.moontv.network.type=monitoring"
+
+# 密钥配置
+secrets:
+  # 应用密钥
+  app_password:
+    external: true
+    name: moontv_app_password_${MOONTV_ENV:-staging}
+
+  # 数据库密钥
+  redis_password:
+    external: true
+    name: moontv_redis_password_${MOONTV_ENV:-staging}
+
+  # TLS证书
+  tls_cert:
+    external: true
+    name: moontv_tls_cert_${MOONTV_ENV:-staging}
+
+  tls_key:
+    external: true
+    name: moontv_tls_key_${MOONTV_ENV:-staging}
+
+# 配置配置
+configs:
+  # 应用配置
+  app_config:
+    external: true
+    name: moontv_app_config_${MOONTV_ENV:-staging}
+
+  # Nginx配置
+  nginx_config:
+    external: true
+    name: moontv_nginx_config_${MOONTV_ENV:-staging}
+
+  # Redis配置
+  redis_config:
+    external: true
+    name: moontv_redis_config_${MOONTV_ENV:-staging}
+
+# 服务定义
+services:
+  # ==========================================
+  # MoonTV 主应用服务
+  # ==========================================
+  moontv-app:
+    image: ghcr.io/${MOONTV_REPO:-your-repo}/moontv:${MOONTV_VERSION:-latest}
+    hostname: moontv-app
+    deploy:
+      # 部署配置
+      replicas: ${MOONTV_REPLICAS:-3}
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+      # 更新配置
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0.3
+
+      # 回滚配置
+      rollback_config:
+        parallelism: 0
+        order: stop-first
+        delay: 0s
+        failure_action: pause
+        monitor: 60s
+        max_failure_ratio: 0.0
+
+      # 资源限制
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+      # 约束和标签
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.moontv.app == true
+        preferences:
+          - spread: node.labels.zone
+        max_replicas_per_node: 1
+
+      # 服务标签
+      labels:
+        - "com.moontv.service.name=moontv-app"
+        - "com.moontv.service.version=${MOONTV_VERSION:-latest}"
+        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
+        - "com.moontv.service.tier=frontend"
+        - "traefik.enable=true"
+        - "traefik.http.routers.moontv-app.rule=Host(`${MOONTV_DOMAIN:-moontv.local}`)"
+        - "traefik.http.routers.moontv-app.entrypoints=websecure"
+        - "traefik.http.routers.moontv-app.tls.certresolver=letsencrypt"
+        - "traefik.http.services.moontv-app.loadbalancer.server.port=3000"
+        - "traefik.http.services.moontv-app.loadbalancer.healthcheck.path=/api/health"
+        - "traefik.http.services.moontv-app.loadbalancer.healthcheck.interval=30s"
+
+    # 环境变量
+    environment:
+      - NODE_ENV=production
+      - DOCKER_ENV=true
+      - MOONTV_ENV=${MOONTV_ENV:-staging}
+      - NEXT_PUBLIC_SITE_NAME=${MOONTV_SITE_NAME:-MoonTV}
+      - NEXT_PUBLIC_STORAGE_TYPE=${MOONTV_STORAGE_TYPE:-redis}
+      - REDIS_URL=redis://moontv-redis:6379
+      - PASSWORD_FILE=/run/secrets/app_password
+      - TZ=Asia/Shanghai
+
+    # 密钥挂载
+    secrets:
+      - source: app_password
+        target: /run/secrets/app_password
+        mode: 0400
+
+    # 配置挂载
+    configs:
+      - source: app_config
+        target: /app/config/config.json
+        mode: 0444
+
+    # 数据卷
+    volumes:
+      - moontv_logs:/app/logs
+      - moontv_data:/app/data
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # 网络连接
+    networks:
+      - frontend
+      - backend
+      - monitoring
+
+    # 依赖服务
+    depends_on:
+      - moontv-redis
+      - moontv-nginx
+
+  # ==========================================
+  # Redis 缓存服务
+  # ==========================================
+  moontv-redis:
+    image: redis:7-alpine
+    hostname: moontv-redis
+    deploy:
+      # 部署配置
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+      # 资源限制
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+      # 约束和标签
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.moontv.storage == true
+
+      # 服务标签
+      labels:
+        - "com.moontv.service.name=moontv-redis"
+        - "com.moontv.service.version=7-alpine"
+        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
+        - "com.moontv.service.tier=backend"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+
+    # 密钥挂载
+    secrets:
+      - source: redis_password
+        target: /run/secrets/redis_password
+        mode: 0400
+
+    # 配置挂载
+    configs:
+      - source: redis_config
+        target: /usr/local/etc/redis/redis.conf
+        mode: 0444
+
+    # 数据卷
+    volumes:
+      - moontv_redis_data:/data
+
+    # 启动命令
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass-file /run/secrets/redis_password
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # 网络连接
+    networks:
+      - backend
+      - monitoring
+
+  # ==========================================
+  # Nginx 反向代理服务
+  # ==========================================
+  moontv-nginx:
+    image: nginx:alpine
+    hostname: moontv-nginx
+    deploy:
+      # 部署配置
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+      # 更新配置
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 30s
+
+      # 资源限制
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+      # 约束和标签
+      placement:
+        constraints:
+          - node.role == worker
+        preferences:
+          - spread: node.labels.zone
+
+      # 服务标签
+      labels:
+        - "com.moontv.service.name=moontv-nginx"
+        - "com.moontv.service.version=alpine"
+        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
+        - "com.moontv.service.tier=frontend"
+        - "traefik.enable=true"
+        - "traefik.http.routers.moontv-nginx.rule=Host(`${MOONTV_DOMAIN:-moontv.local}`) && PathPrefix(`/static`, `/manifest.json`, `/favicon.ico`)"
+        - "traefik.http.routers.moontv-nginx.entrypoints=websecure"
+        - "traefik.http.routers.moontv-nginx.tls.certresolver=letsencrypt"
+        - "traefik.http.services.moontv-nginx.loadbalancer.server.port=80"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+
+    # 配置挂载
+    configs:
+      - source: nginx_config
+        target: /etc/nginx/nginx.conf
+        mode: 0444
+
+    # 数据卷
+    volumes:
+      - moontv_static:/usr/share/nginx/html/static
+      - moontv_logs:/var/log/nginx
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # 网络连接
+    networks:
+      - frontend
+      - monitoring
+
+  # ==========================================
+  # Traefik 负载均衡器
+  # ==========================================
+  moontv-traefik:
+    image: traefik:v2.10
+    hostname: moontv-traefik
+    deploy:
+      # 部署配置
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+      # 资源限制
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+      # 约束和标签
+      placement:
+        constraints:
+          - node.role == manager
+
+      # 服务标签
+      labels:
+        - "com.moontv.service.name=moontv-traefik"
+        - "com.moontv.service.version=v2.10"
+        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
+        - "com.moontv.service.tier=ingress"
+
+        # Traefik配置
+        - "traefik.enable=true"
+        - "traefik.http.routers.dashboard.rule=Host(`traefik.${MOONTV_DOMAIN:-moontv.local}`)"
+        - "traefik.http.routers.dashboard.entrypoints=websecure"
+        - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.dashboard.service=api@internal"
+        - "traefik.http.routers.dashboard.middlewares=auth"
+        - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH_USERS:-admin:$$apr1$$$$hash$$}"
+
+        # 端口暴露
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+        - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
+        - "traefik.http.routers.http-catchall.entrypoints=web"
+        - "traefik.http.routers.http-catchall.middlewares=https-redirect"
+        - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+
+    # 命令行参数
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=frontend"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:-admin@moontv.local}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--global.sendAnonymousUsage=false"
+
+    # 数据卷
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - moontv_letsencrypt:/letsencrypt
+      - moontv_logs:/var/log/traefik
+
+    # 端口映射
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+
+    # 网络连接
+    networks:
+      - frontend
+      - monitoring
+
+  # ==========================================
+  # Prometheus 监控服务
+  # ==========================================
+  moontv-prometheus:
+    image: prom/prometheus:latest
+    hostname: moontv-prometheus
+    deploy:
+      # 部署配置
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+      # 资源限制
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+      # 约束和标签
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.moontv.monitoring == true
+
+      # 服务标签
+      labels:
+        - "com.moontv.service.name=moontv-prometheus"
+        - "com.moontv.service.version=latest"
+        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
+        - "com.moontv.service.tier=monitoring"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+
+    # 数据卷
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - moontv_prometheus_data:/prometheus
+
+    # 启动命令
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # 网络连接
+    networks:
+      - monitoring
+
+  # ==========================================
+  # Grafana 可视化服务
+  # ==========================================
+  moontv-grafana:
+    image: grafana/grafana:latest
+    hostname: moontv-grafana
+    deploy:
+      # 部署配置
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+      # 资源限制
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+      # 约束和标签
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.moontv.monitoring == true
+
+      # 服务标签
+      labels:
+        - "com.moontv.service.name=moontv-grafana"
+        - "com.moontv.service.version=latest"
+        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
+        - "com.moontv.service.tier=monitoring"
+        - "traefik.enable=true"
+        - "traefik.http.routers.moontv-grafana.rule=Host(`grafana.${MOONTV_DOMAIN:-moontv.local}`)"
+        - "traefik.http.routers.moontv-grafana.entrypoints=websecure"
+        - "traefik.http.routers.moontv-grafana.tls.certresolver=letsencrypt"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=redis-datasource,grafana-piechart-panel
+
+    # 数据卷
+    volumes:
+      - moontv_grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # 网络连接
+    networks:
+      - monitoring
+
+# 数据卷定义
+volumes:
+  # 应用数据卷
+  moontv_logs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER:-localhost},rw
+      device: ":/data/moontv/logs"
+
+  moontv_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER:-localhost},rw
+      device: ":/data/moontv/data"
+
+  moontv_static:
+    driver: local
+
+  # Redis 数据卷
+  moontv_redis_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER:-localhost},rw
+      device: ":/data/moontv/redis"
+
+  # Let's Encrypt 证书卷
+  moontv_letsencrypt:
+    driver: local
+
+  # 监控数据卷
+  moontv_prometheus_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER:-localhost},rw
+      device: ":/data/moontv/prometheus"
+
+  moontv_grafana_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER:-localhost},rw
+      device: ":/data/moontv/grafana"
+
+# =================================================================
+# Docker Swarm 部署说明:
+#
+# 1. 初始化 Swarm 集群:
+#    docker swarm init --advertise-addr <MANAGER-IP>
+#
+# 2. 创建网络:
+#    docker network create --driver overlay --attachable frontend
+#    docker network create --driver overlay --internal backend
+#    docker network create --driver overlay --attachable monitoring
+#
+# 3. 创建密钥:
+#    echo "your-app-password" | docker secret create moontv_app_password_staging -
+#    echo "your-redis-password" | docker secret create moontv_redis_password_staging -
+#
+# 4. 创建配置:
+#    docker config create moontv_app_config_staging config.json
+#    docker config create moontv_nginx_config_staging nginx.conf
+#    docker config create moontv_redis_config_staging redis.conf
+#
+# 5. 标记节点:
+#    docker node update --label-add moontv.app=true <WORKER-NODE>
+#    docker node update --label-add moontv.storage=true <STORAGE-NODE>
+#    docker node update --label-add moontv.monitoring=true <MONITORING-NODE>
+#
+# 6. 部署服务:
+#    export MOONTV_ENV=staging
+#    export MOONTV_VERSION=v4.0.0
+#    export MOONTV_DOMAIN=staging.moontv.com
+#    docker stack deploy -c docker-compose.swarm.yml moontv
+#
+# 7. 监控部署:
+#    docker service ls
+#    docker service logs moontv_moontv-app
+#    docker stack services moontv
+#
+# 扩展服务:
+#    docker service scale moontv_moontv-app=5
+#
+# 更新服务:
+#    docker service update --image ghcr.io/your-repo/moontv:v4.0.1 moontv_moontv-app
+#
+# 回滚服务:
+#    docker service rollback moontv_moontv-app
+#
+# =================================================================

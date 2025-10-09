@@ -1,0 +1,264 @@
+# =================================================================
+# MoonTV Kubernetes 持久卷声明配置
+# 版本: v4.0.0 - 企业级存储管理
+# =================================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moontv-redis-pvc
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Persistent storage for Redis data"
+    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# 应用日志存储PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moontv-logs-pvc
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: logs
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Persistent storage for application logs"
+    volume.beta.kubernetes.io/storage-class: "standard"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# 应用数据存储PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moontv-data-pvc
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: data
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Persistent storage for application data"
+    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# 静态资源存储PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moontv-static-pvc
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: static
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Persistent storage for static assets"
+    volume.beta.kubernetes.io/storage-class: "standard"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 15Gi
+
+---
+# 监控数据存储PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moontv-prometheus-pvc
+  namespace: moontv-monitoring
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: prometheus
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Persistent storage for Prometheus metrics"
+    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Grafana数据存储PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moontv-grafana-pvc
+  namespace: moontv-monitoring
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: grafana
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Persistent storage for Grafana data"
+    volume.beta.kubernetes.io/storage-class: "standard"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# 备份存储PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moontv-backup-pvc
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: backup
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Persistent storage for backups"
+    volume.beta.kubernetes.io/storage-class: "cold-storage"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: cold-storage
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# 临时文件存储PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moontv-temp-pvc
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: temp
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Persistent storage for temporary files"
+    volume.beta.kubernetes.io/storage-class: "standard"
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# StorageClass定义（如果集群中不存在）
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: storage-class
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Fast SSD storage class for MoonTV"
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  fsType: ext4
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+mountOptions:
+  - debug
+
+---
+# 标准存储类
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: storage-class
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Standard storage class for MoonTV"
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  iops: "1000"
+  fsType: ext4
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# 冷存储类
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cold-storage
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: storage-class
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Cold storage class for backups"
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: sc1
+  fsType: ext4
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+
+---
+# 备份策略的VolumeSnapshotClass
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: moontv-snapshot-class
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: snapshot-class
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Snapshot class for MoonTV volumes"
+    snapshot.storage.kubernetes.io/is-default-class: "true"
+driver: ebs.csi.aws.com
+deletionPolicy: Retain
+parameters:
+  description: "MoonTV volume snapshot"

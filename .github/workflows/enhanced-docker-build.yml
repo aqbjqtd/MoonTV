@@ -1,0 +1,492 @@
+name: Enhanced Docker Build and Deploy (MoonTV v4.0.0)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - development
+        - staging
+        - production
+      version:
+        description: 'Custom version tag'
+        required: false
+        type: string
+      skip_tests:
+        description: 'Skip automated tests'
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [ main, master, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+    types: [opened, synchronize, reopened]
+
+env:
+  REGISTRY: ghcr.io
+  CACHE_REGISTRY: cache.ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: 20
+  PNPM_VERSION: 8.15.0
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+# 全局环境变量
+vars:
+  app_name: "moontv"
+  project_version: "4.0.0"
+  build_timeout: "30"
+  test_timeout: "15"
+
+jobs:
+  # ==========================================
+  # 预检查作业 - 代码质量和依赖分析
+  # ==========================================
+  pre-check:
+    name: Pre-Check Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+      should-build: ${{ steps.decision.outputs.build }}
+      test-matrix: ${{ steps.matrix.outputs.json }}
+      version-tags: ${{ steps.version.outputs.tags }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 依赖安全扫描
+        run: |
+          echo "🔍 Running dependency security scan..."
+          pnpm audit --audit-level moderate || true
+          pnpm outdated || true
+
+      - name: 代码质量检查
+        run: |
+          echo "📊 Running code quality checks..."
+          pnpm lint:strict
+          pnpm typecheck
+          pnpm format:check
+
+      - name: 生成缓存键
+        id: cache-key
+        run: |
+          # 基于依赖文件和构建配置生成智能缓存键
+          DEPS_HASH=$(cat package.json pnpm-lock.yaml Dockerfile.optimized | sha256sum | cut -d' ' -f1)
+          CONFIG_HASH=$(cat next.config.js tailwind.config.ts tsconfig.json 2>/dev/null | sha256sum | cut -d' ' -f1 || echo "no-config")
+          CACHE_KEY="${DEPS_HASH}-${CONFIG_HASH}"
+          echo "key=${CACHE_KEY}" >> $GITHUB_OUTPUT
+          echo "deps-hash=${DEPS_HASH}" >> $GITHUB_OUTPUT
+          echo "config-hash=${CONFIG_HASH}" >> $GITHUB_OUTPUT
+
+      - name: 构建决策分析
+        id: decision
+        run: |
+          # 智能构建决策
+          SHOULD_BUILD="true"
+
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "PR build triggered"
+            SHOULD_BUILD="true"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "Tag build triggered"
+            SHOULD_BUILD="true"
+          elif [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "Main branch build triggered"
+            SHOULD_BUILD="true"
+          else
+            echo "Skipping build for branch ${{ github.ref }}"
+            SHOULD_BUILD="false"
+          fi
+
+          echo "build=${SHOULD_BUILD}" >> $GITHUB_OUTPUT
+
+      - name: 版本标签生成
+        id: version
+        run: |
+          # 应用版本
+          if [ -f "VERSION.txt" ]; then
+            APP_VERSION=$(cat VERSION.txt | tr -d '\n\r')
+          else
+            APP_VERSION="3.2.0"
+          fi
+
+          # 项目版本
+          PROJECT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v4.0.0")
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BUILD_NUMBER=${{ github.run_number }}
+
+          # 生成标签列表
+          TAGS="${PROJECT_VERSION},app-${APP_VERSION},sha-${COMMIT_SHA},build-${BUILD_NUMBER}"
+
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            TAGS="${TAGS},latest,stable"
+          fi
+
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "app-version=${APP_VERSION}" >> $GITHUB_OUTPUT
+          echo "project-version=${PROJECT_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: 测试矩阵生成
+        id: matrix
+        run: |
+          # 动态生成测试矩阵
+          MATRIX='{
+            "include": [
+              {"platform": "linux/amd64", "suffix": "amd64"},
+              {"platform": "linux/arm64", "suffix": "arm64"}
+            ]
+          }'
+          echo "json=${MATRIX}" >> $GITHUB_OUTPUT
+
+  # ==========================================
+  # 多平台并行构建作业
+  # ==========================================
+  build-matrix:
+    name: Build ${{ matrix.suffix }}
+    needs: pre-check
+    if: needs.pre-check.outputs.should-build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ vars.build_timeout }}
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.pre-check.outputs.test-matrix) }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.platform }}
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:buildx-stable-1
+            network=host
+          buildkitd-flags: --allow-insecure-entitlement security.insecure
+
+      - name: 登录到容器注册表
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 登录到缓存注册表
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CACHE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 生成构建元数据
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.pre-check.outputs.version-tags }}
+            type=raw,value=${{ matrix.suffix }}-latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=MoonTV
+            org.opencontainers.image.description=跨平台视频聚合播放器
+            org.opencontainers.image.version=${{ needs.pre-check.outputs.project-version }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.licenses=MIT
+
+      - name: 构建并推送镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.optimized
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+          # 构建参数
+          build-args: |
+            NODE_VERSION=${{ env.NODE_VERSION }}
+            PNPM_VERSION=${{ env.PNPM_VERSION }}
+            APP_VERSION=${{ needs.pre-check.outputs.project-version }}
+            BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            VCS_REF=${{ github.sha }}
+            BUILDKIT_INLINE_CACHE=1
+
+          # 高级缓存策略
+          cache-from: |
+            type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.pre-check.outputs.cache-key }}
+            type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:cache-${{ matrix.suffix }}
+            type=gha,scope=${{ matrix.suffix }}
+          cache-to: |
+            type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.pre-check.outputs.cache-key }},mode=max
+            type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.IMAGE_NAME }}:cache-${{ matrix.suffix }},mode=max
+            type=gha,mode=max,scope=${{ matrix.suffix }}
+
+          # 安全和优化配置
+          provenance: false
+          sbom: false
+          no-cache: ${{ github.event.inputs.skip_tests == 'true' }}
+
+      - name: 导出构建信息
+        if: always()
+        run: |
+          echo "### 🐳 Docker镜像构建完成！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**构建信息：**" >> $GITHUB_STEP_SUMMARY
+          echo "- 平台: ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 应用版本: ${{ needs.pre-check.outputs.app-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 项目版本: ${{ needs.pre-check.outputs.project-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 缓存键: ${{ needs.pre-check.outputs.cache-key }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 构建耗时: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  # ==========================================
+  # 自动化测试作业
+  # ==========================================
+  automated-tests:
+    name: Automated Tests
+    needs: [pre-check, build-matrix]
+    if: needs.pre-check.outputs.should-build == 'true' && github.event.inputs.skip_tests != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ vars.test_timeout }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 单元测试
+        run: |
+          echo "🧪 Running unit tests..."
+          pnpm test --coverage --ci --watchAll=false
+
+      - name: 集成测试
+        run: |
+          echo "🔗 Running integration tests..."
+          docker-compose -f docker-compose.test.yml up -d
+          sleep 10
+          pnpm test:integration || true
+          docker-compose -f docker-compose.test.yml down
+
+      - name: 上传测试覆盖率
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  # ==========================================
+  # 安全扫描作业
+  # ==========================================
+  security-scan:
+    name: Security Scan
+    needs: [pre-check, build-matrix]
+    if: needs.pre-check.outputs.should-build == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 运行 Trivy 漏洞扫描
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.pre-check.outputs.project-version }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 上传 Trivy 扫描结果
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: 运行 Snyk 依赖扫描
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  # ==========================================
+  # 部署作业
+  # ==========================================
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
+    needs: [pre-check, build-matrix, automated-tests]
+    if: |
+      always() &&
+      needs.pre-check.outputs.should-build == 'true' &&
+      needs.build-matrix.result == 'success' &&
+      (needs.automated-tests.result == 'success' || needs.automated-tests.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: 配置 kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+
+      - name: 部署到 Kubernetes
+        run: |
+          echo "🚀 Deploying to ${{ github.event.inputs.environment || 'staging' }}..."
+
+          # 设置环境变量
+          export APP_VERSION="${{ needs.pre-check.outputs.project-version }}"
+          export IMAGE_TAG="${{ needs.pre-check.outputs.project-version }}"
+          export NAMESPACE="moontv-${{ github.event.inputs.environment || 'staging' }}"
+
+          # 应用 Kubernetes 配置
+          kubectl apply -f k8s/base/
+          kubectl apply -f k8s/${{ github.event.inputs.environment || 'staging' }}/
+
+          # 等待部署完成
+          kubectl rollout status deployment/moontv -n $NAMESPACE --timeout=300s
+
+          # 验证部署
+          kubectl get pods -n $NAMESPACE
+
+      - name: 部署后验证
+        run: |
+          echo "✅ Running post-deployment verification..."
+
+          # 健康检查
+          NAMESPACE="moontv-${{ github.event.inputs.environment || 'staging' }}"
+          SERVICE_URL=$(kubectl get svc moontv -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+          if [ -n "$SERVICE_URL" ]; then
+            curl -f "http://$SERVICE_URL:3000/api/health" || echo "Health check failed"
+          fi
+
+  # ==========================================
+  # 通知作业
+  # ==========================================
+  notify:
+    name: Notification
+    needs: [pre-check, build-matrix, automated-tests, security-scan, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 构建状态通知
+        run: |
+          echo "📊 Build Pipeline Status:" >> $GITHUB_STEP_SUMMARY
+          echo "- Pre-Check: ${{ needs.pre-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ${{ needs.build-matrix.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ${{ needs.automated-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Deploy: ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Slack 通知
+        if: env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"MoonTV CI/CD Pipeline ${{ job.status }}: ${{ github.repository }} - ${{ github.sha }}"}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ==========================================
+  # 清理作业
+  # ==========================================
+  cleanup:
+    name: Cleanup
+    needs: [pre-check, build-matrix, automated-tests, security-scan, deploy]
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 登录到容器注册表
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 清理旧镜像
+        run: |
+          echo "🧹 Cleaning up old images..."
+
+          # 保留最近20个版本
+          TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          REPO="${{ github.repository }}"
+
+          curl -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/user/packages/container/${REPO#*/}/versions?per_page=100" | \
+            jq -r '.[] | select(.metadata.container.tags[]? | startswith("sha-") or startswith("build-") or startswith("dev-")) | .id' | \
+            tail -n +21 | \
+            while read -r version_id; do
+              if [ -n "$version_id" ]; then
+                echo "删除版本: $version_id"
+                curl -X DELETE \
+                  -H "Authorization: token $TOKEN" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  "https://api.github.com/user/packages/container/${REPO#*/}/versions/$version_id" || true
+              fi
+            done

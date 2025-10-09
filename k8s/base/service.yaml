@@ -1,0 +1,321 @@
+# =================================================================
+# MoonTV Kubernetes 服务配置
+# 版本: v4.0.0 - 企业级服务管理
+# =================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: moontv-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: app
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "MoonTV application service"
+    service.beta.kubernetes.io/load-balancer-source-ranges: "0.0.0.0/0"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: app
+  sessionAffinity: None
+
+---
+# Redis服务
+apiVersion: v1
+kind: Service
+metadata:
+  name: moontv-redis-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Redis service for MoonTV"
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: redis
+  sessionAffinity: None
+
+---
+# Nginx服务
+apiVersion: v1
+kind: Service
+metadata:
+  name: moontv-nginx-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: nginx
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Nginx service for MoonTV"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: nginx
+  sessionAffinity: None
+
+---
+# 头部服务（直接访问应用）
+apiVersion: v1
+kind: Service
+metadata:
+  name: moontv-headless-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: app
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Headless service for MoonTV application"
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: app
+  publishNotReadyAddresses: false
+
+---
+# 监控服务
+apiVersion: v1
+kind: Service
+metadata:
+  name: moontv-metrics-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Metrics service for MoonTV"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    prometheus.io/path: "/api/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 3000
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: app
+
+---
+# Redis监控服务
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-metrics-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: redis-metrics
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Redis metrics service"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9121"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9121
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: redis
+
+---
+# Nginx监控服务
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-metrics-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: nginx-metrics
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Nginx metrics service"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9113"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9113
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: nginx
+
+---
+# 外部负载均衡器服务（生产环境）
+apiVersion: v1
+kind: Service
+metadata:
+  name: moontv-loadbalancer-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: loadbalancer
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "Load balancer service for MoonTV"
+    # 云服务商特定注解
+    # AWS EKS
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+    # Azure AKS
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+
+    # Google GKE
+    cloud.google.com/load-balancer-type: "External"
+
+    # 健康检查
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTP"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "traffic-port"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "30"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "5"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "2"
+
+    # 代理协议
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+
+    # 连接排空
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "60"
+
+    # SSL证书
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+
+    # 其他注解
+    cloud.google.com/app-protocols: '{"http":"HTTP"}'
+spec:
+  type: LoadBalancer
+  # 外部流量策略
+  externalTrafficPolicy: Local
+  # 会话保持
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 80
+      protocol: TCP
+
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: nginx
+
+---
+# NodePort服务（开发/测试环境）
+apiVersion: v1
+kind: Service
+metadata:
+  name: moontv-nodeport-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: nodeport
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "NodePort service for MoonTV (development)"
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: nginx
+  sessionAffinity: None
+
+---
+# Endpoints配置（外部数据库）
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: external-redis-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: external-redis
+subsets:
+  - addresses:
+      - ip: 10.0.1.100  # 外部Redis IP
+    ports:
+      - name: redis
+        port: 6379
+        protocol: TCP
+
+---
+# 外部Redis服务
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-redis-service
+  namespace: moontv
+  labels:
+    app.kubernetes.io/name: moontv
+    app.kubernetes.io/component: external-redis
+    app.kubernetes.io/managed-by: manual
+  annotations:
+    description: "External Redis service"
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+  # 不需要selector，因为我们手动定义Endpoints
