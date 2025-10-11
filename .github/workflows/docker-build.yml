@@ -2,6 +2,17 @@ name: Docker Build and Push (Optimized)
 
 on:
   workflow_dispatch:
+    inputs:
+      version_tag:
+        description: '版本标签 (例如: v1.0.0)'
+        required: false
+        type: string
+        default: ''
+      include_latest:
+        description: 'latest标签'
+        required: false
+        type: boolean
+        default: true
   push:
     branches: [ main, master ]
     tags: [ 'v*' ]
@@ -89,6 +100,10 @@ jobs:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            # 手动触发时的标签
+            ${{ inputs.include_latest == true && 'type=raw,value=latest' || '' }}
+            ${{ inputs.version_tag != '' && format('type=raw,value={0}', inputs.version_tag) || '' }}
+
             # 主版本标签
             type=semver,pattern={{version}},value=${{ steps.build-info.outputs.project-version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.build-info.outputs.project-version }}
@@ -170,6 +185,14 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ inputs.version_tag }}" ]; then
+            echo "**版本标签：** ${{ inputs.version_tag }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ inputs.include_latest }}" == "true" ]; then
+            echo "**包含latest标签：** 是" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**包含latest标签：** 否" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: 运行安全扫描
         if: github.event_name != 'pull_request'
