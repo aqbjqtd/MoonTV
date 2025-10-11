@@ -1472,7 +1472,14 @@ const ConfigFileComponent = ({ config, refreshConfig }: { config: AdminConfig | 
 
   useEffect(() => {
     if (config?.ConfigFile) {
-      setConfigContent(config.ConfigFile);
+      try {
+        // 解析 JSON 并格式化显示
+        const parsedConfig = JSON.parse(config.ConfigFile);
+        setConfigContent(JSON.stringify(parsedConfig, null, 2));
+      } catch (e) {
+        // 如果解析失败，直接显示原始内容
+        setConfigContent(config.ConfigFile);
+      }
     }
   }, [config]);
 
@@ -1482,10 +1489,20 @@ const ConfigFileComponent = ({ config, refreshConfig }: { config: AdminConfig | 
   const handleSave = async () => {
     try {
       setSaving(true);
+      
+      // 验证并格式化 JSON
+      let formattedConfig;
+      try {
+        const parsedConfig = JSON.parse(configContent);
+        formattedConfig = JSON.stringify(parsedConfig, null, 2);
+      } catch (e) {
+        throw new Error('配置文件格式错误，请检查 JSON 语法');
+      }
+      
       const resp = await fetch('/api/admin/config_file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ configFile: configContent }),
+        body: JSON.stringify({ configFile: formattedConfig }),
       });
 
       if (!resp.ok) {
