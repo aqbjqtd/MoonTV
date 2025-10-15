@@ -20,7 +20,7 @@ function ensureStringArray(value: any[]): string[] {
 // 添加Redis操作重试包装器
 async function withRetry<T>(
   operation: () => Promise<T>,
-  maxRetries = 3
+  maxRetries = 3,
 ): Promise<T> {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -36,7 +36,7 @@ async function withRetry<T>(
 
       if (isConnectionError && !isLastAttempt) {
         console.log(
-          `Redis operation failed, retrying... (${i + 1}/${maxRetries})`
+          `Redis operation failed, retrying... (${i + 1}/${maxRetries})`,
         );
         console.error('Error:', err.message);
 
@@ -77,10 +77,10 @@ export class RedisStorage implements IStorage {
 
   async getPlayRecord(
     userName: string,
-    key: string
+    key: string,
   ): Promise<PlayRecord | null> {
     const val = await withRetry(() =>
-      this.client.get(this.prKey(userName, key))
+      this.client.get(this.prKey(userName, key)),
     );
     return val ? (JSON.parse(val) as PlayRecord) : null;
   }
@@ -88,15 +88,15 @@ export class RedisStorage implements IStorage {
   async setPlayRecord(
     userName: string,
     key: string,
-    record: PlayRecord
+    record: PlayRecord,
   ): Promise<void> {
     await withRetry(() =>
-      this.client.set(this.prKey(userName, key), JSON.stringify(record))
+      this.client.set(this.prKey(userName, key), JSON.stringify(record)),
     );
   }
 
   async getAllPlayRecords(
-    userName: string
+    userName: string,
   ): Promise<Record<string, PlayRecord>> {
     const pattern = `u:${userName}:pr:*`;
     const keys: string[] = await withRetry(() => this.client.keys(pattern));
@@ -126,7 +126,7 @@ export class RedisStorage implements IStorage {
 
   async getFavorite(userName: string, key: string): Promise<Favorite | null> {
     const val = await withRetry(() =>
-      this.client.get(this.favKey(userName, key))
+      this.client.get(this.favKey(userName, key)),
     );
     return val ? (JSON.parse(val) as Favorite) : null;
   }
@@ -134,10 +134,10 @@ export class RedisStorage implements IStorage {
   async setFavorite(
     userName: string,
     key: string,
-    favorite: Favorite
+    favorite: Favorite,
   ): Promise<void> {
     await withRetry(() =>
-      this.client.set(this.favKey(userName, key), JSON.stringify(favorite))
+      this.client.set(this.favKey(userName, key), JSON.stringify(favorite)),
     );
   }
 
@@ -174,7 +174,7 @@ export class RedisStorage implements IStorage {
 
   async verifyUser(userName: string, password: string): Promise<boolean> {
     const stored = await withRetry(() =>
-      this.client.get(this.userPwdKey(userName))
+      this.client.get(this.userPwdKey(userName)),
     );
     if (stored === null) return false;
     // 确保比较时都是字符串类型
@@ -185,7 +185,7 @@ export class RedisStorage implements IStorage {
   async checkUserExist(userName: string): Promise<boolean> {
     // 使用 EXISTS 判断 key 是否存在
     const exists = await withRetry(() =>
-      this.client.exists(this.userPwdKey(userName))
+      this.client.exists(this.userPwdKey(userName)),
     );
     return exists === 1;
   }
@@ -194,7 +194,7 @@ export class RedisStorage implements IStorage {
   async changePassword(userName: string, newPassword: string): Promise<void> {
     // 简单存储明文密码，生产环境应加密
     await withRetry(() =>
-      this.client.set(this.userPwdKey(userName), newPassword)
+      this.client.set(this.userPwdKey(userName), newPassword),
     );
   }
 
@@ -209,7 +209,7 @@ export class RedisStorage implements IStorage {
     // 删除播放记录
     const playRecordPattern = `u:${userName}:pr:*`;
     const playRecordKeys = await withRetry(() =>
-      this.client.keys(playRecordPattern)
+      this.client.keys(playRecordPattern),
     );
     if (playRecordKeys.length > 0) {
       await withRetry(() => this.client.del(playRecordKeys));
@@ -218,7 +218,7 @@ export class RedisStorage implements IStorage {
     // 删除收藏夹
     const favoritePattern = `u:${userName}:fav:*`;
     const favoriteKeys = await withRetry(() =>
-      this.client.keys(favoritePattern)
+      this.client.keys(favoritePattern),
     );
     if (favoriteKeys.length > 0) {
       await withRetry(() => this.client.del(favoriteKeys));
@@ -227,7 +227,7 @@ export class RedisStorage implements IStorage {
     // 删除跳过片头片尾配置
     const skipConfigPattern = `u:${userName}:skip:*`;
     const skipConfigKeys = await withRetry(() =>
-      this.client.keys(skipConfigPattern)
+      this.client.keys(skipConfigPattern),
     );
     if (skipConfigKeys.length > 0) {
       await withRetry(() => this.client.del(skipConfigKeys));
@@ -241,7 +241,7 @@ export class RedisStorage implements IStorage {
 
   async getSearchHistory(userName: string): Promise<string[]> {
     const result = await withRetry(() =>
-      this.client.lRange(this.shKey(userName), 0, -1)
+      this.client.lRange(this.shKey(userName), 0, -1),
     );
     // 确保返回的都是字符串类型
     return ensureStringArray(result as any[]);
@@ -289,7 +289,7 @@ export class RedisStorage implements IStorage {
 
   async setAdminConfig(config: AdminConfig): Promise<void> {
     await withRetry(() =>
-      this.client.set(this.adminConfigKey(), JSON.stringify(config))
+      this.client.set(this.adminConfigKey(), JSON.stringify(config)),
     );
   }
 
@@ -301,10 +301,10 @@ export class RedisStorage implements IStorage {
   async getSkipConfig(
     userName: string,
     source: string,
-    id: string
+    id: string,
   ): Promise<SkipConfig | null> {
     const val = await withRetry(() =>
-      this.client.get(this.skipConfigKey(userName, source, id))
+      this.client.get(this.skipConfigKey(userName, source, id)),
     );
     return val ? (JSON.parse(val) as SkipConfig) : null;
   }
@@ -313,28 +313,28 @@ export class RedisStorage implements IStorage {
     userName: string,
     source: string,
     id: string,
-    config: SkipConfig
+    config: SkipConfig,
   ): Promise<void> {
     await withRetry(() =>
       this.client.set(
         this.skipConfigKey(userName, source, id),
-        JSON.stringify(config)
-      )
+        JSON.stringify(config),
+      ),
     );
   }
 
   async deleteSkipConfig(
     userName: string,
     source: string,
-    id: string
+    id: string,
   ): Promise<void> {
     await withRetry(() =>
-      this.client.del(this.skipConfigKey(userName, source, id))
+      this.client.del(this.skipConfigKey(userName, source, id)),
     );
   }
 
   async getAllSkipConfigs(
-    userName: string
+    userName: string,
   ): Promise<{ [key: string]: SkipConfig }> {
     const pattern = `u:${userName}:skip:*`;
     const keys = await withRetry(() => this.client.keys(pattern));

@@ -64,7 +64,7 @@ export function refineConfig(adminConfig: AdminConfig): AdminConfig {
   // 合并文件中的源信息
   const apiSiteEntries = Object.entries(fileConfig.api_site || []);
   const sourceConfigMap = new Map(
-    (adminConfig.SourceConfig || []).map((s) => [s.key, s])
+    (adminConfig.SourceConfig || []).map((s) => [s.key, s]),
   );
 
   apiSiteEntries.forEach(([key, site]) => {
@@ -102,7 +102,7 @@ export function refineConfig(adminConfig: AdminConfig): AdminConfig {
   // 覆盖 CustomCategories
   const customCategories = fileConfig.custom_category || [];
   const customCategoriesMap = new Map(
-    (adminConfig.CustomCategories || []).map((c) => [c.query + c.type, c])
+    (adminConfig.CustomCategories || []).map((c) => [c.query + c.type, c]),
   );
 
   customCategories.forEach((category) => {
@@ -126,7 +126,7 @@ export function refineConfig(adminConfig: AdminConfig): AdminConfig {
 
   // 检查现有 CustomCategories 是否在 fileConfig.custom_category 中，如果不在则标记为 custom
   const customCategoriesKeys = new Set(
-    customCategories.map((c) => c.query + c.type)
+    customCategories.map((c) => c.query + c.type),
   );
   customCategoriesMap.forEach((category) => {
     if (!customCategoriesKeys.has(category.query + category.type)) {
@@ -170,7 +170,7 @@ async function initConfig() {
     } catch (error) {
       console.error(
         'Failed to load dynamic config, falling back to runtime config:',
-        error
+        error,
       );
       // 确保runtimeConfig是有效的对象结构
       fileConfig =
@@ -232,7 +232,7 @@ async function initConfig() {
 
         // 补全 SourceConfig
         const sourceConfigMap = new Map(
-          (adminConfig.SourceConfig || []).map((s) => [s.key, s])
+          (adminConfig.SourceConfig || []).map((s) => [s.key, s]),
         );
 
         apiSiteEntries.forEach(([key, site]) => {
@@ -264,7 +264,7 @@ async function initConfig() {
 
         // 补全 CustomCategories
         const customCategoriesMap = new Map(
-          adminConfig.CustomCategories.map((c) => [c.query + c.type, c])
+          adminConfig.CustomCategories.map((c) => [c.query + c.type, c]),
         );
 
         customCategories.forEach((category) => {
@@ -279,7 +279,7 @@ async function initConfig() {
 
         // 检查现有 CustomCategories 是否在 fileConfig.custom_category 中，如果不在则标记为 custom
         const customCategoriesKeys = new Set(
-          customCategories.map((c) => c.query + c.type)
+          customCategories.map((c) => c.query + c.type),
         );
         customCategoriesMap.forEach((category) => {
           if (!customCategoriesKeys.has(category.query + category.type)) {
@@ -291,7 +291,7 @@ async function initConfig() {
         adminConfig.CustomCategories = Array.from(customCategoriesMap.values());
 
         const existedUsers = new Set(
-          (adminConfig.UserConfig.Users || []).map((u) => u.username)
+          (adminConfig.UserConfig.Users || []).map((u) => u.username),
         );
         userNames.forEach((uname) => {
           if (!existedUsers.has(uname)) {
@@ -305,7 +305,7 @@ async function initConfig() {
         const ownerUser = process.env.USERNAME;
         if (ownerUser) {
           adminConfig!.UserConfig.Users = adminConfig!.UserConfig.Users.filter(
-            (u) => u.username !== ownerUser
+            (u) => u.username !== ownerUser,
           );
           adminConfig!.UserConfig.Users.unshift({
             username: ownerUser,
@@ -357,29 +357,33 @@ async function initConfig() {
               process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE || 'direct',
             DoubanImageProxy: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '',
             DisableYellowFilter:
-          process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
-        TVBoxEnabled: false,
-        TVBoxPassword: '',
+              process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
+            TVBoxEnabled: false,
+            TVBoxPassword: '',
           },
           UserConfig: {
             AllowRegister: process.env.NEXT_PUBLIC_ENABLE_REGISTER === 'true',
             Users: allUsers as any,
           },
-          SourceConfig: Object.entries(fileConfig.api_site || {}).map(([key, site]) => ({
-            key,
-            name: site.name,
-            api: site.api,
-            detail: site.detail,
-            from: 'config',
-            disabled: false,
-          })),
-          CustomCategories: (fileConfig.custom_category || []).map((category) => ({
-            name: category.name,
-            type: category.type,
-            query: category.query,
-            from: 'config',
-            disabled: false,
-          })),
+          SourceConfig: Object.entries(fileConfig.api_site || {}).map(
+            ([key, site]) => ({
+              key,
+              name: site.name,
+              api: site.api,
+              detail: site.detail,
+              from: 'config',
+              disabled: false,
+            }),
+          ),
+          CustomCategories: (fileConfig.custom_category || []).map(
+            (category) => ({
+              name: category.name,
+              type: category.type,
+              query: category.query,
+              from: 'config',
+              disabled: false,
+            }),
+          ),
         };
       }
 
@@ -435,7 +439,10 @@ async function initConfig() {
         DoubanImageProxy: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '',
         DisableYellowFilter:
           process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
-        TVBoxEnabled: process.env.TVBOX_ENABLED == null ? true : process.env.TVBOX_ENABLED === 'true',
+        TVBoxEnabled:
+          process.env.TVBOX_ENABLED == null
+            ? true
+            : process.env.TVBOX_ENABLED === 'true',
         TVBoxPassword: process.env.PASSWORD || '',
       },
       UserConfig: {
@@ -579,7 +586,7 @@ export async function getConfig(): Promise<AdminConfig> {
     // 合并文件中的源信息
     const apiSiteEntries = Object.entries(fileConfig.api_site || []);
     const sourceConfigMap = new Map(
-      (adminConfig.SourceConfig || []).map((s) => [s.key, s])
+      (adminConfig.SourceConfig || []).map((s) => [s.key, s]),
     );
 
     apiSiteEntries.forEach(([key, site]) => {
@@ -617,7 +624,7 @@ export async function getConfig(): Promise<AdminConfig> {
     // 覆盖 CustomCategories - 只覆盖 from 为 config 的项
     const customCategories = fileConfig.custom_category || [];
     const customCategoriesMap = new Map(
-      (adminConfig.CustomCategories || []).map((c) => [c.query + c.type, c])
+      (adminConfig.CustomCategories || []).map((c) => [c.query + c.type, c]),
     );
 
     customCategories.forEach((category) => {
@@ -646,7 +653,7 @@ export async function getConfig(): Promise<AdminConfig> {
 
     // 检查现有分类是否在 fileConfig.custom_category 中，如果不在则标记为 custom
     const customCategoryKeys = new Set(
-      customCategories.map((c) => c.query + c.type)
+      customCategories.map((c) => c.query + c.type),
     );
     customCategoriesMap.forEach((category) => {
       if (!customCategoryKeys.has(category.query + category.type)) {
@@ -723,7 +730,7 @@ export async function resetConfig() {
     } catch (error) {
       console.error(
         'Failed to load dynamic config, falling back to runtime config:',
-        error
+        error,
       );
       // 确保runtimeConfig是有效的对象结构
       fileConfig =
@@ -770,7 +777,10 @@ export async function resetConfig() {
       DoubanImageProxy: process.env.NEXT_PUBLIC_DOUBAN_IMAGE_PROXY || '',
       DisableYellowFilter:
         process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true',
-      TVBoxEnabled: process.env.TVBOX_ENABLED == null ? true : process.env.TVBOX_ENABLED === 'true',
+      TVBoxEnabled:
+        process.env.TVBOX_ENABLED == null
+          ? true
+          : process.env.TVBOX_ENABLED === 'true',
       TVBoxPassword: process.env.PASSWORD || '',
     },
     UserConfig: {

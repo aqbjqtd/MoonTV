@@ -53,7 +53,7 @@ export async function GET() {
           Pragma: 'no-cache',
           Expires: '0',
         },
-      }
+      },
     );
   } catch (error) {
     console.error('[Health Check] Error:', error);
@@ -70,7 +70,7 @@ export async function GET() {
           Pragma: 'no-cache',
           Expires: '0',
         },
-      }
+      },
     );
   }
 }

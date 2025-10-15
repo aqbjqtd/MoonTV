@@ -37,7 +37,7 @@ function SearchPageClient() {
     { name: string; key: string; error: string }[]
   >([]);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<string | null>(
-    null
+    null,
   );
   const historyRef = useRef<HTMLDivElement>(null);
   const [hasResetOnEmptyParams, setHasResetOnEmptyParams] = useState(true);
@@ -86,7 +86,7 @@ function SearchPageClient() {
       return sf === 'sources' || sf === 'episodes' || sf === 'year'
         ? sf
         : 'sources';
-    }
+    },
   );
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
     const so = searchParams.get('order');
@@ -220,7 +220,7 @@ function SearchPageClient() {
 
     const compare = (
       a: [string, SearchResult[]],
-      b: [string, SearchResult[]]
+      b: [string, SearchResult[]],
     ) => {
       const aVal = valueOf(a[1]);
       const bVal = valueOf(b[1]);
@@ -351,7 +351,7 @@ function SearchPageClient() {
     getSearchHistory().then(setSearchHistory);
     const unsubscribe = subscribeToDataUpdates(
       'searchHistoryUpdated',
-      setSearchHistory
+      setSearchHistory,
     );
     const handleScroll = () => {
       setShowBackToTop((document.body.scrollTop || 0) > 300);
@@ -367,7 +367,7 @@ function SearchPageClient() {
   const currentQuery = useMemo(() => searchParams.get('q'), [searchParams]);
   const currentSources = useMemo(
     () => searchParams.get('sources'),
-    [searchParams]
+    [searchParams],
   );
 
   // 同步搜索源配置（当 sources 参数变化时）
@@ -525,13 +525,13 @@ function SearchPageClient() {
 
   // 生成筛选选项
   const sourceOptions = Array.from(
-    new Set(searchResults.map((r) => r.source_name))
+    new Set(searchResults.map((r) => r.source_name)),
   ).sort();
   const titleOptions = Array.from(
-    new Set(searchResults.map((r) => r.title))
+    new Set(searchResults.map((r) => r.title)),
   ).sort();
   const yearOptions = Array.from(
-    new Set(searchResults.map((r) => r.year))
+    new Set(searchResults.map((r) => r.year)),
   ).sort();
 
   // 处理排序字段变化的包装函数
@@ -773,7 +773,7 @@ function SearchPageClient() {
                             </div>
                           );
                         }
-                      }
+                      },
                     )}
                   </div>
                 </div>

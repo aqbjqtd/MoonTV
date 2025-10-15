@@ -37,7 +37,7 @@ export default function SearchSuggestions({
     try {
       const response = await fetch(
         `/api/search/suggestions?q=${encodeURIComponent(searchQuery)}`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
 
       if (!response.body) return;
@@ -66,7 +66,7 @@ export default function SearchSuggestions({
                 ...parsed.suggestions.map(
                   (s: { text: string; type?: string }) => ({
                     text: s.text,
-                  })
+                  }),
                 ),
               ]);
             }
@@ -86,7 +86,7 @@ export default function SearchSuggestions({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedEnableSearchSuggestions = localStorage.getItem(
-        'enableSearchSuggestions'
+        'enableSearchSuggestions',
       );
       if (savedEnableSearchSuggestions !== null) {
         setIsEnabled(savedEnableSearchSuggestions === 'true');
@@ -107,7 +107,7 @@ export default function SearchSuggestions({
       return () => {
         window.removeEventListener(
           'searchSettingsChanged',
-          handleSettingsChange
+          handleSettingsChange,
         );
       };
     }
@@ -127,7 +127,7 @@ export default function SearchSuggestions({
         }
       }, 300);
     },
-    [isVisible, isEnabled, fetchSuggestionsFromAPI]
+    [isVisible, isEnabled, fetchSuggestionsFromAPI],
   );
 
   useEffect(() => {
@@ -153,13 +153,13 @@ export default function SearchSuggestions({
         case 'ArrowDown':
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev < suggestions.length - 1 ? prev + 1 : 0
+            prev < suggestions.length - 1 ? prev + 1 : 0,
           );
           break;
         case 'ArrowUp':
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev > 0 ? prev - 1 : suggestions.length - 1
+            prev > 0 ? prev - 1 : suggestions.length - 1,
           );
           break;
         case 'Enter':

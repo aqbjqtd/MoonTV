@@ -13,8 +13,8 @@ metadata:
     app.kubernetes.io/component: redis
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Persistent storage for Redis data"
-    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+    description: 'Persistent storage for Redis data'
+    volume.beta.kubernetes.io/storage-class: 'fast-ssd'
 spec:
   accessModes:
     - ReadWriteOnce
@@ -35,8 +35,8 @@ metadata:
     app.kubernetes.io/component: logs
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Persistent storage for application logs"
-    volume.beta.kubernetes.io/storage-class: "standard"
+    description: 'Persistent storage for application logs'
+    volume.beta.kubernetes.io/storage-class: 'standard'
 spec:
   accessModes:
     - ReadWriteMany
@@ -57,8 +57,8 @@ metadata:
     app.kubernetes.io/component: data
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Persistent storage for application data"
-    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+    description: 'Persistent storage for application data'
+    volume.beta.kubernetes.io/storage-class: 'fast-ssd'
 spec:
   accessModes:
     - ReadWriteOnce
@@ -79,8 +79,8 @@ metadata:
     app.kubernetes.io/component: static
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Persistent storage for static assets"
-    volume.beta.kubernetes.io/storage-class: "standard"
+    description: 'Persistent storage for static assets'
+    volume.beta.kubernetes.io/storage-class: 'standard'
 spec:
   accessModes:
     - ReadWriteMany
@@ -101,8 +101,8 @@ metadata:
     app.kubernetes.io/component: prometheus
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Persistent storage for Prometheus metrics"
-    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+    description: 'Persistent storage for Prometheus metrics'
+    volume.beta.kubernetes.io/storage-class: 'fast-ssd'
 spec:
   accessModes:
     - ReadWriteOnce
@@ -123,8 +123,8 @@ metadata:
     app.kubernetes.io/component: grafana
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Persistent storage for Grafana data"
-    volume.beta.kubernetes.io/storage-class: "standard"
+    description: 'Persistent storage for Grafana data'
+    volume.beta.kubernetes.io/storage-class: 'standard'
 spec:
   accessModes:
     - ReadWriteOnce
@@ -145,8 +145,8 @@ metadata:
     app.kubernetes.io/component: backup
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Persistent storage for backups"
-    volume.beta.kubernetes.io/storage-class: "cold-storage"
+    description: 'Persistent storage for backups'
+    volume.beta.kubernetes.io/storage-class: 'cold-storage'
 spec:
   accessModes:
     - ReadWriteMany
@@ -167,8 +167,8 @@ metadata:
     app.kubernetes.io/component: temp
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Persistent storage for temporary files"
-    volume.beta.kubernetes.io/storage-class: "standard"
+    description: 'Persistent storage for temporary files'
+    volume.beta.kubernetes.io/storage-class: 'standard'
 spec:
   accessModes:
     - ReadWriteMany
@@ -188,13 +188,13 @@ metadata:
     app.kubernetes.io/component: storage-class
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Fast SSD storage class for MoonTV"
-    storageclass.kubernetes.io/is-default-class: "false"
+    description: 'Fast SSD storage class for MoonTV'
+    storageclass.kubernetes.io/is-default-class: 'false'
 provisioner: kubernetes.io/aws-ebs
 parameters:
   type: gp3
-  iops: "3000"
-  throughput: "125"
+  iops: '3000'
+  throughput: '125'
   fsType: ext4
 allowVolumeExpansion: true
 reclaimPolicy: Retain
@@ -213,12 +213,12 @@ metadata:
     app.kubernetes.io/component: storage-class
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Standard storage class for MoonTV"
-    storageclass.kubernetes.io/is-default-class: "true"
+    description: 'Standard storage class for MoonTV'
+    storageclass.kubernetes.io/is-default-class: 'true'
 provisioner: kubernetes.io/aws-ebs
 parameters:
   type: gp2
-  iops: "1000"
+  iops: '1000'
   fsType: ext4
 allowVolumeExpansion: true
 reclaimPolicy: Delete
@@ -235,8 +235,8 @@ metadata:
     app.kubernetes.io/component: storage-class
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Cold storage class for backups"
-    storageclass.kubernetes.io/is-default-class: "false"
+    description: 'Cold storage class for backups'
+    storageclass.kubernetes.io/is-default-class: 'false'
 provisioner: kubernetes.io/aws-ebs
 parameters:
   type: sc1
@@ -256,9 +256,9 @@ metadata:
     app.kubernetes.io/component: snapshot-class
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Snapshot class for MoonTV volumes"
-    snapshot.storage.kubernetes.io/is-default-class: "true"
+    description: 'Snapshot class for MoonTV volumes'
+    snapshot.storage.kubernetes.io/is-default-class: 'true'
 driver: ebs.csi.aws.com
 deletionPolicy: Retain
 parameters:
-  description: "MoonTV volume snapshot"
+  description: 'MoonTV volume snapshot'

@@ -10,12 +10,12 @@ metadata:
   namespace: moontv
   labels:
     app.kubernetes.io/name: moontv
-    app.kubernetes.io/version: "4.0.0"
+    app.kubernetes.io/version: '4.0.0'
     app.kubernetes.io/component: config
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "MoonTV application configuration"
-    config-version: "v4.0.0"
+    description: 'MoonTV application configuration'
+    config-version: 'v4.0.0'
 data:
   # 应用配置文件
   config.json: |

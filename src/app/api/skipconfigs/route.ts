@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (config.UserConfig.Users) {
       // 检查用户是否被封禁
       const user = config.UserConfig.Users.find(
-        (u) => u.username === authInfo.username
+        (u) => u.username === authInfo.username,
       );
       if (user && user.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     console.error('获取跳过片头片尾配置失败:', error);
     return NextResponse.json(
       { error: '获取跳过片头片尾配置失败' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (adminConfig.UserConfig.Users) {
       // 检查用户是否被封禁
       const user = adminConfig.UserConfig.Users.find(
-        (u) => u.username === authInfo.username
+        (u) => u.username === authInfo.username,
       );
       if (user && user.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     console.error('保存跳过片头片尾配置失败:', error);
     return NextResponse.json(
       { error: '保存跳过片头片尾配置失败' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -110,7 +110,7 @@ export async function DELETE(request: NextRequest) {
     if (adminConfig.UserConfig.Users) {
       // 检查用户是否被封禁
       const user = adminConfig.UserConfig.Users.find(
-        (u) => u.username === authInfo.username
+        (u) => u.username === authInfo.username,
       );
       if (user && user.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -137,7 +137,7 @@ export async function DELETE(request: NextRequest) {
     console.error('删除跳过片头片尾配置失败:', error);
     return NextResponse.json(
       { error: '删除跳过片头片尾配置失败' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

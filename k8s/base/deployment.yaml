@@ -10,12 +10,12 @@ metadata:
   namespace: moontv
   labels:
     app.kubernetes.io/name: moontv
-    app.kubernetes.io/version: "4.0.0"
+    app.kubernetes.io/version: '4.0.0'
     app.kubernetes.io/component: app
     app.kubernetes.io/managed-by: manual
   annotations:
-    deployment.kubernetes.io/revision: "1"
-    description: "MoonTV application deployment"
+    deployment.kubernetes.io/revision: '1'
+    description: 'MoonTV application deployment'
 spec:
   replicas: 3
   strategy:
@@ -31,13 +31,13 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: moontv
-        app.kubernetes.io/version: "4.0.0"
+        app.kubernetes.io/version: '4.0.0'
         app.kubernetes.io/component: app
         app.kubernetes.io/managed-by: manual
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "3000"
-        prometheus.io/path: "/api/metrics"
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '3000'
+        prometheus.io/path: '/api/metrics'
     spec:
       # 安全上下文
       securityContext:
@@ -68,11 +68,11 @@ spec:
               echo "Redis is ready"
           resources:
             requests:
-              memory: "64Mi"
-              cpu: "50m"
+              memory: '64Mi'
+              cpu: '50m'
             limits:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: '128Mi'
+              cpu: '100m'
 
       # 应用容器
       containers:
@@ -90,21 +90,21 @@ spec:
           env:
             # 基础配置
             - name: NODE_ENV
-              value: "production"
+              value: 'production'
             - name: DOCKER_ENV
-              value: "true"
+              value: 'true'
             - name: TZ
-              value: "Asia/Shanghai"
+              value: 'Asia/Shanghai'
 
             # 应用配置
             - name: NEXT_PUBLIC_SITE_NAME
-              value: "MoonTV"
+              value: 'MoonTV'
             - name: NEXT_PUBLIC_STORAGE_TYPE
-              value: "redis"
+              value: 'redis'
 
             # 数据库配置
             - name: REDIS_URL
-              value: "redis://moontv-redis-service:6379"
+              value: 'redis://moontv-redis-service:6379'
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -125,11 +125,11 @@ spec:
 
             # 构建信息
             - name: APP_VERSION
-              value: "4.0.0"
+              value: '4.0.0'
             - name: BUILD_DATE
-              value: "2025-10-08T00:00:00Z"
+              value: '2025-10-08T00:00:00Z'
             - name: VCS_REF
-              value: "v4.0.0"
+              value: 'v4.0.0'
 
             # 第三方服务
             - name: UPSTASH_URL
@@ -153,11 +153,11 @@ spec:
           # 资源配置
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "250m"
+              memory: '512Mi'
+              cpu: '250m'
             limits:
-              memory: "1Gi"
-              cpu: "500m"
+              memory: '1Gi'
+              cpu: '500m'
 
           # 健康检查
           startupProbe:
@@ -215,7 +215,8 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: ["/bin/sh", "-c", "echo 'Pod is terminating' && sleep 15"]
+                command:
+                  ['/bin/sh', '-c', "echo 'Pod is terminating' && sleep 15"]
 
         # Redis容器（Sidecar模式 - 可选）
         - name: redis-sidecar
@@ -223,9 +224,9 @@ spec:
           command:
             - redis-server
             - --save
-            - ""
+            - ''
             - --appendonly
-            - "no"
+            - 'no'
           env:
             - name: REDIS_PASSWORD
               valueFrom:
@@ -238,11 +239,11 @@ spec:
               protocol: TCP
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: '128Mi'
+              cpu: '100m'
             limits:
-              memory: "256Mi"
-              cpu: "200m"
+              memory: '256Mi'
+              cpu: '200m'
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -277,10 +278,10 @@ spec:
 
       # 容忍度
       tolerations:
-        - key: "dedicated"
-          operator: "Equal"
-          value: "moontv"
-          effect: "NoSchedule"
+        - key: 'dedicated'
+          operator: 'Equal'
+          value: 'moontv'
+          effect: 'NoSchedule'
 
       # 亲和性
       affinity:
@@ -321,9 +322,9 @@ spec:
         app.kubernetes.io/name: moontv
         app.kubernetes.io/component: redis
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9121"
-        prometheus.io/path: "/metrics"
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9121'
+        prometheus.io/path: '/metrics'
     spec:
       securityContext:
         runAsUser: 999
@@ -342,14 +343,14 @@ spec:
               protocol: TCP
           env:
             - name: TZ
-              value: "Asia/Shanghai"
+              value: 'Asia/Shanghai'
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
+              memory: '256Mi'
+              cpu: '100m'
             limits:
-              memory: "512Mi"
-              cpu: "200m"
+              memory: '512Mi'
+              cpu: '200m'
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -393,7 +394,7 @@ spec:
               protocol: TCP
           env:
             - name: REDIS_ADDR
-              value: "redis://localhost:6379"
+              value: 'redis://localhost:6379'
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -401,11 +402,11 @@ spec:
                   key: password
           resources:
             requests:
-              memory: "64Mi"
-              cpu: "50m"
+              memory: '64Mi'
+              cpu: '50m'
             limits:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: '128Mi'
+              cpu: '100m'
 
       volumes:
         - name: redis-config
@@ -449,9 +450,9 @@ spec:
         app.kubernetes.io/name: moontv
         app.kubernetes.io/component: nginx
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9113"
-        prometheus.io/path: "/metrics"
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9113'
+        prometheus.io/path: '/metrics'
     spec:
       securityContext:
         runAsUser: 101
@@ -467,11 +468,11 @@ spec:
               protocol: TCP
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: '128Mi'
+              cpu: '100m'
             limits:
-              memory: "256Mi"
-              cpu: "200m"
+              memory: '256Mi'
+              cpu: '200m'
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -516,20 +517,20 @@ spec:
               protocol: TCP
           env:
             - name: NGINX_SCHEME
-              value: "http"
+              value: 'http'
             - name: NGINX_HOST
-              value: "localhost"
+              value: 'localhost'
             - name: NGINX_PORT
-              value: "80"
+              value: '80'
             - name: NGINX_METRICS_PATH
-              value: "/metrics"
+              value: '/metrics'
           resources:
             requests:
-              memory: "64Mi"
-              cpu: "50m"
+              memory: '64Mi'
+              cpu: '50m'
             limits:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: '128Mi'
+              cpu: '100m'
 
       volumes:
         - name: nginx-config
@@ -560,7 +561,7 @@ metadata:
     app.kubernetes.io/component: service-account
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Service account for MoonTV application"
+    description: 'Service account for MoonTV application'
 automountServiceAccountToken: true
 
 ---
@@ -575,15 +576,15 @@ metadata:
     app.kubernetes.io/component: rbac
     app.kubernetes.io/managed-by: manual
 rules:
-  - apiGroups: [""]
-    resources: ["configmaps", "secrets"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list", "watch"]
+  - apiGroups: ['']
+    resources: ['configmaps', 'secrets']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['']
+    resources: ['pods']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['apps']
+    resources: ['deployments']
+    verbs: ['get', 'list', 'watch']
 
 ---
 # 角色绑定

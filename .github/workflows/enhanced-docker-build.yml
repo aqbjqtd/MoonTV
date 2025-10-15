@@ -9,9 +9,9 @@ on:
         default: 'staging'
         type: choice
         options:
-        - development
-        - staging
-        - production
+          - development
+          - staging
+          - production
       version:
         description: 'Custom version tag'
         required: false
@@ -22,10 +22,10 @@ on:
         default: false
         type: boolean
   push:
-    branches: [ main, master, develop ]
-    tags: [ 'v*' ]
+    branches: [main, master, develop]
+    tags: ['v*']
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
     types: [opened, synchronize, reopened]
 
 env:
@@ -39,10 +39,10 @@ env:
 
 # 全局环境变量
 vars:
-  app_name: "moontv"
-  project_version: "4.0.0"
-  build_timeout: "30"
-  test_timeout: "15"
+  app_name: 'moontv'
+  project_version: '4.0.0'
+  build_timeout: '30'
+  test_timeout: '15'
 
 jobs:
   # ==========================================

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       {
         error: '不支持本地存储进行管理员配置',
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     // 权限与身份校验
     if (username !== process.env.USERNAME) {
       const userEntry = adminConfig.UserConfig.Users.find(
-        (u) => u.username === username
+        (u) => u.username === username,
       );
       if (!userEntry || userEntry.role !== 'admin' || userEntry.banned) {
         return NextResponse.json({ error: '权限不足' }, { status: 401 });
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         if (!Array.isArray(order)) {
           return NextResponse.json(
             { error: '排序列表格式错误' },
-            { status: 400 }
+            { status: 400 },
           );
         }
         const map = new Map(adminConfig.SourceConfig.map((s) => [s.key, s]));
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
         if (!Array.isArray(keys) || keys.length === 0) {
           return NextResponse.json(
             { error: '缺少 keys 参数或列表为空' },
-            { status: 400 }
+            { status: 400 },
           );
         }
         keys.forEach((key) => {
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
         if (!Array.isArray(keys) || keys.length === 0) {
           return NextResponse.json(
             { error: '缺少 keys 参数或列表为空' },
-            { status: 400 }
+            { status: 400 },
           );
         }
         keys.forEach((key) => {
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
         if (!Array.isArray(keys) || keys.length === 0) {
           return NextResponse.json(
             { error: '缺少 keys 参数或列表为空' },
-            { status: 400 }
+            { status: 400 },
           );
         }
         // 只删除自定义源，系统默认源不可删除
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Cache-Control': 'no-store',
         },
-      }
+      },
     );
   } catch (error) {
     console.error('视频源管理操作失败:', error);
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
         error: '视频源管理操作失败',
         details: (error as Error).message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

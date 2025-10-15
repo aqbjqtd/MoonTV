@@ -32,7 +32,7 @@ export interface IStorage {
   setPlayRecord(
     userName: string,
     key: string,
-    record: PlayRecord
+    record: PlayRecord,
   ): Promise<void>;
   getAllPlayRecords(userName: string): Promise<{ [key: string]: PlayRecord }>;
   deletePlayRecord(userName: string, key: string): Promise<void>;
@@ -69,13 +69,13 @@ export interface IStorage {
   getSkipConfig(
     userName: string,
     source: string,
-    id: string
+    id: string,
   ): Promise<SkipConfig | null>;
   setSkipConfig(
     userName: string,
     source: string,
     id: string,
-    config: SkipConfig
+    config: SkipConfig,
   ): Promise<void>;
   deleteSkipConfig(userName: string, source: string, id: string): Promise<void>;
   getAllSkipConfigs(userName: string): Promise<{ [key: string]: SkipConfig }>;

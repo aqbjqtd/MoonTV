@@ -64,19 +64,19 @@ const FilterOptions: React.FC<FilterOptionsProps> = ({
       setFilterSources(
         filterSources.includes(option)
           ? filterSources.filter((o) => o !== option)
-          : [...filterSources, option]
+          : [...filterSources, option],
       );
     } else if (category === '标题') {
       setSelectedTitles(
         selectedTitles.includes(option)
           ? selectedTitles.filter((o) => o !== option)
-          : [...selectedTitles, option]
+          : [...selectedTitles, option],
       );
     } else if (category === '年份') {
       setSelectedYears(
         selectedYears.includes(option)
           ? selectedYears.filter((o) => o !== option)
-          : [...selectedYears, option]
+          : [...selectedYears, option],
       );
     }
   };
@@ -182,7 +182,7 @@ const FilterOptions: React.FC<FilterOptionsProps> = ({
           key={opt.value}
           onClick={() =>
             onSortFieldChange(
-              opt.value as 'year' | 'title' | 'source' | 'episodes'
+              opt.value as 'year' | 'title' | 'source' | 'episodes',
             )
           }
           className={`px-3 py-2 text-sm rounded-lg border transition-all duration-200 ${

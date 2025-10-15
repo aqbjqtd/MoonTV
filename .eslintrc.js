@@ -1,84 +1,52 @@
+/** @type {import("eslint").Linter.Config} */
 module.exports = {
-  env: {
-    browser: true,
-    es2021: true,
-    node: true,
-  },
-  plugins: ['@typescript-eslint', 'simple-import-sort', 'unused-imports'],
+  root: true,
   extends: [
     'eslint:recommended',
-    'next',
     'next/core-web-vitals',
-    'plugin:@typescript-eslint/recommended',
-    'prettier',
   ],
+  parserOptions: {
+    ecmaVersion: 2022,
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true,
+    },
+  },
   rules: {
-    'no-unused-vars': 'off',
-    'no-console': 'warn',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    'react/no-unescaped-entities': 'off',
+    // 通用规则
+    'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+    'prefer-const': 'error',
+    'no-var': 'error',
+    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 
-    'react/display-name': 'off',
-    'react/jsx-curly-brace-presence': [
-      'warn',
-      { props: 'never', children: 'never' },
-    ],
+    // Next.js规则
+    '@next/next/no-img-element': 'error',
+    '@next/next/no-page-custom-font': 'warn',
 
-    //#region  //*=========== Unused Import ===========
-    '@typescript-eslint/no-unused-vars': 'off',
-    'unused-imports/no-unused-imports': 'warn',
-    'unused-imports/no-unused-vars': [
-      'warn',
-      {
-        vars: 'all',
-        varsIgnorePattern: '^_',
-        args: 'after-used',
-        argsIgnorePattern: '^_',
-      },
-    ],
-    //#endregion  //*======== Unused Import ===========
-
-    //#region  //*=========== Import Sort ===========
-    'simple-import-sort/exports': 'warn',
-    'simple-import-sort/imports': [
-      'warn',
-      {
-        groups: [
-          // ext library & side effect imports
-          ['^@?\\w', '^\\u0000'],
-          // {s}css files
-          ['^.+\\.s?css$'],
-          // Lib and hooks
-          ['^@/lib', '^@/hooks'],
-          // static data
-          ['^@/data'],
-          // components
-          ['^@/components', '^@/container'],
-          // zustand store
-          ['^@/store'],
-          // Other imports
-          ['^@/'],
-          // relative paths up until 3 level
-          [
-            '^\\./?$',
-            '^\\.(?!/?$)',
-            '^\\.\\./?$',
-            '^\\.\\.(?!/?$)',
-            '^\\.\\./\\.\\./?$',
-            '^\\.\\./\\.\\.(?!/?$)',
-            '^\\.\\./\\.\\./\\.\\./?$',
-            '^\\.\\./\\.\\./\\.\\.(?!/?$)',
-          ],
-          ['^@/types'],
-          // other that didnt fit in
-          ['^'],
-        ],
-      },
-    ],
-    //#endregion  //*======== Import Sort ===========
+    // 安全规则
+    'no-eval': 'error',
+    'no-implied-eval': 'error',
+    'no-new-func': 'error',
+    'no-script-url': 'error',
   },
-  globals: {
-    React: true,
-    JSX: true,
+  env: {
+    browser: true,
+    es2022: true,
+    node: true,
   },
+  ignorePatterns: [
+    'node_modules/',
+    '.next/',
+    'out/',
+    'build/',
+    'dist/',
+    'coverage/',
+    '.git/',
+    '*.min.js',
+    'public/sw.js',
+    'scripts/',
+    'jest.config.js',
+    'next.config.js',
+  ],
 };

@@ -220,7 +220,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
     await handleUserAction(
       'changePassword',
       changePasswordUser.username,
-      changePasswordUser.password
+      changePasswordUser.password,
     );
     setChangePasswordUser({ username: '', password: '' });
     setShowChangePasswordForm(false);
@@ -259,7 +259,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
       | 'changePassword'
       | 'deleteUser',
     targetUsername: string,
-    targetPassword?: string
+    targetPassword?: string,
   ) => {
     try {
       const res = await fetch('/api/admin/user', {
@@ -517,15 +517,15 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                               user.role === 'owner'
                                 ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300'
                                 : user.role === 'admin'
-                                ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                  ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                             }`}
                           >
                             {user.role === 'owner'
                               ? '站长'
                               : user.role === 'admin'
-                              ? '管理员'
-                              : '普通用户'}
+                                ? '管理员'
+                                : '普通用户'}
                           </span>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
@@ -637,7 +637,7 @@ const VideoSourceConfig = ({
 
   // 批量操作相关状态
   const [selectedSources, setSelectedSources] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // dnd-kit 传感器
@@ -652,7 +652,7 @@ const VideoSourceConfig = ({
         delay: 150, // 长按 150ms 后触发，避免与滚动冲突
         tolerance: 5,
       },
-    })
+    }),
   );
 
   // 初始化
@@ -822,7 +822,7 @@ const VideoSourceConfig = ({
 
     // 检查是否有不可删除的源
     const deletableSources = sources.filter(
-      (s) => selectedSources.has(s.key) && s.from !== 'config'
+      (s) => selectedSources.has(s.key) && s.from !== 'config',
     );
     const nonDeletableCount = selectedSources.size - deletableSources.length;
 
@@ -1170,7 +1170,7 @@ const CategoryConfig = ({
         delay: 150, // 长按 150ms 后触发，避免与滚动冲突
         tolerance: 5,
       },
-    })
+    }),
   );
 
   // 初始化
@@ -1246,10 +1246,10 @@ const CategoryConfig = ({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = categories.findIndex(
-      (c) => `${c.query}:${c.type}` === active.id
+      (c) => `${c.query}:${c.type}` === active.id,
     );
     const newIndex = categories.findIndex(
-      (c) => `${c.query}:${c.type}` === over.id
+      (c) => `${c.query}:${c.type}` === over.id,
     );
     setCategories((prev) => arrayMove(prev, oldIndex, newIndex));
     setOrderChanged(true);
@@ -1509,7 +1509,7 @@ const ConfigFileComponent = ({
   const handleSave = async () => {
     try {
       setSaving(true);
-      
+
       // 验证并格式化 JSON
       let formattedConfig;
       try {
@@ -1518,7 +1518,7 @@ const ConfigFileComponent = ({
       } catch (e) {
         throw new Error('配置文件格式错误，请检查 JSON 语法');
       }
-      
+
       const resp = await fetch('/api/admin/config_file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1859,7 +1859,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
             >
               {
                 doubanDataSourceOptions.find(
-                  (option) => option.value === siteSettings.DoubanProxyType
+                  (option) => option.value === siteSettings.DoubanProxyType,
                 )?.label
               }
             </button>
@@ -1911,7 +1911,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                 onClick={() =>
                   window.open(
                     getThanksInfo(siteSettings.DoubanProxyType)!.url,
-                    '_blank'
+                    '_blank',
                   )
                 }
                 className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
@@ -1975,14 +1975,15 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
               type='button'
               onClick={() =>
                 setIsDoubanImageProxyDropdownOpen(
-                  !isDoubanImageProxyDropdownOpen
+                  !isDoubanImageProxyDropdownOpen,
                 )
               }
               className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
             >
               {
                 doubanImageProxyTypeOptions.find(
-                  (option) => option.value === siteSettings.DoubanImageProxyType
+                  (option) =>
+                    option.value === siteSettings.DoubanImageProxyType,
                 )?.label
               }
             </button>
@@ -2034,7 +2035,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                 onClick={() =>
                   window.open(
                     getThanksInfo(siteSettings.DoubanImageProxyType)!.url,
-                    '_blank'
+                    '_blank',
                   )
                 }
                 className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
@@ -2216,7 +2217,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                     ? `${
                         window.location.origin
                       }/api/tvbox/config?pwd=${encodeURIComponent(
-                        siteSettings.TVBoxPassword || ''
+                        siteSettings.TVBoxPassword || '',
                       )}`
                     : ''
                 }
@@ -2231,8 +2232,8 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
                       `${
                         window.location.origin
                       }/api/tvbox/config?pwd=${encodeURIComponent(
-                        siteSettings.TVBoxPassword || ''
-                      )}`
+                        siteSettings.TVBoxPassword || '',
+                      )}`,
                     );
                   }
                 }}

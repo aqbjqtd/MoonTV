@@ -32,7 +32,7 @@ async function checkProxyHealth(proxy: string): Promise<boolean> {
       {
         method: 'HEAD',
         signal: AbortSignal.timeout(5000), // 5秒超时
-      }
+      },
     );
 
     const isHealthy = response.ok;
@@ -71,7 +71,7 @@ function getRetryDelay(attempt: number): number {
  */
 export async function fetchDoubanData<T>(
   url: string,
-  maxRetries = 3
+  maxRetries = 3,
 ): Promise<T> {
   let lastError: Error | null = null;
 
@@ -80,7 +80,7 @@ export async function fetchDoubanData<T>(
     try {
       // eslint-disable-next-line no-console
       console.log(
-        `[豆瓣API] 尝试直连 (${attempt + 1}/${maxRetries + 1}): ${url}`
+        `[豆瓣API] 尝试直连 (${attempt + 1}/${maxRetries + 1}): ${url}`,
       );
 
       const controller = new AbortController();
@@ -112,7 +112,7 @@ export async function fetchDoubanData<T>(
       // eslint-disable-next-line no-console
       console.warn(
         `[豆瓣API] 直连失败 (${attempt + 1}/${maxRetries + 1}):`,
-        (error as Error).message
+        (error as Error).message,
       );
 
       if (attempt < maxRetries) {

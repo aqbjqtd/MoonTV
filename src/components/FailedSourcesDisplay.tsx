@@ -96,7 +96,7 @@ export default function FailedSourcesDisplay({
                 </div>
                 <p
                   className={`text-xs break-words ${getErrorColor(
-                    source.error
+                    source.error,
                   )}`}
                 >
                   错误信息: {source.error}

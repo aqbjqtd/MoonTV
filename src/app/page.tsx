@@ -180,7 +180,7 @@ function HomeClient() {
       'favoritesUpdated',
       (newFavorites: Record<string, any>) => {
         updateFavoriteItems(newFavorites);
-      }
+      },
     );
 
     return unsubscribe;
@@ -394,7 +394,7 @@ function HomeClient() {
                             // 找到当前星期对应的番剧数据
                             const todayAnimes =
                               bangumiCalendarData.find(
-                                (item) => item.weekday.en === currentWeekday
+                                (item) => item.weekday.en === currentWeekday,
                               )?.items || [];
 
                             return todayAnimes.map((anime, index) => (

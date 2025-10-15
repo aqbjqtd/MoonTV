@@ -36,7 +36,7 @@ const MultiLevelSelector: React.FC<MultiLevelSelectorProps> = ({
 
   // 根据内容类型获取对应的类型选项
   const getTypeOptions = (
-    contentType: 'movie' | 'tv' | 'show' | 'anime-tv' | 'anime-movie'
+    contentType: 'movie' | 'tv' | 'show' | 'anime-tv' | 'anime-movie',
   ) => {
     const baseOptions = [{ label: '全部', value: 'all' }];
 
@@ -107,7 +107,7 @@ const MultiLevelSelector: React.FC<MultiLevelSelectorProps> = ({
 
   // 根据内容类型获取对应的地区选项
   const getRegionOptions = (
-    contentType: 'movie' | 'tv' | 'show' | 'anime-tv' | 'anime-movie'
+    contentType: 'movie' | 'tv' | 'show' | 'anime-tv' | 'anime-movie',
   ) => {
     const baseOptions = [{ label: '全部', value: 'all' }];
 
@@ -174,7 +174,7 @@ const MultiLevelSelector: React.FC<MultiLevelSelectorProps> = ({
   };
 
   const getLabelOptions = (
-    contentType: 'movie' | 'tv' | 'show' | 'anime-tv' | 'anime-movie'
+    contentType: 'movie' | 'tv' | 'show' | 'anime-tv' | 'anime-movie',
   ) => {
     const baseOptions = [{ label: '全部', value: 'all' }];
     switch (contentType) {
@@ -230,7 +230,7 @@ const MultiLevelSelector: React.FC<MultiLevelSelectorProps> = ({
 
   // 根据内容类型获取对应的平台选项
   const getPlatformOptions = (
-    contentType: 'movie' | 'tv' | 'show' | 'anime-tv' | 'anime-movie'
+    contentType: 'movie' | 'tv' | 'show' | 'anime-tv' | 'anime-movie',
   ) => {
     const baseOptions = [{ label: '全部', value: 'all' }];
 
@@ -489,7 +489,7 @@ const MultiLevelSelector: React.FC<MultiLevelSelectorProps> = ({
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node) &&
         !Object.values(categoryRefs.current).some(
-          (ref) => ref && ref.contains(event.target as Node)
+          (ref) => ref && ref.contains(event.target as Node),
         )
       ) {
         setActiveCategory(null);
@@ -520,8 +520,8 @@ const MultiLevelSelector: React.FC<MultiLevelSelectorProps> = ({
                     ? 'text-gray-900 dark:text-gray-100 cursor-default'
                     : 'text-green-600 dark:text-green-400 cursor-default'
                   : isDefaultValue(category.key)
-                  ? 'text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 cursor-pointer'
-                  : 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 cursor-pointer'
+                    ? 'text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 cursor-pointer'
+                    : 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 cursor-pointer'
               }`}
             >
               <span>{getDisplayText(category.key)}</span>
@@ -583,7 +583,7 @@ const MultiLevelSelector: React.FC<MultiLevelSelectorProps> = ({
               </div>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

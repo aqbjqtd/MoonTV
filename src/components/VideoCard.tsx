@@ -129,7 +129,7 @@ export default function VideoCard({
         (newFavorites: Record<string, any>) => {
           const isNowFavorited = !!newFavorites[storageKey];
           setFavorited(isNowFavorited);
-        }
+        },
       );
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -174,7 +174,7 @@ export default function VideoCard({
       actualPoster,
       actualEpisodes,
       favorited,
-    ]
+    ],
   );
 
   const handleDeleteRecord = useCallback(
@@ -189,7 +189,7 @@ export default function VideoCard({
         console.error('删除播放记录失败', err);
       }
     },
-    [from, actualSource, actualId, onDelete]
+    [from, actualSource, actualId, onDelete],
   );
 
   const handleClick = useCallback(() => {
@@ -201,17 +201,17 @@ export default function VideoCard({
       router.push(
         `/play?title=${encodeURIComponent(actualTitle.trim())}${
           actualYear ? `&year=${actualYear}` : ''
-        }${actualSearchType ? `&stype=${actualSearchType}` : ''}`
+        }${actualSearchType ? `&stype=${actualSearchType}` : ''}`,
       );
     } else if (actualSource && actualId) {
       router.push(
         `/play?source=${actualSource}&id=${actualId}&title=${encodeURIComponent(
-          actualTitle
+          actualTitle,
         )}${actualYear ? `&year=${actualYear}` : ''}${
           isAggregate ? '&prefer=true' : ''
         }${
           actualQuery ? `&stitle=${encodeURIComponent(actualQuery.trim())}` : ''
-        }${actualSearchType ? `&stype=${actualSearchType}` : ''}`
+        }${actualSearchType ? `&stype=${actualSearchType}` : ''}`,
       );
     }
   }, [
@@ -373,13 +373,13 @@ export default function VideoCard({
                 // 动漫 → Bangumi
                 window.open(
                   `https://bangumi.tv/subject/${actualDoubanId}`,
-                  '_blank'
+                  '_blank',
                 );
               } else {
                 // 默认 → 豆瓣
                 window.open(
                   `https://movie.douban.com/subject/${actualDoubanId}`,
-                  '_blank'
+                  '_blank',
                 );
               }
             }}

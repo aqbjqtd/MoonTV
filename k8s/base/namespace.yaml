@@ -11,14 +11,14 @@ metadata:
     name: moontv
     environment: base
     app.kubernetes.io/name: moontv
-    app.kubernetes.io/version: "4.0.0"
+    app.kubernetes.io/version: '4.0.0'
     app.kubernetes.io/component: namespace
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "MoonTV application namespace"
-    contact: "devops@moontv.com"
-    created-by: "MoonTV CI/CD Pipeline v4.0.0"
-    last-updated: "2025-10-08"
+    description: 'MoonTV application namespace'
+    contact: 'devops@moontv.com'
+    created-by: 'MoonTV CI/CD Pipeline v4.0.0'
+    last-updated: '2025-10-08'
 ---
 apiVersion: v1
 kind: Namespace
@@ -28,11 +28,11 @@ metadata:
     name: moontv-monitoring
     environment: base
     app.kubernetes.io/name: moontv
-    app.kubernetes.io/version: "4.0.0"
+    app.kubernetes.io/version: '4.0.0'
     app.kubernetes.io/component: monitoring
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "MoonTV monitoring namespace"
-    contact: "devops@moontv.com"
-    created-by: "MoonTV CI/CD Pipeline v4.0.0"
-    last-updated: "2025-10-08"
+    description: 'MoonTV monitoring namespace'
+    contact: 'devops@moontv.com'
+    created-by: 'MoonTV CI/CD Pipeline v4.0.0'
+    last-updated: '2025-10-08'

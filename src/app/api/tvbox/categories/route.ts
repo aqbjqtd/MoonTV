@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     const pgParam = Math.max(1, parseInt(url.searchParams.get('pg') || '1'));
     const pageSize = Math.max(
       1,
-      Math.min(50, parseInt(url.searchParams.get('pagesize') || '20'))
+      Math.min(50, parseInt(url.searchParams.get('pagesize') || '20')),
     );
 
     if (tParam || wdParam) {
@@ -73,10 +73,10 @@ export async function GET(request: Request) {
         label?: string;
       }> = [];
       doubanDefaults.movie.forEach((name) =>
-        selectors.push({ kind: 'movie', category: name })
+        selectors.push({ kind: 'movie', category: name }),
       );
       doubanDefaults.tv.forEach((name) =>
-        selectors.push({ kind: 'tv', category: name })
+        selectors.push({ kind: 'tv', category: name }),
       );
       custom.forEach((c) => selectors.push({ kind: c.type, label: c.query }));
 
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
       if (sort) qs.set('sort', sort);
 
       const resp = await fetch(
-        `${origin}/api/douban/recommends?${qs.toString()}`
+        `${origin}/api/douban/recommends?${qs.toString()}`,
       );
       const data = await resp.json();
       const list = Array.isArray((data as any).list) ? (data as any).list : [];
@@ -154,12 +154,12 @@ export async function GET(request: Request) {
         headers: {
           'Cache-Control': `public, max-age=${cacheTime}, s-maxage=0`,
         },
-      }
+      },
     );
   } catch (e) {
     return NextResponse.json(
       { code: 0, msg: 'error', class: [], list: [] },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -36,28 +36,28 @@ export async function GET(request: Request) {
   if (!kind || !category || !type) {
     return NextResponse.json(
       { error: '缺少必要参数: kind 或 category 或 type' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (!['tv', 'movie'].includes(kind)) {
     return NextResponse.json(
       { error: 'kind 参数必须是 tv 或 movie' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (pageLimit < 1 || pageLimit > 100) {
     return NextResponse.json(
       { error: 'pageSize 必须在 1-100 之间' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   if (pageStart < 0) {
     return NextResponse.json(
       { error: 'pageStart 不能小于 0' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -136,7 +136,7 @@ export async function GET(request: Request) {
 
     // 记录详细错误日志
     console.error(
-      `[豆瓣API错误] 类型: ${errorType}, 消息: ${errorMessage}, 参数: kind=${kind}, category=${category}, type=${type}`
+      `[豆瓣API错误] 类型: ${errorType}, 消息: ${errorMessage}, 参数: kind=${kind}, category=${category}, type=${type}`,
     );
 
     return NextResponse.json(
@@ -152,7 +152,7 @@ export async function GET(request: Request) {
           'all_failed',
         ].includes(errorType),
       },
-      { status: statusCode }
+      { status: statusCode },
     );
   }
 }

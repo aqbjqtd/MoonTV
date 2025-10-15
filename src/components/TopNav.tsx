@@ -77,7 +77,7 @@ const TopNav = ({ activePath = '/' }: TopNavProps) => {
     getSearchHistory().then(setSearchHistory);
     const unsubscribe = subscribeToDataUpdates(
       'searchHistoryUpdated',
-      setSearchHistory
+      setSearchHistory,
     );
 
     return () => {

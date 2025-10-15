@@ -34,7 +34,7 @@ function getD1Database(): D1Database {
 
   // 在浏览器环境中，D1 不可用
   throw new Error(
-    'D1 database is only available in Cloudflare Pages environment'
+    'D1 database is only available in Cloudflare Pages environment',
   );
 }
 
@@ -136,7 +136,7 @@ export class D1Storage implements IStorage {
   // ---------- 播放记录 ----------
   async getPlayRecord(
     userName: string,
-    key: string
+    key: string,
   ): Promise<PlayRecord | null> {
     const [source, videoId] = key.split('+');
     const userId = await this.getUserId(userName);
@@ -147,7 +147,7 @@ export class D1Storage implements IStorage {
         `
         SELECT * FROM play_records 
         WHERE user_id = ? AND source = ? AND video_id = ?
-      `
+      `,
       )
       .bind(userId, source, videoId)
       .first();
@@ -171,7 +171,7 @@ export class D1Storage implements IStorage {
   async setPlayRecord(
     userName: string,
     key: string,
-    record: PlayRecord
+    record: PlayRecord,
   ): Promise<void> {
     const [source, videoId] = key.split('+');
     const userId = await this.ensureUser(userName);
@@ -196,7 +196,7 @@ export class D1Storage implements IStorage {
           save_time = excluded.save_time,
           search_title = excluded.search_title,
           updated_at = CURRENT_TIMESTAMP
-      `
+      `,
       )
       .bind(
         userId,
@@ -211,13 +211,13 @@ export class D1Storage implements IStorage {
         record.play_time,
         record.total_time,
         record.save_time,
-        record.search_title
+        record.search_title,
       )
       .run();
   }
 
   async getAllPlayRecords(
-    userName: string
+    userName: string,
   ): Promise<Record<string, PlayRecord>> {
     const userId = await this.getUserId(userName);
     if (!userId) return {};
@@ -254,7 +254,7 @@ export class D1Storage implements IStorage {
 
     await this.db
       .prepare(
-        'DELETE FROM play_records WHERE user_id = ? AND source = ? AND video_id = ?'
+        'DELETE FROM play_records WHERE user_id = ? AND source = ? AND video_id = ?',
       )
       .bind(userId, source, videoId)
       .run();
@@ -268,7 +268,7 @@ export class D1Storage implements IStorage {
 
     const result = await this.db
       .prepare(
-        'SELECT * FROM favorites WHERE user_id = ? AND source = ? AND video_id = ?'
+        'SELECT * FROM favorites WHERE user_id = ? AND source = ? AND video_id = ?',
       )
       .bind(userId, source, videoId)
       .first();
@@ -289,7 +289,7 @@ export class D1Storage implements IStorage {
   async setFavorite(
     userName: string,
     key: string,
-    favorite: Favorite
+    favorite: Favorite,
   ): Promise<void> {
     const [source, videoId] = key.split('+');
     const userId = await this.ensureUser(userName);
@@ -309,7 +309,7 @@ export class D1Storage implements IStorage {
           total_episodes = excluded.total_episodes,
           save_time = excluded.save_time,
           search_title = excluded.search_title
-      `
+      `,
       )
       .bind(
         userId,
@@ -321,7 +321,7 @@ export class D1Storage implements IStorage {
         favorite.cover,
         favorite.total_episodes,
         favorite.save_time,
-        favorite.search_title
+        favorite.search_title,
       )
       .run();
   }
@@ -359,7 +359,7 @@ export class D1Storage implements IStorage {
 
     await this.db
       .prepare(
-        'DELETE FROM favorites WHERE user_id = ? AND source = ? AND video_id = ?'
+        'DELETE FROM favorites WHERE user_id = ? AND source = ? AND video_id = ?',
       )
       .bind(userId, source, videoId)
       .run();
@@ -377,13 +377,13 @@ export class D1Storage implements IStorage {
         WHERE user_id = ? 
         ORDER BY created_at DESC 
         LIMIT ?
-      `
+      `,
       )
       .bind(userId, SEARCH_HISTORY_LIMIT)
       .all();
 
     return (results.results || []).map(
-      (result: any) => result.keyword as string
+      (result: any) => result.keyword as string,
     );
   }
 
@@ -413,7 +413,7 @@ export class D1Storage implements IStorage {
           ORDER BY created_at DESC 
           LIMIT ?
         )
-      `
+      `,
       )
       .bind(userId, userId, SEARCH_HISTORY_LIMIT)
       .run();
@@ -441,7 +441,7 @@ export class D1Storage implements IStorage {
     const results = await this.db.prepare('SELECT username FROM users').all();
 
     return (results.results || []).map(
-      (result: any) => result.username as string
+      (result: any) => result.username as string,
     );
   }
 
@@ -465,7 +465,7 @@ export class D1Storage implements IStorage {
     try {
       await this.db
         .prepare(
-          'INSERT OR REPLACE INTO admin_config (id, config) VALUES (1, ?)'
+          'INSERT OR REPLACE INTO admin_config (id, config) VALUES (1, ?)',
         )
         .bind(JSON.stringify(config))
         .run();
@@ -479,14 +479,14 @@ export class D1Storage implements IStorage {
   async getSkipConfig(
     userName: string,
     source: string,
-    id: string
+    id: string,
   ): Promise<SkipConfig | null> {
     const userId = await this.getUserId(userName);
     if (!userId) return null;
 
     const result = await this.db
       .prepare(
-        'SELECT * FROM skip_configs WHERE user_id = ? AND source = ? AND video_id = ?'
+        'SELECT * FROM skip_configs WHERE user_id = ? AND source = ? AND video_id = ?',
       )
       .bind(userId, source, id)
       .first();
@@ -504,7 +504,7 @@ export class D1Storage implements IStorage {
     userName: string,
     source: string,
     id: string,
-    config: SkipConfig
+    config: SkipConfig,
   ): Promise<void> {
     const userId = await this.ensureUser(userName);
 
@@ -519,7 +519,7 @@ export class D1Storage implements IStorage {
           intro_time = excluded.intro_time,
           outro_time = excluded.outro_time,
           updated_at = CURRENT_TIMESTAMP
-      `
+      `,
       )
       .bind(
         userId,
@@ -527,7 +527,7 @@ export class D1Storage implements IStorage {
         id,
         config.enable ? 1 : 0,
         config.intro_time,
-        config.outro_time
+        config.outro_time,
       )
       .run();
   }
@@ -535,21 +535,21 @@ export class D1Storage implements IStorage {
   async deleteSkipConfig(
     userName: string,
     source: string,
-    id: string
+    id: string,
   ): Promise<void> {
     const userId = await this.getUserId(userName);
     if (!userId) return;
 
     await this.db
       .prepare(
-        'DELETE FROM skip_configs WHERE user_id = ? AND source = ? AND video_id = ?'
+        'DELETE FROM skip_configs WHERE user_id = ? AND source = ? AND video_id = ?',
       )
       .bind(userId, source, id)
       .run();
   }
 
   async getAllSkipConfigs(
-    userName: string
+    userName: string,
   ): Promise<{ [key: string]: SkipConfig }> {
     const userId = await this.getUserId(userName);
     if (!userId) return {};

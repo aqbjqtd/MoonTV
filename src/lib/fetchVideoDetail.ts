@@ -32,12 +32,12 @@ export async function fetchVideoDetail({
         apiSite,
         fallbackTitle.trim(),
         true,
-        timeout
+        timeout,
       )) {
         const exactMatch = results.find(
           (item: SearchResult) =>
             item.source.toString() === source.toString() &&
-            item.id.toString() === id.toString()
+            item.id.toString() === id.toString(),
         );
         if (exactMatch) {
           return exactMatch; // 找到就立即返回

@@ -13,8 +13,8 @@ networks:
     driver: overlay
     attachable: true
     labels:
-      - "com.moontv.network.type=frontend"
-      - "com.moontv.network.scope=external"
+      - 'com.moontv.network.type=frontend'
+      - 'com.moontv.network.scope=external'
 
   # 后端网络 - 内部服务通信
   backend:
@@ -22,15 +22,15 @@ networks:
     internal: true
     attachable: true
     labels:
-      - "com.moontv.network.type=backend"
-      - "com.moontv.network.scope=internal"
+      - 'com.moontv.network.type=backend'
+      - 'com.moontv.network.scope=internal'
 
   # 监控网络 - 监控和日志服务
   monitoring:
     driver: overlay
     attachable: true
     labels:
-      - "com.moontv.network.type=monitoring"
+      - 'com.moontv.network.type=monitoring'
 
 # 密钥配置
 secrets:
@@ -124,17 +124,17 @@ services:
 
       # 服务标签
       labels:
-        - "com.moontv.service.name=moontv-app"
-        - "com.moontv.service.version=${MOONTV_VERSION:-latest}"
-        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
-        - "com.moontv.service.tier=frontend"
-        - "traefik.enable=true"
-        - "traefik.http.routers.moontv-app.rule=Host(`${MOONTV_DOMAIN:-moontv.local}`)"
-        - "traefik.http.routers.moontv-app.entrypoints=websecure"
-        - "traefik.http.routers.moontv-app.tls.certresolver=letsencrypt"
-        - "traefik.http.services.moontv-app.loadbalancer.server.port=3000"
-        - "traefik.http.services.moontv-app.loadbalancer.healthcheck.path=/api/health"
-        - "traefik.http.services.moontv-app.loadbalancer.healthcheck.interval=30s"
+        - 'com.moontv.service.name=moontv-app'
+        - 'com.moontv.service.version=${MOONTV_VERSION:-latest}'
+        - 'com.moontv.service.environment=${MOONTV_ENV:-staging}'
+        - 'com.moontv.service.tier=frontend'
+        - 'traefik.enable=true'
+        - 'traefik.http.routers.moontv-app.rule=Host(`${MOONTV_DOMAIN:-moontv.local}`)'
+        - 'traefik.http.routers.moontv-app.entrypoints=websecure'
+        - 'traefik.http.routers.moontv-app.tls.certresolver=letsencrypt'
+        - 'traefik.http.services.moontv-app.loadbalancer.server.port=3000'
+        - 'traefik.http.services.moontv-app.loadbalancer.healthcheck.path=/api/health'
+        - 'traefik.http.services.moontv-app.loadbalancer.healthcheck.interval=30s'
 
     # 环境变量
     environment:
@@ -166,7 +166,15 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/api/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -214,10 +222,10 @@ services:
 
       # 服务标签
       labels:
-        - "com.moontv.service.name=moontv-redis"
-        - "com.moontv.service.version=7-alpine"
-        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
-        - "com.moontv.service.tier=backend"
+        - 'com.moontv.service.name=moontv-redis'
+        - 'com.moontv.service.version=7-alpine'
+        - 'com.moontv.service.environment=${MOONTV_ENV:-staging}'
+        - 'com.moontv.service.tier=backend'
 
     # 环境变量
     environment:
@@ -244,7 +252,7 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -294,15 +302,15 @@ services:
 
       # 服务标签
       labels:
-        - "com.moontv.service.name=moontv-nginx"
-        - "com.moontv.service.version=alpine"
-        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
-        - "com.moontv.service.tier=frontend"
-        - "traefik.enable=true"
-        - "traefik.http.routers.moontv-nginx.rule=Host(`${MOONTV_DOMAIN:-moontv.local}`) && PathPrefix(`/static`, `/manifest.json`, `/favicon.ico`)"
-        - "traefik.http.routers.moontv-nginx.entrypoints=websecure"
-        - "traefik.http.routers.moontv-nginx.tls.certresolver=letsencrypt"
-        - "traefik.http.services.moontv-nginx.loadbalancer.server.port=80"
+        - 'com.moontv.service.name=moontv-nginx'
+        - 'com.moontv.service.version=alpine'
+        - 'com.moontv.service.environment=${MOONTV_ENV:-staging}'
+        - 'com.moontv.service.tier=frontend'
+        - 'traefik.enable=true'
+        - 'traefik.http.routers.moontv-nginx.rule=Host(`${MOONTV_DOMAIN:-moontv.local}`) && PathPrefix(`/static`, `/manifest.json`, `/favicon.ico`)'
+        - 'traefik.http.routers.moontv-nginx.entrypoints=websecure'
+        - 'traefik.http.routers.moontv-nginx.tls.certresolver=letsencrypt'
+        - 'traefik.http.services.moontv-nginx.loadbalancer.server.port=80'
 
     # 环境变量
     environment:
@@ -321,7 +329,15 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:80/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -362,26 +378,26 @@ services:
 
       # 服务标签
       labels:
-        - "com.moontv.service.name=moontv-traefik"
-        - "com.moontv.service.version=v2.10"
-        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
-        - "com.moontv.service.tier=ingress"
+        - 'com.moontv.service.name=moontv-traefik'
+        - 'com.moontv.service.version=v2.10'
+        - 'com.moontv.service.environment=${MOONTV_ENV:-staging}'
+        - 'com.moontv.service.tier=ingress'
 
         # Traefik配置
-        - "traefik.enable=true"
-        - "traefik.http.routers.dashboard.rule=Host(`traefik.${MOONTV_DOMAIN:-moontv.local}`)"
-        - "traefik.http.routers.dashboard.entrypoints=websecure"
-        - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
-        - "traefik.http.routers.dashboard.service=api@internal"
-        - "traefik.http.routers.dashboard.middlewares=auth"
-        - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH_USERS:-admin:$$apr1$$$$hash$$}"
+        - 'traefik.enable=true'
+        - 'traefik.http.routers.dashboard.rule=Host(`traefik.${MOONTV_DOMAIN:-moontv.local}`)'
+        - 'traefik.http.routers.dashboard.entrypoints=websecure'
+        - 'traefik.http.routers.dashboard.tls.certresolver=letsencrypt'
+        - 'traefik.http.routers.dashboard.service=api@internal'
+        - 'traefik.http.routers.dashboard.middlewares=auth'
+        - 'traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH_USERS:-admin:$$apr1$$$$hash$$}'
 
         # 端口暴露
-        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
-        - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
-        - "traefik.http.routers.http-catchall.entrypoints=web"
-        - "traefik.http.routers.http-catchall.middlewares=https-redirect"
-        - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+        - 'traefik.http.services.traefik.loadbalancer.server.port=8080'
+        - 'traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)'
+        - 'traefik.http.routers.http-catchall.entrypoints=web'
+        - 'traefik.http.routers.http-catchall.middlewares=https-redirect'
+        - 'traefik.http.middlewares.https-redirect.redirectscheme.scheme=https'
 
     # 环境变量
     environment:
@@ -389,21 +405,21 @@ services:
 
     # 命令行参数
     command:
-      - "--api.dashboard=true"
-      - "--providers.docker=true"
-      - "--providers.docker.swarmMode=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=frontend"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:-admin@moontv.local}"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      - "--log.level=INFO"
-      - "--accesslog=true"
-      - "--accesslog.filepath=/var/log/traefik/access.log"
-      - "--global.sendAnonymousUsage=false"
+      - '--api.dashboard=true'
+      - '--providers.docker=true'
+      - '--providers.docker.swarmMode=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--providers.docker.network=frontend'
+      - '--entrypoints.web.address=:80'
+      - '--entrypoints.websecure.address=:443'
+      - '--certificatesresolvers.letsencrypt.acme.httpchallenge=true'
+      - '--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web'
+      - '--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL:-admin@moontv.local}'
+      - '--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json'
+      - '--log.level=INFO'
+      - '--accesslog=true'
+      - '--accesslog.filepath=/var/log/traefik/access.log'
+      - '--global.sendAnonymousUsage=false'
 
     # 数据卷
     volumes:
@@ -413,9 +429,9 @@ services:
 
     # 端口映射
     ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"
+      - '80:80'
+      - '443:443'
+      - '8080:8080'
 
     # 网络连接
     networks:
@@ -453,10 +469,10 @@ services:
 
       # 服务标签
       labels:
-        - "com.moontv.service.name=moontv-prometheus"
-        - "com.moontv.service.version=latest"
-        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
-        - "com.moontv.service.tier=monitoring"
+        - 'com.moontv.service.name=moontv-prometheus'
+        - 'com.moontv.service.version=latest'
+        - 'com.moontv.service.environment=${MOONTV_ENV:-staging}'
+        - 'com.moontv.service.tier=monitoring'
 
     # 环境变量
     environment:
@@ -479,7 +495,15 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:9090/-/healthy',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -520,14 +544,14 @@ services:
 
       # 服务标签
       labels:
-        - "com.moontv.service.name=moontv-grafana"
-        - "com.moontv.service.version=latest"
-        - "com.moontv.service.environment=${MOONTV_ENV:-staging}"
-        - "com.moontv.service.tier=monitoring"
-        - "traefik.enable=true"
-        - "traefik.http.routers.moontv-grafana.rule=Host(`grafana.${MOONTV_DOMAIN:-moontv.local}`)"
-        - "traefik.http.routers.moontv-grafana.entrypoints=websecure"
-        - "traefik.http.routers.moontv-grafana.tls.certresolver=letsencrypt"
+        - 'com.moontv.service.name=moontv-grafana'
+        - 'com.moontv.service.version=latest'
+        - 'com.moontv.service.environment=${MOONTV_ENV:-staging}'
+        - 'com.moontv.service.tier=monitoring'
+        - 'traefik.enable=true'
+        - 'traefik.http.routers.moontv-grafana.rule=Host(`grafana.${MOONTV_DOMAIN:-moontv.local}`)'
+        - 'traefik.http.routers.moontv-grafana.entrypoints=websecure'
+        - 'traefik.http.routers.moontv-grafana.tls.certresolver=letsencrypt'
 
     # 环境变量
     environment:
@@ -544,7 +568,11 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -562,14 +590,14 @@ volumes:
     driver_opts:
       type: nfs
       o: addr=${NFS_SERVER:-localhost},rw
-      device: ":/data/moontv/logs"
+      device: ':/data/moontv/logs'
 
   moontv_data:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NFS_SERVER:-localhost},rw
-      device: ":/data/moontv/data"
+      device: ':/data/moontv/data'
 
   moontv_static:
     driver: local
@@ -580,7 +608,7 @@ volumes:
     driver_opts:
       type: nfs
       o: addr=${NFS_SERVER:-localhost},rw
-      device: ":/data/moontv/redis"
+      device: ':/data/moontv/redis'
 
   # Let's Encrypt 证书卷
   moontv_letsencrypt:
@@ -592,15 +620,14 @@ volumes:
     driver_opts:
       type: nfs
       o: addr=${NFS_SERVER:-localhost},rw
-      device: ":/data/moontv/prometheus"
+      device: ':/data/moontv/prometheus'
 
   moontv_grafana_data:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NFS_SERVER:-localhost},rw
-      device: ":/data/moontv/grafana"
-
+      device: ':/data/moontv/grafana'
 # =================================================================
 # Docker Swarm 部署说明:
 #

@@ -21,7 +21,6 @@
 **发现的关键修复**：
 
 1. **`046f1b8` - fix: 非本地模式视频源配置初始化** (最新)
-
    - 🎯 **核心修复**：解决非本地存储模式下的视频源配置初始化问题
    - 📁 **影响文件**：`src/app/admin/page.tsx`, `src/app/api/admin/site/route.ts`, `src/lib/config.ts`
    - 📊 **变更规模**：+74 行, -10 行

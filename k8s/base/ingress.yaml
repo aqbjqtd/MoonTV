@@ -13,15 +13,15 @@ metadata:
     app.kubernetes.io/component: ingress
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "MoonTV application ingress"
+    description: 'MoonTV application ingress'
 
     # Ingress控制器配置
-    kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/ingress.class: 'nginx'
 
     # SSL配置
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
 
     # 安全头配置
     nginx.ingress.kubernetes.io/configuration-snippet: |
@@ -33,39 +33,39 @@ metadata:
       add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     # 限流配置
-    nginx.ingress.kubernetes.io/rate-limit: "100"
-    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit: '100'
+    nginx.ingress.kubernetes.io/rate-limit-window: '1m'
 
     # 连接配置
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: '50m'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '300'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '300'
 
     # WebSocket支持
-    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
-    nginx.ingress.kubernetes.io/proxy-set-headers: "moontv-headers-configmap"
+    nginx.ingress.kubernetes.io/proxy-http-version: '1.1'
+    nginx.ingress.kubernetes.io/proxy-set-headers: 'moontv-headers-configmap'
 
     # 缓存配置
-    nginx.ingress.kubernetes.io/proxy-cache-method: "GET,HEAD"
-    nginx.ingress.kubernetes.io/cache-duration: "1h"
+    nginx.ingress.kubernetes.io/proxy-cache-method: 'GET,HEAD'
+    nginx.ingress.kubernetes.io/cache-duration: '1h'
 
     # 错误页面
-    nginx.ingress.kubernetes.io/custom-http-errors: "404,503"
+    nginx.ingress.kubernetes.io/custom-http-errors: '404,503'
 
     # 压缩配置
-    nginx.ingress.kubernetes.io/enable-modsecurity: "false"
-    nginx.ingress.kubernetes.io/enable-opentracing: "false"
+    nginx.ingress.kubernetes.io/enable-modsecurity: 'false'
+    nginx.ingress.kubernetes.io/enable-opentracing: 'false'
 
     # 会话亲和性
-    nginx.ingress.kubernetes.io/affinity: "cookie"
-    nginx.ingress.kubernetes.io/session-cookie-name: "moontv-affinity"
-    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
-    nginx.ingress.kubernetes.io/session-cookie-conditional: "false"
-    nginx.ingress.kubernetes.io/session-cookie-path: "/"
+    nginx.ingress.kubernetes.io/affinity: 'cookie'
+    nginx.ingress.kubernetes.io/session-cookie-name: 'moontv-affinity'
+    nginx.ingress.kubernetes.io/session-cookie-max-age: '3600'
+    nginx.ingress.kubernetes.io/session-cookie-conditional: 'false'
+    nginx.ingress.kubernetes.io/session-cookie-path: '/'
 
     # 重写规则
     nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/use-regex: 'true'
 
     # 认证配置（可选）
     # nginx.ingress.kubernetes.io/auth-type: basic
@@ -179,34 +179,34 @@ metadata:
     app.kubernetes.io/component: api-ingress
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "MoonTV API gateway ingress"
-    kubernetes.io/ingress.class: "nginx"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    description: 'MoonTV API gateway ingress'
+    kubernetes.io/ingress.class: 'nginx'
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
 
     # API特定配置
-    nginx.ingress.kubernetes.io/rate-limit: "200"
-    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
-    nginx.ingress.kubernetes.io/limit-burst: "50"
-    nginx.ingress.kubernetes.io/limit-connections: "100"
+    nginx.ingress.kubernetes.io/rate-limit: '200'
+    nginx.ingress.kubernetes.io/rate-limit-window: '1m'
+    nginx.ingress.kubernetes.io/limit-burst: '50'
+    nginx.ingress.kubernetes.io/limit-connections: '100'
 
     # CORS配置
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, Accept, Origin, User-Agent, DNT, Cache-Control, X-Mx-ReqToken, Keep-Alive, X-Requested-With, If-Modified-Since"
-    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/enable-cors: 'true'
+    nginx.ingress.kubernetes.io/cors-allow-origin: '*'
+    nginx.ingress.kubernetes.io/cors-allow-methods: 'GET, POST, PUT, DELETE, OPTIONS'
+    nginx.ingress.kubernetes.io/cors-allow-headers: 'Authorization, Content-Type, Accept, Origin, User-Agent, DNT, Cache-Control, X-Mx-ReqToken, Keep-Alive, X-Requested-With, If-Modified-Since'
+    nginx.ingress.kubernetes.io/cors-allow-credentials: 'true'
 
     # 超时配置
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '600'
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: '600'
 
     # 大文件上传
-    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-body-size: '100m'
 
     # 错误处理
-    nginx.ingress.kubernetes.io/custom-http-errors: "400,401,403,404,429,500,502,503,504"
+    nginx.ingress.kubernetes.io/custom-http-errors: '400,401,403,404,429,500,502,503,504'
 
 spec:
   tls:
@@ -248,19 +248,19 @@ metadata:
     app.kubernetes.io/component: internal-ingress
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "MoonTV internal services ingress"
-    kubernetes.io/ingress.class: "nginx-internal"
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    description: 'MoonTV internal services ingress'
+    kubernetes.io/ingress.class: 'nginx-internal'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'false'
+    nginx.ingress.kubernetes.io/whitelist-source-range: '10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
 
     # 内部服务安全配置
-    nginx.ingress.kubernetes.io/auth-tls-secret: "ca-secret"
-    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
-    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
+    nginx.ingress.kubernetes.io/auth-tls-secret: 'ca-secret'
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: 'on'
+    nginx.ingress.kubernetes.io/auth-tls-verify-depth: '1'
 
     # 性能优化
-    nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri"
-    nginx.ingress.kubernetes.io/load-balance: "least_conn"
+    nginx.ingress.kubernetes.io/upstream-hash-by: '$request_uri'
+    nginx.ingress.kubernetes.io/load-balance: 'least_conn'
 
 spec:
   rules:
@@ -300,15 +300,15 @@ metadata:
     app.kubernetes.io/component: websocket-ingress
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "MoonTV WebSocket ingress"
-    kubernetes.io/ingress.class: "nginx"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    description: 'MoonTV WebSocket ingress'
+    kubernetes.io/ingress.class: 'nginx'
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
 
     # WebSocket特定配置
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-http-version: '1.1'
     nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection "upgrade";
@@ -319,9 +319,9 @@ metadata:
       proxy_cache_bypass $http_upgrade;
 
     # 超长连接时间
-    nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502 http_503 http_504"
-    nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "0"
-    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "3"
+    nginx.ingress.kubernetes.io/proxy-next-upstream: 'error timeout http_502 http_503 http_504'
+    nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: '0'
+    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: '3'
 
 spec:
   tls:
@@ -361,13 +361,13 @@ metadata:
     app.kubernetes.io/component: ingress-config
     app.kubernetes.io/managed-by: manual
 data:
-  X-Forwarded-Proto: "https"
-  X-Forwarded-Host: "$host"
-  X-Forwarded-Port: "$server_port"
-  X-Forwarded-For: "$proxy_add_x_forwarded_for"
-  X-Real-IP: "$remote_addr"
-  X-Request-ID: "$request_id"
-  X-Original-URI: "$request_uri"
+  X-Forwarded-Proto: 'https'
+  X-Forwarded-Host: '$host'
+  X-Forwarded-Port: '$server_port'
+  X-Forwarded-For: '$proxy_add_x_forwarded_for'
+  X-Real-IP: '$remote_addr'
+  X-Request-ID: '$request_id'
+  X-Original-URI: '$request_uri'
 
 ---
 # 网络策略（Network Policy）
@@ -381,7 +381,7 @@ metadata:
     app.kubernetes.io/component: network-policy
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Network policy for MoonTV services"
+    description: 'Network policy for MoonTV services'
 spec:
   podSelector:
     matchLabels:

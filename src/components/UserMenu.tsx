@@ -133,14 +133,14 @@ export const UserMenu: React.FC = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedAggregateSearch = localStorage.getItem(
-        'defaultAggregateSearch'
+        'defaultAggregateSearch',
       );
       if (savedAggregateSearch !== null) {
         setDefaultAggregateSearch(JSON.parse(savedAggregateSearch));
       }
 
       const savedDefaultStreamSearch = localStorage.getItem(
-        'defaultStreamSearch'
+        'defaultStreamSearch',
       );
       if (savedDefaultStreamSearch !== null) {
         setDefaultStreamSearch(JSON.parse(savedDefaultStreamSearch));
@@ -170,7 +170,7 @@ export const UserMenu: React.FC = () => {
       }
 
       const savedDoubanImageProxyType = localStorage.getItem(
-        'doubanImageProxyType'
+        'doubanImageProxyType',
       );
       const defaultDoubanImageProxyType =
         (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'direct';
@@ -181,7 +181,7 @@ export const UserMenu: React.FC = () => {
       }
 
       const savedDoubanImageProxyUrl = localStorage.getItem(
-        'doubanImageProxyUrl'
+        'doubanImageProxyUrl',
       );
       const defaultDoubanImageProxyUrl =
         (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY || '';
@@ -487,8 +487,8 @@ export const UserMenu: React.FC = () => {
                   (authInfo?.role || 'user') === 'owner'
                     ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
                     : (authInfo?.role || 'user') === 'admin'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                 }`}
               >
                 {getRoleText(authInfo?.role || 'user')}
@@ -572,8 +572,8 @@ export const UserMenu: React.FC = () => {
                       updateStatus === UpdateStatus.HAS_UPDATE
                         ? 'bg-yellow-500'
                         : updateStatus === UpdateStatus.NO_UPDATE
-                        ? 'bg-green-400'
-                        : ''
+                          ? 'bg-green-400'
+                          : ''
                     }`}
                   ></div>
                 )}
@@ -644,7 +644,7 @@ export const UserMenu: React.FC = () => {
                   >
                     {
                       doubanDataSourceOptions.find(
-                        (option) => option.value === doubanDataSource
+                        (option) => option.value === doubanDataSource,
                       )?.label
                     }
                   </button>
@@ -693,7 +693,7 @@ export const UserMenu: React.FC = () => {
                       onClick={() =>
                         window.open(
                           getThanksInfo(doubanDataSource)!.url,
-                          '_blank'
+                          '_blank',
                         )
                       }
                       className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
@@ -747,14 +747,14 @@ export const UserMenu: React.FC = () => {
                     type='button'
                     onClick={() =>
                       setIsDoubanImageProxyDropdownOpen(
-                        !isDoubanImageProxyDropdownOpen
+                        !isDoubanImageProxyDropdownOpen,
                       )
                     }
                     className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
                   >
                     {
                       doubanImageProxyTypeOptions.find(
-                        (option) => option.value === doubanImageProxyType
+                        (option) => option.value === doubanImageProxyType,
                       )?.label
                     }
                   </button>
@@ -803,7 +803,7 @@ export const UserMenu: React.FC = () => {
                       onClick={() =>
                         window.open(
                           getThanksInfo(doubanImageProxyType)!.url,
-                          '_blank'
+                          '_blank',
                         )
                       }
                       className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
@@ -927,7 +927,7 @@ export const UserMenu: React.FC = () => {
                     type='text'
                     className='flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                     value={`${tvboxUrl}?pwd=${encodeURIComponent(
-                      tvboxPassword || ''
+                      tvboxPassword || '',
                     )}`}
                     readOnly
                   />
@@ -937,8 +937,8 @@ export const UserMenu: React.FC = () => {
                     onClick={() => {
                       navigator.clipboard.writeText(
                         `${tvboxUrl}?pwd=${encodeURIComponent(
-                          tvboxPassword || ''
-                        )}`
+                          tvboxPassword || '',
+                        )}`,
                       );
                     }}
                   >
@@ -951,8 +951,8 @@ export const UserMenu: React.FC = () => {
                     {storageType === 'localstorage'
                       ? '请修改环境变量 TVBOX_ENABLED 以开启'
                       : isPrivileged
-                      ? '请前往管理面板的站点配置中开启'
-                      : '请联系管理员开启'}
+                        ? '请前往管理面板的站点配置中开启'
+                        : '请联系管理员开启'}
                   </span>
                 )
               )}

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       {
         error: '不支持本地存储进行管理员配置',
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -32,12 +32,12 @@ export async function POST(request: NextRequest) {
 
     if (username !== process.env.USERNAME) {
       const user = adminConfig.UserConfig.Users.find(
-        (u) => u.username === username
+        (u) => u.username === username,
       );
       if (!user || user.role !== 'admin' || user.banned) {
         return NextResponse.json(
           { error: '权限不足，只有管理员可以修改配置文件' },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!configFile || typeof configFile !== 'string') {
       return NextResponse.json(
         { error: '配置文件内容不能为空' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       return NextResponse.json(
         { error: '配置文件格式错误，请检查 JSON 语法' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         error: '更新配置文件失败',
         details: (error as Error).message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

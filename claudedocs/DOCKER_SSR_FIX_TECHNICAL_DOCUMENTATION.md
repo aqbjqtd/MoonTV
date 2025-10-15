@@ -38,12 +38,10 @@ ELIFECYCLE Command failed with exit code 1
 通过深度研究 agent 和系统架构专家分析，确认了以下问题链：
 
 1. **依赖安装策略问题**：
-
    - Dockerfile deps 阶段使用 `pnpm install --prod` 只安装生产依赖
    - `husky` 是开发依赖，在 `--prod` 模式下未安装
 
 2. **自动脚本触发机制**：
-
    - `package.json` 中的 `prepare` 脚本自动执行 `husky install`
    - 脚本执行时找不到 husky 包，导致构建失败
 
@@ -65,12 +63,10 @@ digest 2652919541: EvalError
 通过根因分析专家的诊断，确认问题出现在：
 
 1. **运行时配置加载机制**：
-
    - 配置加载使用 `eval()` 函数动态执行
    - Edge Runtime 环境对 `eval()` 有严格限制
 
 2. **环境兼容性问题**：
-
    - 开发环境与 Docker 环境的运行时差异
    - Node.js 与 Edge Runtime 的 API 兼容性
 

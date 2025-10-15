@@ -87,7 +87,7 @@ export async function GET(request: Request) {
       { sites: [], parses: [], lives: [], ads: [] },
       {
         status: 500,
-      }
+      },
     );
   }
 }

@@ -13,8 +13,8 @@ metadata:
     app.kubernetes.io/component: app
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "MoonTV application service"
-    service.beta.kubernetes.io/load-balancer-source-ranges: "0.0.0.0/0"
+    description: 'MoonTV application service'
+    service.beta.kubernetes.io/load-balancer-source-ranges: '0.0.0.0/0'
 spec:
   type: ClusterIP
   ports:
@@ -39,7 +39,7 @@ metadata:
     app.kubernetes.io/component: redis
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Redis service for MoonTV"
+    description: 'Redis service for MoonTV'
 spec:
   type: ClusterIP
   ports:
@@ -64,7 +64,7 @@ metadata:
     app.kubernetes.io/component: nginx
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Nginx service for MoonTV"
+    description: 'Nginx service for MoonTV'
 spec:
   type: ClusterIP
   ports:
@@ -89,7 +89,7 @@ metadata:
     app.kubernetes.io/component: app
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Headless service for MoonTV application"
+    description: 'Headless service for MoonTV application'
 spec:
   type: ClusterIP
   clusterIP: None
@@ -115,10 +115,10 @@ metadata:
     app.kubernetes.io/component: metrics
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Metrics service for MoonTV"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "3000"
-    prometheus.io/path: "/api/metrics"
+    description: 'Metrics service for MoonTV'
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '3000'
+    prometheus.io/path: '/api/metrics'
 spec:
   type: ClusterIP
   ports:
@@ -142,10 +142,10 @@ metadata:
     app.kubernetes.io/component: redis-metrics
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Redis metrics service"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "9121"
-    prometheus.io/path: "/metrics"
+    description: 'Redis metrics service'
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9121'
+    prometheus.io/path: '/metrics'
 spec:
   type: ClusterIP
   ports:
@@ -169,10 +169,10 @@ metadata:
     app.kubernetes.io/component: nginx-metrics
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Nginx metrics service"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "9113"
-    prometheus.io/path: "/metrics"
+    description: 'Nginx metrics service'
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9113'
+    prometheus.io/path: '/metrics'
 spec:
   type: ClusterIP
   ports:
@@ -196,37 +196,37 @@ metadata:
     app.kubernetes.io/component: loadbalancer
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "Load balancer service for MoonTV"
+    description: 'Load balancer service for MoonTV'
     # 云服务商特定注解
     # AWS EKS
-    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
-    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-type: 'nlb'
+    service.beta.kubernetes.io/aws-load-balancer-scheme: 'internet-facing'
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: 'true'
 
     # Azure AKS
-    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+    service.beta.kubernetes.io/azure-load-balancer-internal: 'false'
 
     # Google GKE
-    cloud.google.com/load-balancer-type: "External"
+    cloud.google.com/load-balancer-type: 'External'
 
     # 健康检查
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTP"
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "traffic-port"
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "30"
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "5"
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
-    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: 'HTTP'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: 'traffic-port'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: '/health'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: '30'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: '5'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: '2'
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: '2'
 
     # 代理协议
-    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
 
     # 连接排空
-    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "60"
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: '60'
 
     # SSL证书
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
-    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: 'arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012'
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: 'https'
 
     # 其他注解
     cloud.google.com/app-protocols: '{"http":"HTTP"}'
@@ -266,7 +266,7 @@ metadata:
     app.kubernetes.io/component: nodeport
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "NodePort service for MoonTV (development)"
+    description: 'NodePort service for MoonTV (development)'
 spec:
   type: NodePort
   ports:
@@ -292,7 +292,7 @@ metadata:
     app.kubernetes.io/component: external-redis
 subsets:
   - addresses:
-      - ip: 10.0.1.100  # 外部Redis IP
+      - ip: 10.0.1.100 # 外部Redis IP
     ports:
       - name: redis
         port: 6379
@@ -310,7 +310,7 @@ metadata:
     app.kubernetes.io/component: external-redis
     app.kubernetes.io/managed-by: manual
   annotations:
-    description: "External Redis service"
+    description: 'External Redis service'
 spec:
   type: ClusterIP
   ports:

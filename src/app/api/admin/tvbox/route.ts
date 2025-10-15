@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   const username = authInfo.username;
   if (username !== process.env.USERNAME) {
     const user = adminConfig.UserConfig.Users.find(
-      (u) => u.username === username
+      (u) => u.username === username,
     );
     if (!user || user.role !== 'admin' || user.banned) {
       return NextResponse.json({ error: '权限不足' }, { status: 403 });
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
   if (storageType === 'localstorage') {
     return NextResponse.json(
       { error: '本地模式下由环境变量 TVBOX_ENABLED 控制开关，口令=PASSWORD' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
