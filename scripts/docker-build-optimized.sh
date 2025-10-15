@@ -141,8 +141,8 @@ done
 APP_VERSION=${TAG:-latest}
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 VCS_REF=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-IMAGE_NAME="${REGISTRY}/$(basename $(pwd))"
-CACHE_IMAGE="${CACHE_REGISTRY}/$(basename $(pwd)):cache"
+IMAGE_NAME="${REGISTRY}/$(basename $(pwd) | tr '[:upper:]' '[:lower:]')"
+CACHE_IMAGE="${CACHE_REGISTRY}/$(basename $(pwd) | tr '[:upper:]' '[:lower:]'):cache"
 
 log_info "MoonTV Docker 构建配置:"
 log_info "  镜像标签: $TAG"

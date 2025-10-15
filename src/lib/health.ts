@@ -54,7 +54,10 @@ class HealthMonitor {
   getAverageResponseTime(): number {
     if (this.metrics.length === 0) return 0;
 
-    const total = this.metrics.reduce((sum, metric) => sum + metric.responseTime, 0);
+    const total = this.metrics.reduce(
+      (sum, metric) => sum + metric.responseTime,
+      0,
+    );
     return total / this.metrics.length;
   }
 
@@ -67,7 +70,9 @@ class HealthMonitor {
   }
 
   // 检查系统是否健康
-  async checkSystemHealth(): Promise<HealthCheck & { checks: Record<string, boolean> }> {
+  async checkSystemHealth(): Promise<
+    HealthCheck & { checks: Record<string, boolean> }
+  > {
     const health = this.getHealthCheck();
 
     const checks = {
@@ -76,7 +81,7 @@ class HealthMonitor {
       responseTime: this.checkResponseTime(),
     };
 
-    const isHealthy = Object.values(checks).every(check => check);
+    const isHealthy = Object.values(checks).every((check) => check);
 
     return {
       ...health,
