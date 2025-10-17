@@ -91,7 +91,7 @@ export const UserMenu: React.FC = () => {
   const [tvboxEnabled, setTvboxEnabled] = useState(false);
   const [tvboxPassword, setTvboxPassword] = useState('');
   const [tvboxUrl, setTvboxUrl] = useState('');
-  const isPrivileged = authInfo?.role === 'owner' || authInfo?.role === 'admin';
+  const isPrivileged = (authInfo?.role === 'owner' || authInfo?.role === 'admin');
 
   const fetchTvboxConfig = async () => {
     try {
@@ -133,14 +133,14 @@ export const UserMenu: React.FC = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedAggregateSearch = localStorage.getItem(
-        'defaultAggregateSearch',
+        'defaultAggregateSearch'
       );
       if (savedAggregateSearch !== null) {
         setDefaultAggregateSearch(JSON.parse(savedAggregateSearch));
       }
 
       const savedDefaultStreamSearch = localStorage.getItem(
-        'defaultStreamSearch',
+        'defaultStreamSearch'
       );
       if (savedDefaultStreamSearch !== null) {
         setDefaultStreamSearch(JSON.parse(savedDefaultStreamSearch));
@@ -170,7 +170,7 @@ export const UserMenu: React.FC = () => {
       }
 
       const savedDoubanImageProxyType = localStorage.getItem(
-        'doubanImageProxyType',
+        'doubanImageProxyType'
       );
       const defaultDoubanImageProxyType =
         (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY_TYPE || 'direct';
@@ -181,7 +181,7 @@ export const UserMenu: React.FC = () => {
       }
 
       const savedDoubanImageProxyUrl = localStorage.getItem(
-        'doubanImageProxyUrl',
+        'doubanImageProxyUrl'
       );
       const defaultDoubanImageProxyUrl =
         (window as any).RUNTIME_CONFIG?.DOUBAN_IMAGE_PROXY || '';
@@ -190,6 +190,8 @@ export const UserMenu: React.FC = () => {
       } else if (defaultDoubanImageProxyUrl) {
         setDoubanImageProxyUrl(defaultDoubanImageProxyUrl);
       }
+
+
     }
   }, []);
 
@@ -371,6 +373,8 @@ export const UserMenu: React.FC = () => {
     }
   };
 
+
+
   const handleDoubanDataSourceChange = (value: string) => {
     setDoubanDataSource(value);
     if (typeof window !== 'undefined') {
@@ -487,8 +491,8 @@ export const UserMenu: React.FC = () => {
                   (authInfo?.role || 'user') === 'owner'
                     ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
                     : (authInfo?.role || 'user') === 'admin'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                      : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                 }`}
               >
                 {getRoleText(authInfo?.role || 'user')}
@@ -572,8 +576,8 @@ export const UserMenu: React.FC = () => {
                       updateStatus === UpdateStatus.HAS_UPDATE
                         ? 'bg-yellow-500'
                         : updateStatus === UpdateStatus.NO_UPDATE
-                          ? 'bg-green-400'
-                          : ''
+                        ? 'bg-green-400'
+                        : ''
                     }`}
                   ></div>
                 )}
@@ -624,224 +628,219 @@ export const UserMenu: React.FC = () => {
           {!simpleMode && (
             <>
               {/* 豆瓣数据源选择 */}
-              <div className='space-y-3'>
-                <div>
-                  <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                    豆瓣数据代理
-                  </h4>
-                  <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                    选择获取豆瓣数据的方式
-                  </p>
-                </div>
-                <div className='relative' data-dropdown='douban-datasource'>
-                  {/* 自定义下拉选择框 */}
-                  <button
-                    type='button'
-                    onClick={() =>
-                      setIsDoubanDropdownOpen(!isDoubanDropdownOpen)
-                    }
-                    className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
-                  >
-                    {
-                      doubanDataSourceOptions.find(
-                        (option) => option.value === doubanDataSource,
-                      )?.label
-                    }
-                  </button>
+          <div className='space-y-3'>
+            <div>
+              <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                豆瓣数据代理
+              </h4>
+              <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                选择获取豆瓣数据的方式
+              </p>
+            </div>
+            <div className='relative' data-dropdown='douban-datasource'>
+              {/* 自定义下拉选择框 */}
+              <button
+                type='button'
+                onClick={() => setIsDoubanDropdownOpen(!isDoubanDropdownOpen)}
+                className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
+              >
+                {
+                  doubanDataSourceOptions.find(
+                    (option) => option.value === doubanDataSource
+                  )?.label
+                }
+              </button>
 
-                  {/* 下拉箭头 */}
-                  <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
-                    <ChevronDown
-                      className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
-                        isDoubanDropdownOpen ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </div>
-
-                  {/* 下拉选项列表 */}
-                  {isDoubanDropdownOpen && (
-                    <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto'>
-                      {doubanDataSourceOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type='button'
-                          onClick={() => {
-                            handleDoubanDataSourceChange(option.value);
-                            setIsDoubanDropdownOpen(false);
-                          }}
-                          className={`w-full px-3 py-2.5 text-left text-sm transition-colors duration-150 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            doubanDataSource === option.value
-                              ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                              : 'text-gray-900 dark:text-gray-100'
-                          }`}
-                        >
-                          <span className='truncate'>{option.label}</span>
-                          {doubanDataSource === option.value && (
-                            <Check className='w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 ml-2' />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 感谢信息 */}
-                {getThanksInfo(doubanDataSource) && (
-                  <div className='mt-3'>
-                    <button
-                      type='button'
-                      onClick={() =>
-                        window.open(
-                          getThanksInfo(doubanDataSource)!.url,
-                          '_blank',
-                        )
-                      }
-                      className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
-                    >
-                      <span className='font-medium'>
-                        {getThanksInfo(doubanDataSource)!.text}
-                      </span>
-                      <ExternalLink className='w-3.5 opacity-70' />
-                    </button>
-                  </div>
-                )}
+              {/* 下拉箭头 */}
+              <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
+                    isDoubanDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </div>
 
-              {/* 豆瓣代理地址设置 - 仅在选择自定义代理时显示 */}
-              {doubanDataSource === 'custom' && (
-                <div className='space-y-3'>
-                  <div>
-                    <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                      豆瓣代理地址
-                    </h4>
-                    <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                      自定义代理服务器地址
-                    </p>
-                  </div>
-                  <input
-                    type='text'
-                    className='w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm hover:border-gray-400 dark:hover:border-gray-500'
-                    placeholder='例如: https://proxy.example.com/fetch?url='
-                    value={doubanProxyUrl}
-                    onChange={(e) => handleDoubanProxyUrlChange(e.target.value)}
-                  />
+              {/* 下拉选项列表 */}
+              {isDoubanDropdownOpen && (
+                <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                  {doubanDataSourceOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type='button'
+                      onClick={() => {
+                        handleDoubanDataSourceChange(option.value);
+                        setIsDoubanDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2.5 text-left text-sm transition-colors duration-150 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        doubanDataSource === option.value
+                          ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                          : 'text-gray-900 dark:text-gray-100'
+                      }`}
+                    >
+                      <span className='truncate'>{option.label}</span>
+                      {doubanDataSource === option.value && (
+                        <Check className='w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 ml-2' />
+                      )}
+                    </button>
+                  ))}
                 </div>
               )}
+            </div>
 
-              {/* 分割线 */}
-              <div className='border-t border-gray-200 dark:border-gray-700'></div>
+            {/* 感谢信息 */}
+            {getThanksInfo(doubanDataSource) && (
+              <div className='mt-3'>
+                <button
+                  type='button'
+                  onClick={() =>
+                    window.open(getThanksInfo(doubanDataSource)!.url, '_blank')
+                  }
+                  className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
+                >
+                  <span className='font-medium'>
+                    {getThanksInfo(doubanDataSource)!.text}
+                  </span>
+                  <ExternalLink className='w-3.5 opacity-70' />
+                </button>
+              </div>
+            )}
+          </div>
 
-              {/* 豆瓣图片代理设置 */}
-              <div className='space-y-3'>
-                <div>
-                  <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                    豆瓣图片代理
-                  </h4>
-                  <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                    选择获取豆瓣图片的方式
-                  </p>
-                </div>
-                <div className='relative' data-dropdown='douban-image-proxy'>
-                  {/* 自定义下拉选择框 */}
-                  <button
-                    type='button'
-                    onClick={() =>
-                      setIsDoubanImageProxyDropdownOpen(
-                        !isDoubanImageProxyDropdownOpen,
-                      )
-                    }
-                    className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
-                  >
-                    {
-                      doubanImageProxyTypeOptions.find(
-                        (option) => option.value === doubanImageProxyType,
-                      )?.label
-                    }
-                  </button>
+          {/* 豆瓣代理地址设置 - 仅在选择自定义代理时显示 */}
+          {doubanDataSource === 'custom' && (
+            <div className='space-y-3'>
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                  豆瓣代理地址
+                </h4>
+                <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                  自定义代理服务器地址
+                </p>
+              </div>
+              <input
+                type='text'
+                className='w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm hover:border-gray-400 dark:hover:border-gray-500'
+                placeholder='例如: https://proxy.example.com/fetch?url='
+                value={doubanProxyUrl}
+                onChange={(e) => handleDoubanProxyUrlChange(e.target.value)}
+              />
+            </div>
+          )}
 
-                  {/* 下拉箭头 */}
-                  <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
-                    <ChevronDown
-                      className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
-                        isDoubanDropdownOpen ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </div>
+          {/* 分割线 */}
+          <div className='border-t border-gray-200 dark:border-gray-700'></div>
 
-                  {/* 下拉选项列表 */}
-                  {isDoubanImageProxyDropdownOpen && (
-                    <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto'>
-                      {doubanImageProxyTypeOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type='button'
-                          onClick={() => {
-                            handleDoubanImageProxyTypeChange(option.value);
-                            setIsDoubanImageProxyDropdownOpen(false);
-                          }}
-                          className={`w-full px-3 py-2.5 text-left text-sm transition-colors duration-150 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                            doubanImageProxyType === option.value
-                              ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                              : 'text-gray-900 dark:text-gray-100'
-                          }`}
-                        >
-                          <span className='truncate'>{option.label}</span>
-                          {doubanImageProxyType === option.value && (
-                            <Check className='w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 ml-2' />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          {/* 豆瓣图片代理设置 */}
+          <div className='space-y-3'>
+            <div>
+              <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                豆瓣图片代理
+              </h4>
+              <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                选择获取豆瓣图片的方式
+              </p>
+            </div>
+            <div className='relative' data-dropdown='douban-image-proxy'>
+              {/* 自定义下拉选择框 */}
+              <button
+                type='button'
+                onClick={() =>
+                  setIsDoubanImageProxyDropdownOpen(
+                    !isDoubanImageProxyDropdownOpen
+                  )
+                }
+                className='w-full px-3 py-2.5 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 text-left'
+              >
+                {
+                  doubanImageProxyTypeOptions.find(
+                    (option) => option.value === doubanImageProxyType
+                  )?.label
+                }
+              </button>
 
-                {/* 感谢信息 */}
-                {getThanksInfo(doubanImageProxyType) && (
-                  <div className='mt-3'>
-                    <button
-                      type='button'
-                      onClick={() =>
-                        window.open(
-                          getThanksInfo(doubanImageProxyType)!.url,
-                          '_blank',
-                        )
-                      }
-                      className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
-                    >
-                      <span className='font-medium'>
-                        {getThanksInfo(doubanImageProxyType)!.text}
-                      </span>
-                      <ExternalLink className='w-3.5 opacity-70' />
-                    </button>
-                  </div>
-                )}
+              {/* 下拉箭头 */}
+              <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
+                    isDoubanDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </div>
 
-              {/* 豆瓣图片代理地址设置 - 仅在选择自定义代理时显示 */}
-              {doubanImageProxyType === 'custom' && (
-                <div className='space-y-3'>
-                  <div>
-                    <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                      豆瓣图片代理地址
-                    </h4>
-                    <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                      自定义图片代理服务器地址
-                    </p>
-                  </div>
-                  <input
-                    type='text'
-                    className='w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm hover:border-gray-400 dark:hover:border-gray-500'
-                    placeholder='例如: https://proxy.example.com/fetch?url='
-                    value={doubanImageProxyUrl}
-                    onChange={(e) =>
-                      handleDoubanImageProxyUrlChange(e.target.value)
-                    }
-                  />
+              {/* 下拉选项列表 */}
+              {isDoubanImageProxyDropdownOpen && (
+                <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto'>
+                  {doubanImageProxyTypeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type='button'
+                      onClick={() => {
+                        handleDoubanImageProxyTypeChange(option.value);
+                        setIsDoubanImageProxyDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2.5 text-left text-sm transition-colors duration-150 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        doubanImageProxyType === option.value
+                          ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                          : 'text-gray-900 dark:text-gray-100'
+                      }`}
+                    >
+                      <span className='truncate'>{option.label}</span>
+                      {doubanImageProxyType === option.value && (
+                        <Check className='w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 ml-2' />
+                      )}
+                    </button>
+                  ))}
                 </div>
               )}
+            </div>
 
-              {/* 分割线 */}
-              <div className='border-t border-gray-200 dark:border-gray-700'></div>
+            {/* 感谢信息 */}
+            {getThanksInfo(doubanImageProxyType) && (
+              <div className='mt-3'>
+                <button
+                  type='button'
+                  onClick={() =>
+                    window.open(
+                      getThanksInfo(doubanImageProxyType)!.url,
+                      '_blank'
+                    )
+                  }
+                  className='flex items-center justify-center gap-1.5 w-full px-3 text-xs text-gray-500 dark:text-gray-400 cursor-pointer'
+                >
+                  <span className='font-medium'>
+                    {getThanksInfo(doubanImageProxyType)!.text}
+                  </span>
+                  <ExternalLink className='w-3.5 opacity-70' />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 豆瓣图片代理地址设置 - 仅在选择自定义代理时显示 */}
+          {doubanImageProxyType === 'custom' && (
+            <div className='space-y-3'>
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                  豆瓣图片代理地址
+                </h4>
+                <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                  自定义图片代理服务器地址
+                </p>
+              </div>
+              <input
+                type='text'
+                className='w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm hover:border-gray-400 dark:hover:border-gray-500'
+                placeholder='例如: https://proxy.example.com/fetch?url='
+                value={doubanImageProxyUrl}
+                onChange={(e) =>
+                  handleDoubanImageProxyUrlChange(e.target.value)
+                }
+              />
+            </div>
+          )}
+
+          {/* 分割线 */}
+          <div className='border-t border-gray-200 dark:border-gray-700'></div>
             </>
           )}
 
@@ -901,45 +900,42 @@ export const UserMenu: React.FC = () => {
             <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
               TVBox 接口
             </h4>
-
+            
             {/* 状态和接口地址同行 */}
             <div className='flex items-center gap-3'>
               {/* 状态徽章 */}
-              <div
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium shrink-0 ${
-                  tvboxEnabled
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    tvboxEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
-                  }`}
-                />
+              <div className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium shrink-0 ${
+                tvboxEnabled 
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  tvboxEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                }`} />
                 <span>{tvboxEnabled ? '已开启' : '未开启'}</span>
               </div>
-
+              
               {/* 接口地址 */}
               {tvboxEnabled && tvboxUrl ? (
                 <>
                   <input
+                    ref={(input) => {
+                      if (input) {
+                        const url = new URL(tvboxUrl);
+                        url.searchParams.set('pwd', tvboxPassword || '');
+                        input.value = url.toString();
+                      }
+                    }}
                     type='text'
                     className='flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                    value={`${tvboxUrl}?pwd=${encodeURIComponent(
-                      tvboxPassword || '',
-                    )}`}
                     readOnly
                   />
                   <button
                     type='button'
                     className='shrink-0 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
-                    onClick={() => {
-                      navigator.clipboard.writeText(
-                        `${tvboxUrl}?pwd=${encodeURIComponent(
-                          tvboxPassword || '',
-                        )}`,
-                      );
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                      navigator.clipboard.writeText(input.value);
                     }}
                   >
                     复制
@@ -948,34 +944,31 @@ export const UserMenu: React.FC = () => {
               ) : (
                 !tvboxEnabled && (
                   <span className='text-xs text-gray-500 dark:text-gray-400'>
-                    {storageType === 'localstorage'
-                      ? '请修改环境变量 TVBOX_ENABLED 以开启'
-                      : isPrivileged
-                        ? '请前往管理面板的站点配置中开启'
-                        : '请联系管理员开启'}
+                    {storageType === 'localstorage' 
+                      ? '请修改环境变量 TVBOX_ENABLED 以开启' 
+                      : (isPrivileged ? '请前往管理面板的站点配置中开启' : '请联系管理员开启')
+                    }
                   </span>
                 )
               )}
             </div>
-
+            
             {/* 说明文字和提示 */}
             {tvboxEnabled && tvboxUrl && (
               <div className='space-y-2'>
                 <p className='text-xs text-gray-500 dark:text-gray-400'>
                   将该地址填入 TVBox 的订阅/配置接口即可使用。
                 </p>
-
+                
                 {storageType === 'localstorage' && (
                   <p className='text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg'>
-                    💡 本地模式，开关由环境变量 TVBOX_ENABLED 控制，口令为
-                    PASSWORD
+                    💡 本地模式，开关由环境变量 TVBOX_ENABLED 控制，口令为 PASSWORD
                   </p>
                 )}
-
+                
                 {isPrivileged && storageType !== 'localstorage' && (
                   <p className='text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg'>
-                    💡 如需修改 TVBox
-                    配置（开关/密码），请前往管理面板的站点配置
+                    💡 如需修改 TVBox 配置（开关/密码），请前往管理面板的站点配置
                   </p>
                 )}
               </div>

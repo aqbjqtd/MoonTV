@@ -11,9 +11,29 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: '3.2.0',
-    date: '2025-10-04',
-    added: ['添加Docker镜像自动构建工作流', '搜索建议添加开关控制'],
+  version: "3.3.0",
+    date: "2025-10-16",
+    added: [
+      "用户组分配视频源功能",
+      "视频源配置支持批量操作",
+      "添加加载动画"
+    ],
+    changed: [
+      "非本地存储默认关闭TVBox",
+      "简化明暗模式变化",
+      "优化 docker 构建流程"
+    ],
+    fixed: [
+      "非本地模式视频源配置初始化"
+    ]
+  },
+  {
+    version: "3.2.0",
+    date: "2025-10-04",
+    added: [
+      "添加Docker镜像自动构建工作流",
+      "搜索建议添加开关控制"
+    ],
     changed: [
       '优化搜索设置UI布局',
       '调整搜索建议排序逻辑',

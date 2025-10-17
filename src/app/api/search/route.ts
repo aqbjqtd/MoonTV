@@ -1,11 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,no-console */
-import { getCacheTime, getConfig } from '@/lib/config';
+
+import { NextRequest } from 'next/server';
+
+import { getAuthInfoFromCookie } from '@/lib/auth';
+import { getAvailableApiSites, getCacheTime, getConfig } from '@/lib/config';
 import { searchFromApiStream } from '@/lib/downstream';
 import { yellowWords } from '@/lib/yellow';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const authInfo = getAuthInfoFromCookie(request);
+  if (!authInfo || !authInfo.username) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q');
   const streamParam = searchParams.get('stream');
@@ -14,15 +26,15 @@ export async function GET(request: Request) {
   const timeout = timeoutParam ? parseInt(timeoutParam, 10) * 1000 : undefined; // 转换为毫秒
 
   const config = await getConfig();
-
-  // 获取选中的搜索源
-  const selectedSourcesParam = searchParams.get('sources');
-  let apiSites = config.SourceConfig.filter((site) => !site.disabled);
-
+  
+  // 获取用户可用的搜索源
+  let apiSites = await getAvailableApiSites(authInfo.username);
+  
   // 如果指定了搜索源，只使用选中的搜索源
+  const selectedSourcesParam = searchParams.get('sources');
   if (selectedSourcesParam) {
     const selectedSources = selectedSourcesParam.split(',');
-    apiSites = apiSites.filter((site) => selectedSources.includes(site.key));
+    apiSites = apiSites.filter(site => selectedSources.includes(site.key));
   }
 
   const encoder = new TextEncoder();
@@ -95,7 +107,7 @@ export async function GET(request: Request) {
         return { siteResults, failed: null };
       } catch (err: any) {
         let errorMessage = err.message || '未知的错误';
-
+        
         // 根据错误类型提供更具体的错误信息
         if (err.message === '请求超时') {
           errorMessage = '请求超时';
@@ -104,7 +116,7 @@ export async function GET(request: Request) {
         } else if (err.message.includes('网络错误')) {
           errorMessage = '网络错误';
         }
-
+        
         return {
           siteResults: [],
           failed: { name: site.name, key: site.key, error: errorMessage },
@@ -163,35 +175,25 @@ export async function GET(request: Request) {
           }
 
           if (hasResults && filteredResults.length === 0) {
-            failedSources.push({
-              name: site.name,
-              key: site.key,
-              error: '结果被过滤',
-            });
+            failedSources.push({ name: site.name, key: site.key, error: '结果被过滤' });
             await safeWrite({ failedSources });
             return;
           }
 
           aggregatedResults.push(...filteredResults);
-          if (
-            !(await safeWrite({ site: site.key, pageResults: filteredResults }))
-          ) {
+          if (!(await safeWrite({ site: site.key, pageResults: filteredResults }))) {
             return;
           }
         }
 
         if (!hasResults) {
-          failedSources.push({
-            name: site.name,
-            key: site.key,
-            error: '无搜索结果',
-          });
+          failedSources.push({ name: site.name, key: site.key, error: '无搜索结果' });
           await safeWrite({ failedSources });
         }
       } catch (err: any) {
         console.warn(`搜索失败 ${site.name}:`, err.message);
         let errorMessage = err.message || '未知的错误';
-
+        
         // 根据错误类型提供更具体的错误信息
         if (err.message === '请求超时') {
           errorMessage = '请求超时';
@@ -200,12 +202,8 @@ export async function GET(request: Request) {
         } else if (err.message.includes('网络错误')) {
           errorMessage = '网络错误';
         }
-
-        failedSources.push({
-          name: site.name,
-          key: site.key,
-          error: errorMessage,
-        });
+        
+        failedSources.push({ name: site.name, key: site.key, error: errorMessage });
         await safeWrite({ failedSources });
       }
     });
