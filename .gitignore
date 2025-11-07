@@ -45,4 +45,8 @@ sitemap-*.xml
 
 # generated files
 src/lib/runtime.ts
-public/manifest.json
+public/manifest.json# MoonTV项目配置文件
+# 记忆系统配置
+
+# Git忽略配置
+.serena/
