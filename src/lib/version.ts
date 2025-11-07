@@ -11,9 +11,10 @@ export enum UpdateStatus {
   FETCH_FAILED = 'fetch_failed', // 获取失败
 }
 
-// 远程版本检查URL配置
+// 远程版本检查URL配置 - 使用自身仓库作为版本检查源
 const VERSION_CHECK_URLS = [
-  'https://raw.githubusercontent.com/Stardm0/MoonTV/main/VERSION.txt',
+  'https://raw.githubusercontent.com/aqbjqtd/MoonTV/main/VERSION.txt',
+  'https://raw.githubusercontent.com/Stardm0/MoonTV/main/VERSION.txt', // 备用检查源
 ];
 
 /**
