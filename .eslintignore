@@ -1,0 +1,7 @@
+# PWA Service Worker files (generated)
+public/sw.js
+public/workbox-*.js
+
+# Test files
+src/lib/logger.test.ts
+test-logger-demo.js
