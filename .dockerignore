@@ -1,2 +1,10 @@
 .env
 .env*.local
+node_modules
+.next
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+.serena
