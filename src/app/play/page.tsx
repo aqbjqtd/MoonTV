@@ -235,6 +235,7 @@ function PlayPageClient() {
     if (!danmukuPluginInstanceRef.current || !danmukuUrl) return;
     try {
       console.log('动态更新弹幕源:', danmukuUrl);
+      danmukuPluginInstanceRef.current.reset();
       danmukuPluginInstanceRef.current.load(danmukuUrl);
     } catch (error) {
       console.error('更新弹幕源失败:', error);
