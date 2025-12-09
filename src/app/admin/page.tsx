@@ -2209,7 +2209,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
     DisableYellowFilter: false,
     TVBoxEnabled: false,
     TVBoxPassword: '',
-    DanmakuApiBaseUrl: 'https://dm.stardm.us.kg',
+    DanmakuApiBaseUrl: '',
   });
   // 保存状态
   const [saving, setSaving] = useState(false);
@@ -2290,7 +2290,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
         TVBoxPassword: config.SiteConfig.TVBoxPassword || '',
         DanmakuApiBaseUrl:
           config.SiteConfig.DanmakuApiBaseUrl ||
-          'https://dm.stardm.us.kg',
+          '',
       });
     }
   }, [config]);
@@ -2577,7 +2577,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
               }))
             }
             className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
-            placeholder='https://dm.stardm.us.kg'
+            placeholder=''
           />
         </div>
       </div>

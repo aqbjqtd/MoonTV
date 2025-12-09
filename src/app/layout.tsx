@@ -59,7 +59,7 @@ export default async function RootLayout({
     process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true';
   let danmakuApiBaseUrl =
     process.env.NEXT_PUBLIC_DANMU_API_BASE_URL ||
-    'https://dm.stardm.us.kg';
+    '';
   let autoUpdateEnabled = false;
   if (storageType !== 'localstorage') {
     const config = await getConfig();

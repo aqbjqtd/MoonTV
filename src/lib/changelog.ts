@@ -11,6 +11,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "3.6.2",
+    date: "2025-12-09",
+    added: [
+    "添加默认优选换源开关"
+    ],
+    changed: [
+    "优化弹幕自动加载",
+    "默认为空壳项目(无内置源和弹幕)",
+    "优化优选换源加载形式"
+    ],
+    fixed: [
+    "OrionTV本地存储播放无源"
+    ]
+  },
+  {
     version: "3.5.7",
     date: "2025-12-06",
     added: [

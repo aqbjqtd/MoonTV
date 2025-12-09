@@ -30,7 +30,9 @@
 - 🌗 **响应式布局**：桌面侧边栏 + 移动底部导航，自适应各种屏幕尺寸。
 - 🚀 **极简部署**：一条 Docker 命令即可将完整服务跑起来，或免费部署到 Vercel、Netlify、cloudflare。
 - 👿 **智能去广告**：自动跳过视频中的切片广告（实验性）
-- 💬 **弹幕支持**：以[danmu_api](https://github.com/huangxd-/danmu_api)为后端
+- 💬 **弹幕支持**：以[danmu_api](https://github.com/huangxd-/danmu_api)为后端, 需自行部署
+
+### 注意：部署后项目为空壳项目，无内置播放源，需要自行收集，需要弹幕请自行部署后端
 
 <details>
   <summary>点击查看项目截图</summary>
@@ -41,6 +43,7 @@
 
 - [MoonTV(Branch)](#moontvbranch)
   - [✨ 功能特性](#-功能特性)
+    - [注意：部署后项目为空壳项目，无内置播放源，需要自行收集，需要弹幕请自行部署后端](#注意部署后项目为空壳项目无内置播放源需要自行收集需要弹幕请自行部署后端)
   - [🗺 目录](#-目录)
   - [技术栈](#技术栈)
   - [部署](#部署)
@@ -63,14 +66,15 @@
   - [管理员配置](#管理员配置)
   - [AndroidTV 使用](#androidtv-使用)
   - [TVBox 对接](#tvbox-对接)
+    - [本地存储(localstorage)模式](#本地存储localstorage模式)
   - [Selene 使用](#selene-使用)
-  - [Roadmap](#roadmap)
   - [安全与隐私提醒](#安全与隐私提醒)
     - [请设置密码保护并关闭公网注册](#请设置密码保护并关闭公网注册)
     - [部署要求](#部署要求)
     - [重要声明](#重要声明)
   - [License](#license)
   - [致谢](#致谢)
+  - [⭐ Star 趋势](#-star-趋势)
 
 ## 技术栈
 
@@ -234,7 +238,7 @@ services:
 | NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE | 豆瓣图片代理类型                             | 见下方                           | direct                                                                                                                     |
 | NEXT_PUBLIC_DOUBAN_IMAGE_PROXY      | 自定义豆瓣图片代理 URL                       | url prefix                       | (空)                                                                                                                       |
 | NEXT_PUBLIC_DISABLE_YELLOW_FILTER   | 关闭色情内容过滤                             | true/false                       | false                                                                                                                      |
-| NEXT_PUBLIC_DANMU_API_BASE_URL      | 弹幕接口地址                             | 接口地址                       | https://dm.stardm.us.kg                                                                                                                      |
+| NEXT_PUBLIC_DANMU_API_BASE_URL      | 弹幕接口地址                             | 接口地址                       | (空)                                                                                                                      |
 
 NEXT_PUBLIC_DOUBAN_PROXY_TYPE 选项解释：
 

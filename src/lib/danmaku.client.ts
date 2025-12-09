@@ -17,7 +17,7 @@ function getDanmakuApiBaseUrl(): string {
   const baseUrl =
     (window as any).RUNTIME_CONFIG?.DANMU_API_BASE_URL ||
     process.env.NEXT_PUBLIC_DANMU_API_BASE_URL ||
-    'https://dm.stardm.us.kg';
+    '';
 
   return baseUrl;
 }
@@ -271,7 +271,7 @@ export async function searchAnime(
  * @param animeTitle 动漫标题（搜索关键字）
  */
 
-export async function matchAnime(fileName: string) {
+export async function matchAnime(fileName: string, signal?: AbortSignal) {
   if (!fileName) {
     throw new Error("fileName 不能为空");
   }
@@ -284,7 +284,8 @@ export async function matchAnime(fileName: string) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ fileName })
+      body: JSON.stringify({ fileName }),
+      signal
     });
 
     if (!response.ok) {

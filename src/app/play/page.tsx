@@ -117,6 +117,7 @@ function PlayPageClient() {
   const [selectedDanmakuEpisode, setSelectedDanmakuEpisode] = useState<number | undefined>(undefined);
   const [showDanmakuSelector, setShowDanmakuSelector] = useState(false);
   const selectedDanmakuSourceRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // 同步 ref
   useEffect(() => {
@@ -138,20 +139,12 @@ function PlayPageClient() {
   const [searchTitle] = useState(searchParams.get('stitle') || '');
   const [searchType] = useState(searchParams.get('stype') || '');
 
-  // 是否需要优选
-  const [needPrefer, _setNeedPrefer] = useState(
-    searchParams.get('prefer') === 'true'
-  );
-  const needPreferRef = useRef(needPrefer);
-  useEffect(() => {
-    needPreferRef.current = needPrefer;
-  }, [needPrefer]);
   // 集数相关
   const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
 
   // 自动匹配弹幕设置
   const [autoDanmakuEnabled, setAutoDanmakuEnabled] = useState(false);
-  const [preferredDanmakuPlatform, setPreferredDanmakuPlatform] = useState("bilibili1");  
+  const [preferredDanmakuPlatform, setPreferredDanmakuPlatform] = useState("bilibili1");
 
   const [currentTooltip, setCurrentTooltip] = useState('');
   const [selectedState, setSelectedState] = useState(false);
@@ -168,6 +161,7 @@ function PlayPageClient() {
     if (savedPlatform) {
       setPreferredDanmakuPlatform(savedPlatform);
     }
+
   }, []);
 
   const currentSourceRef = useRef(currentSource);
@@ -308,9 +302,15 @@ function PlayPageClient() {
 
   // 播放源优选函数
   const preferBestSource = async (
-    sources: SearchResult[]
+    sources: SearchResult[],
+    isCancelled?: () => boolean
   ): Promise<SearchResult> => {
     if (sources.length === 1) return sources[0];
+
+    // 检查是否已取消
+    if (isCancelled?.()) {
+      throw new Error('优选已取消');
+    }
 
     // 将播放源均分为两批，并发测速各批，避免一次性过多请求
     const batchSize = Math.ceil(sources.length / 2);
@@ -320,6 +320,10 @@ function PlayPageClient() {
     } | null> = [];
 
     for (let start = 0; start < sources.length; start += batchSize) {
+      // 检查是否已取消
+      if (isCancelled?.()) {
+        throw new Error('优选已取消');
+      }
       const batchSources = sources.slice(start, start + batchSize);
       const batchResults = await Promise.all(
         batchSources.map(async (source) => {
@@ -375,10 +379,16 @@ function PlayPageClient() {
       testResult: { quality: string; loadSpeed: string; pingTime: number };
     }>;
 
+    // 检查是否已取消
+    if (isCancelled?.()) {
+      throw new Error('优选已取消');
+    }
     setPrecomputedVideoInfo(newVideoInfoMap);
 
     if (successfulResults.length === 0) {
       console.warn('所有播放源测速都失败，使用第一个播放源');
+      // 虽然没有测速结果，但仍更新 availableSources 以保持一致性（顺序不变）
+      setAvailableSources(sources);
       return sources[0];
     }
 
@@ -431,6 +441,35 @@ function PlayPageClient() {
         }, ${result.testResult.pingTime}ms)`
       );
     });
+
+    // 构建评分映射
+    const scoreMap = new Map<string, number>();
+    resultsWithScore.forEach((result) => {
+      const key = `${result.source.source}-${result.source.id}`;
+      scoreMap.set(key, result.score);
+    });
+
+    // 为所有源（包括测速失败的）添加评分，失败源评分设为 -1
+    const scoredSources = sources.map((source, index) => {
+      const key = `${source.source}-${source.id}`;
+      const score = scoreMap.get(key) ?? -1;
+      return { source, score, index };
+    });
+
+    // 按评分降序排序，评分相同则保持原顺序
+    scoredSources.sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+      return a.index - b.index;
+    });
+
+    const sortedSources = scoredSources.map(item => item.source);
+
+    // 检查是否已取消
+    if (isCancelled?.()) {
+      throw new Error('优选已取消');
+    }
+    // 更新 availableSources 状态，使列表按评分排序
+    setAvailableSources(sortedSources);
 
     return resultsWithScore[0].source;
   };
@@ -863,8 +902,21 @@ function PlayPageClient() {
           ? '🎬 正在获取视频详情...'
           : '🔍 正在搜索播放源...'
       );
+      // 从 localStorage 读取是否启用优选播放源（避免状态延迟）
+      const enablePreferBestSourceFromStorage = (() => {
+        if (typeof window === 'undefined') return false;
+        const saved = localStorage.getItem('enablePreferBestSource');
+        if (saved === null) return false;
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return false;
+        }
+      })();
+
       let detailData: SearchResult | null = null;
       let allResults: SearchResult[] = [];
+      let hasInitialized = false; // 标记是否已经初始化过播放数据
 
       await fetchSourcesData(videoTitle, (newResults) => {
         allResults = [...allResults, ...newResults];
@@ -876,7 +928,12 @@ function PlayPageClient() {
           );
           if (match) {
             detailData = match;
-            initDetail(detailData);
+            // 如果未启用优选，立即初始化播放数据
+            if (!enablePreferBestSourceFromStorage) {
+              initDetail(detailData);
+              hasInitialized = true;
+            }
+            // 如果启用优选，则等待所有源收集完再决定是否优选
           }
         }
       });
@@ -884,13 +941,31 @@ function PlayPageClient() {
       // 流式搜索结束：如果目标源没找到，就 fallback
       if (!detailData && allResults.length > 0) {
         detailData = allResults[0];
-        initDetail(detailData);
       }
 
       // 完全没结果
       if (!detailData) {
         setError('未找到匹配结果');
         setLoading(false);
+        return;
+      }
+
+      if (enablePreferBestSourceFromStorage && allResults.length > 1) {
+        setLoadingStage('preferring');
+        setLoadingMessage('🚀 正在优选播放源...');
+        try {
+          const bestSource = await preferBestSource(allResults);
+          // preferBestSource 内部已经排序了 availableSources 并设置了 precomputedVideoInfo
+          detailData = bestSource;
+        } catch (err) {
+          console.error('优选播放源失败:', err);
+          // 失败时使用原来的 detailData
+        }
+      }
+
+      // 如果尚未初始化播放数据，则初始化
+      if (!hasInitialized) {
+        initDetail(detailData);
       }
     };
 
@@ -900,6 +975,13 @@ function PlayPageClient() {
   // 视频初始化后即可匹配弹幕
   useEffect(() => {
     if (!autoDanmakuEnabled || !detail || !isDanmakuPluginReady) return;
+
+    // 取消之前的请求
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     (async () => {
       setIsDanmakuLoading(true);
@@ -923,8 +1005,11 @@ function PlayPageClient() {
         const season = extractSeasonFromTitle(title);
         const fileName = `${title} S${season}E${epNum} @${platform}`;
 
-        const matches = await matchAnime(fileName);
+        const matches = await matchAnime(fileName, abortController.signal);
         console.log("初始化自动匹配:", matches);
+
+        // 如果请求已被取消，则忽略结果
+        if (abortController.signal.aborted) return;
 
         if (matches.length > 0) {
           const m = matches[0];
@@ -946,17 +1031,32 @@ function PlayPageClient() {
           setSelectedDanmakuAnime(animeOption);
           setSelectedDanmakuSource(platform);
 
-        }else {
+        } else {
           triggerGlobalError("自动加载弹幕失败，请手动选择弹幕源");
         }
       } catch (err) {
+        // 如果是取消错误，不显示错误
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('自动加载弹幕已取消');
+          return;
+        }
         console.error("初始化自动加载弹幕失败:", err);
         triggerGlobalError("自动加载弹幕失败，请手动选择弹幕源");
       } finally {
-        setIsDanmakuLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsDanmakuLoading(false);
+        }
       }
     })();
-  }, [currentEpisodeIndex, autoDanmakuEnabled, isDanmakuPluginReady]);
+
+    // 清理函数：当依赖项变化或组件卸载时中止请求
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [currentEpisodeIndex, autoDanmakuEnabled, isDanmakuPluginReady, preferredDanmakuPlatform]);
 
 
   // 播放记录处理
