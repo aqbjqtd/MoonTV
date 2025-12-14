@@ -884,6 +884,12 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
               >
                 分组
               </th>
+              <th
+                scope='col'
+                className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+              >
+                最后在线
+              </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
@@ -966,6 +972,11 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
                           {user.group || '-'}
+                        </td>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
+                          {user.lastOnline
+                            ? new Date(user.lastOnline).toLocaleString('zh-CN', { hour12: false })
+                            : '-'}
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <span

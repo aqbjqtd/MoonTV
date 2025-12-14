@@ -13,6 +13,7 @@ import { NavigationLoadingIndicator } from '../components/NavigationLoadingIndic
 import { NavigationLoadingProvider } from '../components/NavigationLoadingProvider';
 import { SiteProvider } from '../components/SiteProvider';
 import SubscriptionAutoUpdate from '../components/SubscriptionAutoUpdate';
+import UserOnlineUpdate from '../components/UserOnlineUpdate';
 import { ThemeProvider } from '../components/ThemeProvider';
 
 export const runtime = 'edge';
@@ -116,6 +117,7 @@ export default async function RootLayout({
           <NavigationLoadingProvider>
             <SiteProvider siteName={siteName} announcement={announcement}>
               <NavigationLoadingIndicator />
+              <UserOnlineUpdate />
               {children}
               <GlobalErrorIndicator />
               {autoUpdateEnabled && <SubscriptionAutoUpdate />}
